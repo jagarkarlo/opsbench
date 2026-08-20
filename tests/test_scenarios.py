@@ -1,6 +1,12 @@
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 
-from opsbench.scenarios import SUPPORTED_SCHEMA_VERSION, ScenarioManifest
+from opsbench.scenarios import (
+    SUPPORTED_SCHEMA_VERSION,
+    ScenarioManifest,
+    load_manifest,
+)
 
 
 class ScenarioManifestTests(unittest.TestCase):
@@ -108,6 +114,69 @@ class ScenarioManifestTests(unittest.TestCase):
         self.assertNotEqual(
             original_manifest.content_hash(), changed_manifest.content_hash()
         )
+
+
+class LoadManifestTests(unittest.TestCase):
+    def write_manifest(self, directory: Path, content: str) -> Path:
+        path = directory / "scenario.json"
+        path.write_text(content, encoding="utf-8")
+        return path
+
+    def test_loads_valid_manifest(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            manifest_path = self.write_manifest(
+                Path(temporary_directory),
+                """{
+                    "schema_version": "1.0",
+                    "scenario_id": "kubernetes-crashloop-001",
+                    "title": "Diagnose a CrashLoopBackOff deployment",
+                    "category": "kubernetes"
+                }""",
+            )
+
+            manifest = load_manifest(manifest_path)
+
+        self.assertEqual(manifest.scenario_id, "kubernetes-crashloop-001")
+
+    def test_rejects_invalid_json_and_non_object_roots(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            invalid_json_path = self.write_manifest(directory, "not-json")
+            with self.assertRaisesRegex(ValueError, "manifest is not valid JSON"):
+                load_manifest(invalid_json_path)
+
+            list_path = self.write_manifest(directory, "[]")
+            with self.assertRaisesRegex(ValueError, "manifest root must be a JSON object"):
+                load_manifest(list_path)
+
+    def test_rejects_missing_and_unknown_fields(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            missing_field_path = self.write_manifest(
+                directory,
+                '{"schema_version":"1.0","scenario_id":"example-001",'
+                '"title":"Example"}',
+            )
+            with self.assertRaisesRegex(ValueError, "manifest is missing fields: category"):
+                load_manifest(missing_field_path)
+
+            unknown_field_path = self.write_manifest(
+                directory,
+                '{"schema_version":"1.0","scenario_id":"example-001",'
+                '"title":"Example","category":"kubernetes","extra":true}',
+            )
+            with self.assertRaisesRegex(ValueError, "manifest has unknown fields"):
+                load_manifest(unknown_field_path)
+
+    def test_rejects_oversized_or_missing_files(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            oversized_path = self.write_manifest(directory, "{" + '"x":' + '"' + "a" * 100 + '"}')
+            with self.assertRaisesRegex(ValueError, "manifest exceeds maximum size"):
+                load_manifest(oversized_path, max_bytes=16)
+
+            with self.assertRaisesRegex(ValueError, "manifest must be a file"):
+                load_manifest(directory / "missing.json")
 
 
 if __name__ == "__main__":

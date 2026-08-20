@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+from pathlib import Path
+from typing import Any
 
 
 SUPPORTED_SCHEMA_VERSION = "1.0"
@@ -17,6 +19,8 @@ SUPPORTED_CATEGORIES = frozenset(
         "terraform",
     }
 )
+MAX_MANIFEST_BYTES = 64 * 1024
+MANIFEST_FIELDS = frozenset({"category", "scenario_id", "schema_version", "title"})
 
 
 @dataclass(frozen=True)
@@ -73,3 +77,32 @@ class ScenarioManifest:
     def content_hash(self) -> str:
         """Return the SHA-256 digest of the canonical manifest representation."""
         return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
+
+
+def load_manifest(path: Path, *, max_bytes: int = MAX_MANIFEST_BYTES) -> ScenarioManifest:
+    """Load one bounded JSON manifest into the versioned scenario contract."""
+    if max_bytes <= 0:
+        raise ValueError("max_bytes must be positive")
+    if not path.is_file():
+        raise ValueError(f"manifest must be a file: {path}")
+    if path.stat().st_size > max_bytes:
+        raise ValueError(f"manifest exceeds maximum size of {max_bytes} bytes")
+
+    try:
+        decoded: Any = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"manifest is not valid JSON: {path}") from error
+
+    if not isinstance(decoded, dict):
+        raise ValueError("manifest root must be a JSON object")
+
+    actual_fields = frozenset(decoded)
+    missing_fields = MANIFEST_FIELDS - actual_fields
+    if missing_fields:
+        raise ValueError(f"manifest is missing fields: {', '.join(sorted(missing_fields))}")
+
+    unknown_fields = actual_fields - MANIFEST_FIELDS
+    if unknown_fields:
+        raise ValueError(f"manifest has unknown fields: {', '.join(sorted(unknown_fields))}")
+
+    return ScenarioManifest(**decoded)
