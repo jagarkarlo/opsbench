@@ -23,6 +23,25 @@ class ScenarioManifestTests(unittest.TestCase):
                 schema_version="2.0",
             )
 
+    def test_rejects_non_string_fields(self) -> None:
+        for field_name, value in (
+            ("scenario_id", 1),
+            ("title", None),
+            ("category", ["kubernetes"]),
+            ("schema_version", 1.0),
+        ):
+            manifest_fields = {
+                "scenario_id": "kubernetes-crashloop-001",
+                "title": "Diagnose a CrashLoopBackOff deployment",
+                "category": "kubernetes",
+                "schema_version": SUPPORTED_SCHEMA_VERSION,
+            }
+            manifest_fields[field_name] = value
+
+            with self.subTest(field_name=field_name):
+                with self.assertRaisesRegex(ValueError, f"{field_name} must be a string"):
+                    ScenarioManifest(**manifest_fields)
+
     def test_rejects_missing_identity_fields(self) -> None:
         with self.assertRaisesRegex(ValueError, "scenario_id must not be empty"):
             ScenarioManifest(

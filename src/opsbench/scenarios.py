@@ -29,6 +29,14 @@ class ScenarioManifest:
     schema_version: str = SUPPORTED_SCHEMA_VERSION
 
     def __post_init__(self) -> None:
+        for field_name, value in (
+            ("scenario_id", self.scenario_id),
+            ("title", self.title),
+            ("category", self.category),
+            ("schema_version", self.schema_version),
+        ):
+            if not isinstance(value, str):
+                raise ValueError(f"{field_name} must be a string")
         if self.schema_version != SUPPORTED_SCHEMA_VERSION:
             raise ValueError(
                 f"unsupported schema_version: {self.schema_version!r}; "
