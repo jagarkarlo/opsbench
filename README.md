@@ -1,5 +1,10 @@
 # OpsBench
 
+<p align="center">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-3FB950?style=for-the-badge" />
+</p>
+
 OpsBench is an open benchmark for measuring how safely and accurately AI
 systems diagnose DevOps incidents. It packages reproducible scenarios, evidence,
 expected findings, permitted actions, forbidden actions, and deterministic
