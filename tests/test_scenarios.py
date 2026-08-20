@@ -3,7 +3,9 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from opsbench.scenarios import (
+    MAX_EVIDENCE_BYTES,
     SUPPORTED_SCHEMA_VERSION,
+    EvidenceArtifact,
     ScenarioManifest,
     load_manifest,
 )
@@ -177,6 +179,53 @@ class LoadManifestTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "manifest must be a file"):
                 load_manifest(directory / "missing.json")
+
+
+class EvidenceArtifactTests(unittest.TestCase):
+    def test_hashes_evidence_bytes_deterministically(self) -> None:
+        artifact = EvidenceArtifact(
+            artifact_id="pod-logs.txt",
+            media_type="text/plain",
+            content=b"container exited with status 1\n",
+        )
+
+        self.assertEqual(
+            artifact.content_hash(),
+            "fc6876f1a5c354c8290662f762c836eb4b2ba161751d32b9bd5c0990550cea54",
+        )
+
+    def test_rejects_unsafe_or_invalid_artifacts(self) -> None:
+        cases = (
+            (
+                {"artifact_id": "", "media_type": "text/plain", "content": b"valid"},
+                "artifact_id must be a non-empty string",
+            ),
+            (
+                {"artifact_id": "../secret", "media_type": "text/plain", "content": b"valid"},
+                "artifact_id must not contain path separators",
+            ),
+            (
+                {"artifact_id": "logs.txt", "media_type": "text", "content": b"valid"},
+                "media_type must be a MIME type",
+            ),
+            (
+                {"artifact_id": "logs.txt", "media_type": "text/plain", "content": "valid"},
+                "content must be bytes",
+            ),
+        )
+
+        for fields, error_message in cases:
+            with self.subTest(fields=fields):
+                with self.assertRaisesRegex(ValueError, error_message):
+                    EvidenceArtifact(**fields)
+
+    def test_rejects_oversized_evidence(self) -> None:
+        with self.assertRaisesRegex(ValueError, "evidence exceeds maximum size"):
+            EvidenceArtifact(
+                artifact_id="logs.txt",
+                media_type="text/plain",
+                content=b"a" * (MAX_EVIDENCE_BYTES + 1),
+            )
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ SUPPORTED_CATEGORIES = frozenset(
 )
 MAX_MANIFEST_BYTES = 64 * 1024
 MANIFEST_FIELDS = frozenset({"category", "scenario_id", "schema_version", "title"})
+MAX_EVIDENCE_BYTES = 512 * 1024
 
 
 @dataclass(frozen=True)
@@ -77,6 +78,31 @@ class ScenarioManifest:
     def content_hash(self) -> str:
         """Return the SHA-256 digest of the canonical manifest representation."""
         return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
+
+
+@dataclass(frozen=True)
+class EvidenceArtifact:
+    """Immutable, content-addressed evidence supplied to a benchmark response."""
+
+    artifact_id: str
+    media_type: str
+    content: bytes
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.artifact_id, str) or not self.artifact_id.strip():
+            raise ValueError("artifact_id must be a non-empty string")
+        if "/" in self.artifact_id or "\\" in self.artifact_id:
+            raise ValueError("artifact_id must not contain path separators")
+        if not isinstance(self.media_type, str) or "/" not in self.media_type:
+            raise ValueError("media_type must be a MIME type")
+        if not isinstance(self.content, bytes):
+            raise ValueError("content must be bytes")
+        if len(self.content) > MAX_EVIDENCE_BYTES:
+            raise ValueError(f"evidence exceeds maximum size of {MAX_EVIDENCE_BYTES} bytes")
+
+    def content_hash(self) -> str:
+        """Return the SHA-256 digest of the original evidence bytes."""
+        return hashlib.sha256(self.content).hexdigest()
 
 
 def load_manifest(path: Path, *, max_bytes: int = MAX_MANIFEST_BYTES) -> ScenarioManifest:
