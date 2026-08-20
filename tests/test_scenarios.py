@@ -46,6 +46,50 @@ class ScenarioManifestTests(unittest.TestCase):
                 category="networking",
             )
 
+    def test_serializes_manifest_with_stable_key_order(self) -> None:
+        manifest = ScenarioManifest(
+            scenario_id="kubernetes-crashloop-001",
+            title="Diagnose a CrashLoopBackOff deployment",
+            category="kubernetes",
+        )
+
+        self.assertEqual(
+            manifest.canonical_json(),
+            '{"category":"kubernetes","scenario_id":"kubernetes-crashloop-001",'
+            '"schema_version":"1.0","title":"Diagnose a CrashLoopBackOff deployment"}',
+        )
+
+    def test_hash_is_reproducible_for_equivalent_manifests(self) -> None:
+        first_manifest = ScenarioManifest(
+            scenario_id="kubernetes-crashloop-001",
+            title="Diagnose a CrashLoopBackOff deployment",
+            category="kubernetes",
+        )
+        second_manifest = ScenarioManifest(
+            category="kubernetes",
+            title="Diagnose a CrashLoopBackOff deployment",
+            scenario_id="kubernetes-crashloop-001",
+        )
+
+        self.assertEqual(first_manifest.content_hash(), second_manifest.content_hash())
+        self.assertEqual(len(first_manifest.content_hash()), 64)
+
+    def test_hash_changes_when_manifest_content_changes(self) -> None:
+        original_manifest = ScenarioManifest(
+            scenario_id="kubernetes-crashloop-001",
+            title="Diagnose a CrashLoopBackOff deployment",
+            category="kubernetes",
+        )
+        changed_manifest = ScenarioManifest(
+            scenario_id="kubernetes-crashloop-001",
+            title="Diagnose a CrashLoopBackOff deployment",
+            category="observability",
+        )
+
+        self.assertNotEqual(
+            original_manifest.content_hash(), changed_manifest.content_hash()
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

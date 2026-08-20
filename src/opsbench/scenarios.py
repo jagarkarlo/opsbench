@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
+import json
 
 
 SUPPORTED_SCHEMA_VERSION = "1.0"
@@ -41,3 +43,25 @@ class ScenarioManifest:
             raise ValueError(
                 f"category must be one of: {supported_categories}"
             )
+
+    def to_dict(self) -> dict[str, str]:
+        """Return the complete schema-owned representation of this manifest."""
+        return {
+            "category": self.category,
+            "scenario_id": self.scenario_id,
+            "schema_version": self.schema_version,
+            "title": self.title,
+        }
+
+    def canonical_json(self) -> str:
+        """Serialize the manifest into stable JSON for content-addressed storage."""
+        return json.dumps(
+            self.to_dict(),
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+
+    def content_hash(self) -> str:
+        """Return the SHA-256 digest of the canonical manifest representation."""
+        return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
