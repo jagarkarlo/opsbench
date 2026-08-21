@@ -7,6 +7,7 @@ from opsbench.scenarios import (
     SUPPORTED_SCHEMA_VERSION,
     EvidenceArtifact,
     ScenarioManifest,
+    ScenarioPack,
     load_manifest,
 )
 
@@ -226,6 +227,37 @@ class EvidenceArtifactTests(unittest.TestCase):
                 media_type="text/plain",
                 content=b"a" * (MAX_EVIDENCE_BYTES + 1),
             )
+
+
+class ScenarioPackTests(unittest.TestCase):
+    def build_manifest(self) -> ScenarioManifest:
+        return ScenarioManifest(
+            scenario_id="kubernetes-crashloop-001",
+            title="Diagnose a CrashLoopBackOff deployment",
+            category="kubernetes",
+        )
+
+    def test_pack_hash_is_independent_of_evidence_input_order(self) -> None:
+        logs = EvidenceArtifact("pod-logs.txt", "text/plain", b"exit status 1\n")
+        manifest = EvidenceArtifact("deployment.yaml", "application/yaml", b"kind: Deployment\n")
+
+        first_pack = ScenarioPack(self.build_manifest(), (logs, manifest))
+        second_pack = ScenarioPack(self.build_manifest(), (manifest, logs))
+
+        self.assertEqual(first_pack.content_hash(), second_pack.content_hash())
+
+    def test_pack_rejects_invalid_evidence_collections(self) -> None:
+        manifest = self.build_manifest()
+        artifact = EvidenceArtifact("pod-logs.txt", "text/plain", b"exit status 1\n")
+
+        with self.assertRaisesRegex(ValueError, "at least one evidence artifact"):
+            ScenarioPack(manifest, ())
+
+        with self.assertRaisesRegex(ValueError, "artifact IDs must be unique"):
+            ScenarioPack(manifest, (artifact, artifact))
+
+        with self.assertRaisesRegex(ValueError, "only EvidenceArtifact values"):
+            ScenarioPack(manifest, ("not-an-artifact",))
 
 
 if __name__ == "__main__":

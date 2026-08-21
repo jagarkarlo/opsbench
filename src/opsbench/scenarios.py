@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 
 SUPPORTED_SCHEMA_VERSION = "1.0"
@@ -103,6 +103,55 @@ class EvidenceArtifact:
     def content_hash(self) -> str:
         """Return the SHA-256 digest of the original evidence bytes."""
         return hashlib.sha256(self.content).hexdigest()
+
+
+@dataclass(frozen=True)
+class ScenarioPack:
+    """Complete immutable input bundle for one reproducible benchmark scenario."""
+
+    manifest: ScenarioManifest
+    evidence: Sequence[EvidenceArtifact]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.manifest, ScenarioManifest):
+            raise ValueError("manifest must be a ScenarioManifest")
+        if not isinstance(self.evidence, tuple):
+            object.__setattr__(self, "evidence", tuple(self.evidence))
+        if not self.evidence:
+            raise ValueError("scenario pack must contain at least one evidence artifact")
+        if not all(isinstance(artifact, EvidenceArtifact) for artifact in self.evidence):
+            raise ValueError("evidence must contain only EvidenceArtifact values")
+
+        artifact_ids = [artifact.artifact_id for artifact in self.evidence]
+        if len(artifact_ids) != len(set(artifact_ids)):
+            raise ValueError("evidence artifact IDs must be unique")
+
+    def canonical_json(self) -> str:
+        """Return the stable representation used to identify this complete input bundle."""
+        evidence = sorted(
+            (
+                {
+                    "artifact_id": artifact.artifact_id,
+                    "content_hash": artifact.content_hash(),
+                    "media_type": artifact.media_type,
+                }
+                for artifact in self.evidence
+            ),
+            key=lambda artifact: artifact["artifact_id"],
+        )
+        return json.dumps(
+            {
+                "evidence": evidence,
+                "manifest": self.manifest.to_dict(),
+            },
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+
+    def content_hash(self) -> str:
+        """Return the SHA-256 digest for the manifest and evidence identities."""
+        return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
 
 
 def load_manifest(path: Path, *, max_bytes: int = MAX_MANIFEST_BYTES) -> ScenarioManifest:
