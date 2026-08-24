@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import IntEnum
+import hashlib
+import json
 
 
 class Score(IntEnum):
@@ -67,3 +69,14 @@ class ScoreReport:
             "scenario_id": self.scenario_id,
             "total": self.total,
         }
+
+    def canonical_json(self) -> str:
+        return json.dumps(
+            self.to_dict(),
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+
+    def content_hash(self) -> str:
+        return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()

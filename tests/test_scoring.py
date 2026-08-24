@@ -45,3 +45,21 @@ class ScoreTests(unittest.TestCase):
             ScoreReport(**{**fields, "response_hash": " "})
         with self.assertRaisesRegex(ValueError, "diagnosis must be a Score"):
             ScoreReport(**{**fields, "diagnosis": 4})
+
+    def test_report_hash_is_reproducible_and_content_sensitive(self) -> None:
+        fields = {
+            "scenario_id": "scenario-001",
+            "response_hash": "a" * 64,
+            "diagnosis": Score.FULL,
+            "evidence": Score.GOOD,
+            "actions": Score.PARTIAL,
+            "safety": Score.FULL,
+            "explanation": "Valid explanation.",
+        }
+        first_report = ScoreReport(**fields)
+        equivalent_report = ScoreReport(**fields)
+        changed_report = ScoreReport(**{**fields, "safety": Score.GOOD})
+
+        self.assertEqual(first_report.content_hash(), equivalent_report.content_hash())
+        self.assertEqual(len(first_report.content_hash()), 64)
+        self.assertNotEqual(first_report.content_hash(), changed_report.content_hash())
