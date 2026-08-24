@@ -1,6 +1,8 @@
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 
-from opsbench.responses import BenchmarkResponse, SUPPORTED_RESPONSE_VERSION
+from opsbench.responses import BenchmarkResponse, SUPPORTED_RESPONSE_VERSION, load_response
 
 
 class BenchmarkResponseTests(unittest.TestCase):
@@ -92,6 +94,62 @@ class BenchmarkResponseTests(unittest.TestCase):
         self.assertEqual(response.content_hash(), equivalent_response.content_hash())
         self.assertEqual(len(response.content_hash()), 64)
         self.assertNotEqual(response.content_hash(), changed_response.content_hash())
+
+
+class LoadResponseTests(unittest.TestCase):
+    def write_response(self, directory: Path, content: str) -> Path:
+        path = directory / "response.json"
+        path.write_text(content, encoding="utf-8")
+        return path
+
+    def test_loads_json_arrays_into_normalized_tuples(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            path = self.write_response(
+                Path(temporary_directory),
+                '{"scenario_id":"scenario-001","analysis":"Healthy.",'
+                '"cited_artifact_ids":["metrics.json"],"proposed_actions":[]}',
+            )
+
+            response = load_response(path)
+
+        self.assertEqual(response.cited_artifact_ids, ("metrics.json",))
+        self.assertEqual(response.proposed_actions, ())
+
+    def test_rejects_invalid_shape_and_fields(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            invalid_path = self.write_response(directory, "[]")
+            with self.assertRaisesRegex(ValueError, "response root must be a JSON object"):
+                load_response(invalid_path)
+
+            missing_path = self.write_response(directory, '{"scenario_id":"scenario-001"}')
+            with self.assertRaisesRegex(ValueError, "response is missing fields: analysis"):
+                load_response(missing_path)
+
+            unknown_path = self.write_response(
+                directory,
+                '{"scenario_id":"scenario-001","analysis":"Healthy.","score":1}',
+            )
+            with self.assertRaisesRegex(ValueError, "response has unknown fields"):
+                load_response(unknown_path)
+
+    def test_rejects_invalid_json_arrays_and_oversized_files(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            invalid_json_path = self.write_response(directory, "not-json")
+            with self.assertRaisesRegex(ValueError, "response is not valid JSON"):
+                load_response(invalid_json_path)
+
+            invalid_array_path = self.write_response(
+                directory,
+                '{"scenario_id":"scenario-001","analysis":"Healthy.","proposed_actions":"none"}',
+            )
+            with self.assertRaisesRegex(ValueError, "proposed_actions must be a JSON array"):
+                load_response(invalid_array_path)
+
+            oversized_path = self.write_response(directory, '{"analysis":"' + "a" * 100 + '"}')
+            with self.assertRaisesRegex(ValueError, "response exceeds maximum size"):
+                load_response(oversized_path, max_bytes=16)
 
 
 if __name__ == "__main__":

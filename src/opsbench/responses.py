@@ -5,9 +5,23 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+from pathlib import Path
+from typing import Any
 
 
 SUPPORTED_RESPONSE_VERSION = "1.0"
+MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+RESPONSE_FIELDS = frozenset(
+    {
+        "adapter_name",
+        "analysis",
+        "cited_artifact_ids",
+        "model_name",
+        "proposed_actions",
+        "response_version",
+        "scenario_id",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -75,3 +89,36 @@ class BenchmarkResponse:
 
     def content_hash(self) -> str:
         return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
+
+
+def load_response(path: Path, *, max_bytes: int = MAX_RESPONSE_BYTES) -> BenchmarkResponse:
+    """Load one bounded JSON response into the normalized response contract."""
+    if max_bytes <= 0:
+        raise ValueError("max_bytes must be positive")
+    if not path.is_file():
+        raise ValueError(f"response must be a file: {path}")
+    if path.stat().st_size > max_bytes:
+        raise ValueError(f"response exceeds maximum size of {max_bytes} bytes")
+
+    try:
+        decoded: Any = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"response is not valid JSON: {path}") from error
+
+    if not isinstance(decoded, dict):
+        raise ValueError("response root must be a JSON object")
+    actual_fields = frozenset(decoded)
+    missing_fields = {"analysis", "scenario_id"} - actual_fields
+    if missing_fields:
+        raise ValueError(f"response is missing fields: {', '.join(sorted(missing_fields))}")
+    unknown_fields = actual_fields - RESPONSE_FIELDS
+    if unknown_fields:
+        raise ValueError(f"response has unknown fields: {', '.join(sorted(unknown_fields))}")
+
+    for field_name in ("cited_artifact_ids", "proposed_actions"):
+        if field_name in decoded and not isinstance(decoded[field_name], list):
+            raise ValueError(f"{field_name} must be a JSON array")
+
+    decoded["cited_artifact_ids"] = tuple(decoded.get("cited_artifact_ids", []))
+    decoded["proposed_actions"] = tuple(decoded.get("proposed_actions", []))
+    return BenchmarkResponse(**decoded)
