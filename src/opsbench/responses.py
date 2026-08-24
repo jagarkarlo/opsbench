@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 import json
 
 
@@ -71,3 +72,6 @@ class BenchmarkResponse:
             separators=(",", ":"),
             sort_keys=True,
         )
+
+    def content_hash(self) -> str:
+        return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()

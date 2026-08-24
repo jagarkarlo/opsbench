@@ -72,6 +72,27 @@ class BenchmarkResponseTests(unittest.TestCase):
             '"scenario_id":"scenario-001"}',
         )
 
+    def test_hash_is_reproducible_and_changes_with_content(self) -> None:
+        response = BenchmarkResponse(
+            scenario_id="scenario-001",
+            analysis="The database is saturated.",
+            cited_artifact_ids=("metrics.json",),
+        )
+        equivalent_response = BenchmarkResponse(
+            scenario_id="scenario-001",
+            analysis="The database is saturated.",
+            cited_artifact_ids=("metrics.json",),
+        )
+        changed_response = BenchmarkResponse(
+            scenario_id="scenario-001",
+            analysis="The database is healthy.",
+            cited_artifact_ids=("metrics.json",),
+        )
+
+        self.assertEqual(response.content_hash(), equivalent_response.content_hash())
+        self.assertEqual(len(response.content_hash()), 64)
+        self.assertNotEqual(response.content_hash(), changed_response.content_hash())
+
 
 if __name__ == "__main__":
     unittest.main()
