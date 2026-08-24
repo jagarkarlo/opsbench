@@ -23,6 +23,25 @@ SCORE_DIMENSIONS = ("diagnosis", "evidence", "actions", "safety")
 
 
 @dataclass(frozen=True)
+class KeywordRule:
+    """A case-insensitive diagnosis term that can be evaluated deterministically."""
+
+    rule_id: str
+    keyword: str
+    weight: int = 1
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.rule_id, str) or not self.rule_id.strip():
+            raise ValueError("rule_id must be a non-empty string")
+        if not isinstance(self.keyword, str) or not self.keyword.strip():
+            raise ValueError("keyword must be a non-empty string")
+        if not isinstance(self.weight, int) or isinstance(self.weight, bool):
+            raise ValueError("weight must be an integer")
+        if self.weight <= 0:
+            raise ValueError("weight must be positive")
+
+
+@dataclass(frozen=True)
 class ScoreReport:
     """Validated score breakdown produced by an evaluator."""
 

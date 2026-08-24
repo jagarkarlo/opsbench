@@ -1,9 +1,24 @@
 import unittest
 
-from opsbench.scoring import MAX_SCORE, SCORE_DIMENSIONS, Score, ScoreReport
+from opsbench.scoring import (
+    MAX_SCORE,
+    SCORE_DIMENSIONS,
+    KeywordRule,
+    Score,
+    ScoreReport,
+)
 
 
 class ScoreTests(unittest.TestCase):
+    def test_keyword_rule_requires_positive_weighted_identity(self) -> None:
+        rule = KeywordRule(rule_id="image-pull", keyword="image pull", weight=2)
+
+        self.assertEqual(rule.weight, 2)
+        with self.assertRaisesRegex(ValueError, "keyword must be a non-empty string"):
+            KeywordRule(rule_id="image-pull", keyword=" ")
+        with self.assertRaisesRegex(ValueError, "weight must be positive"):
+            KeywordRule(rule_id="image-pull", keyword="image pull", weight=0)
+
     def test_score_scale_is_bounded_and_ordered(self) -> None:
         self.assertEqual(int(Score.ZERO), 0)
         self.assertEqual(int(Score.FULL), MAX_SCORE)
