@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 
 
 SUPPORTED_RESPONSE_VERSION = "1.0"
@@ -51,3 +52,22 @@ class BenchmarkResponse:
             raise ValueError("cited_artifact_ids must not contain empty values")
         if any(not value.strip() for value in self.proposed_actions):
             raise ValueError("proposed_actions must not contain empty values")
+
+    def to_dict(self) -> dict[str, str | None | list[str]]:
+        return {
+            "adapter_name": self.adapter_name,
+            "analysis": self.analysis,
+            "cited_artifact_ids": list(self.cited_artifact_ids),
+            "model_name": self.model_name,
+            "proposed_actions": list(self.proposed_actions),
+            "response_version": self.response_version,
+            "scenario_id": self.scenario_id,
+        }
+
+    def canonical_json(self) -> str:
+        return json.dumps(
+            self.to_dict(),
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        )

@@ -54,6 +54,24 @@ class BenchmarkResponseTests(unittest.TestCase):
                 proposed_actions=(" ",),
             )
 
+    def test_serializes_schema_fields_in_stable_json(self) -> None:
+        response = BenchmarkResponse(
+            scenario_id="scenario-001",
+            analysis="The database is saturated.",
+            cited_artifact_ids=("metrics.json",),
+            proposed_actions=("scale readers",),
+            model_name="fixture-model",
+            adapter_name="fixture",
+        )
+
+        self.assertEqual(
+            response.canonical_json(),
+            '{"adapter_name":"fixture","analysis":"The database is saturated.",'
+            '"cited_artifact_ids":["metrics.json"],"model_name":"fixture-model",'
+            '"proposed_actions":["scale readers"],"response_version":"1.0",'
+            '"scenario_id":"scenario-001"}',
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
