@@ -6,6 +6,7 @@ from opsbench.scoring import (
     KeywordRule,
     Score,
     ScoreReport,
+    evaluate_keyword_rules,
 )
 
 
@@ -18,6 +19,25 @@ class ScoreTests(unittest.TestCase):
             KeywordRule(rule_id="image-pull", keyword=" ")
         with self.assertRaisesRegex(ValueError, "weight must be positive"):
             KeywordRule(rule_id="image-pull", keyword="image pull", weight=0)
+
+    def test_keyword_rules_match_case_insensitively_and_cap_score(self) -> None:
+        rules = (
+            KeywordRule(rule_id="image-pull", keyword="image pull", weight=2),
+            KeywordRule(rule_id="rollback", keyword="rollback", weight=3),
+        )
+
+        score, matched_rule_ids = evaluate_keyword_rules(
+            "The IMAGE PULL failed; rollback is safe.", rules
+        )
+
+        self.assertEqual(score, Score.FULL)
+        self.assertEqual(matched_rule_ids, ("image-pull", "rollback"))
+
+    def test_keyword_rules_reject_invalid_inputs(self) -> None:
+        with self.assertRaisesRegex(ValueError, "analysis must be a string"):
+            evaluate_keyword_rules(None, ())
+        with self.assertRaisesRegex(ValueError, "rules must be a tuple"):
+            evaluate_keyword_rules("analysis", [])
 
     def test_score_scale_is_bounded_and_ordered(self) -> None:
         self.assertEqual(int(Score.ZERO), 0)

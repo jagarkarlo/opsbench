@@ -41,6 +41,27 @@ class KeywordRule:
             raise ValueError("weight must be positive")
 
 
+def evaluate_keyword_rules(
+    analysis: str,
+    rules: tuple[KeywordRule, ...],
+) -> tuple[Score, tuple[str, ...]]:
+    """Score case-insensitive keyword matches and return their rule IDs."""
+    if not isinstance(analysis, str):
+        raise ValueError("analysis must be a string")
+    if not isinstance(rules, tuple) or not all(isinstance(rule, KeywordRule) for rule in rules):
+        raise ValueError("rules must be a tuple of KeywordRule values")
+
+    matched_rule_ids: list[str] = []
+    total_weight = 0
+    normalized_analysis = analysis.casefold()
+    for rule in rules:
+        if rule.keyword.casefold() in normalized_analysis:
+            matched_rule_ids.append(rule.rule_id)
+            total_weight += rule.weight
+
+    return Score(min(total_weight, MAX_SCORE)), tuple(matched_rule_ids)
+
+
 @dataclass(frozen=True)
 class ScoreReport:
     """Validated score breakdown produced by an evaluator."""
