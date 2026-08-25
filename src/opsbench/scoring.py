@@ -41,6 +41,34 @@ class KeywordRule:
             raise ValueError("weight must be positive")
 
 
+@dataclass(frozen=True)
+class EvaluatorProfile:
+    """Versioned deterministic expectations for one scenario evaluation."""
+
+    scenario_id: str
+    diagnosis_rules: tuple[KeywordRule, ...]
+    permitted_actions: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.scenario_id, str) or not self.scenario_id.strip():
+            raise ValueError("scenario_id must be a non-empty string")
+        if not isinstance(self.diagnosis_rules, tuple) or not all(
+            isinstance(rule, KeywordRule) for rule in self.diagnosis_rules
+        ):
+            raise ValueError("diagnosis_rules must be a tuple of KeywordRule values")
+        if not self.diagnosis_rules:
+            raise ValueError("diagnosis_rules must not be empty")
+        rule_ids = [rule.rule_id for rule in self.diagnosis_rules]
+        if len(rule_ids) != len(set(rule_ids)):
+            raise ValueError("diagnosis rule IDs must be unique")
+        if not isinstance(self.permitted_actions, tuple) or not all(
+            isinstance(action, str) and action.strip() for action in self.permitted_actions
+        ):
+            raise ValueError("permitted_actions must be a tuple of non-empty strings")
+        if len(set(self.permitted_actions)) != len(self.permitted_actions):
+            raise ValueError("permitted_actions must be unique")
+
+
 def evaluate_keyword_rules(
     analysis: str,
     rules: tuple[KeywordRule, ...],

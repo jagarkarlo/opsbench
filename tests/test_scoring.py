@@ -4,6 +4,7 @@ from opsbench.scoring import (
     MAX_SCORE,
     SCORE_DIMENSIONS,
     KeywordRule,
+    EvaluatorProfile,
     Score,
     ScoreReport,
     evaluate_keyword_rules,
@@ -11,6 +12,26 @@ from opsbench.scoring import (
 
 
 class ScoreTests(unittest.TestCase):
+    def test_evaluator_profile_requires_unique_rules_and_actions(self) -> None:
+        image_rule = KeywordRule("image-pull", "image pull", weight=2)
+        profile = EvaluatorProfile(
+            scenario_id="kubernetes-image-reference-001",
+            diagnosis_rules=(image_rule,),
+            permitted_actions=("correct image reference",),
+        )
+
+        self.assertEqual(profile.scenario_id, "kubernetes-image-reference-001")
+        with self.assertRaisesRegex(ValueError, "diagnosis_rules must not be empty"):
+            EvaluatorProfile("scenario-001", ())
+        with self.assertRaisesRegex(ValueError, "diagnosis rule IDs must be unique"):
+            EvaluatorProfile("scenario-001", (image_rule, image_rule))
+        with self.assertRaisesRegex(ValueError, "permitted_actions must be unique"):
+            EvaluatorProfile(
+                "scenario-001",
+                (image_rule,),
+                ("correct image reference", "correct image reference"),
+            )
+
     def test_keyword_rule_requires_positive_weighted_identity(self) -> None:
         rule = KeywordRule(rule_id="image-pull", keyword="image pull", weight=2)
 
