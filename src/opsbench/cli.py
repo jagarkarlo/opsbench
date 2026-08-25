@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from opsbench.scenarios import load_scenario_pack
+from opsbench.scenarios import load_gallery, load_scenario_pack
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -38,6 +38,24 @@ def main(argv: list[str] | None = None) -> int:
                     "pack_hash": pack.content_hash(),
                     "scenario_id": pack.manifest.scenario_id,
                     "valid": True,
+                },
+                sort_keys=True,
+            )
+        )
+    if parsed.command == "scenario" and parsed.scenario_command == "list":
+        gallery = load_gallery(Path(parsed.path))
+        print(
+            json.dumps(
+                {
+                    "scenario_count": len(gallery.scenarios),
+                    "scenarios": [
+                        {
+                            "category": scenario.manifest.category,
+                            "scenario_id": scenario.manifest.scenario_id,
+                            "title": scenario.manifest.title,
+                        }
+                        for scenario in gallery.scenarios
+                    ],
                 },
                 sort_keys=True,
             )
