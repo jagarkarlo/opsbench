@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import json
+from pathlib import Path
+
+from opsbench.scenarios import load_scenario_pack
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -22,8 +26,22 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Parse CLI arguments; command behavior is added in subsequent milestones."""
-    build_parser().parse_args(argv)
+    """Execute one local scenario command."""
+    parsed = build_parser().parse_args(argv)
+    if parsed.command == "scenario" and parsed.scenario_command == "validate":
+        pack = load_scenario_pack(Path(parsed.path))
+        print(
+            json.dumps(
+                {
+                    "category": pack.manifest.category,
+                    "evidence_count": len(pack.evidence),
+                    "pack_hash": pack.content_hash(),
+                    "scenario_id": pack.manifest.scenario_id,
+                    "valid": True,
+                },
+                sort_keys=True,
+            )
+        )
     return 0
 
 
