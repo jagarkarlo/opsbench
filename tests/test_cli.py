@@ -22,6 +22,16 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(parsed.scenario_command, "list")
         self.assertEqual(parsed.path, "scenarios")
 
+    def test_parses_response_evaluate_command(self) -> None:
+        parsed = build_parser().parse_args(
+            ["response", "evaluate", "scenarios/example", "responses/example.json"]
+        )
+
+        self.assertEqual(parsed.command, "response")
+        self.assertEqual(parsed.response_command, "evaluate")
+        self.assertEqual(parsed.scenario_path, "scenarios/example")
+        self.assertEqual(parsed.response_path, "responses/example.json")
+
     def test_validates_scenario_directory_and_prints_pack_identity(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             directory = Path(temporary_directory)
