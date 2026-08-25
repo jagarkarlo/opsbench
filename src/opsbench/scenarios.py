@@ -129,6 +129,28 @@ class EvidenceReference:
 
 
 @dataclass(frozen=True)
+class ScenarioDescriptor:
+    """Scenario metadata and evidence references before evidence bytes are loaded."""
+
+    manifest: ScenarioManifest
+    evidence: Sequence[EvidenceReference]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.manifest, ScenarioManifest):
+            raise ValueError("manifest must be a ScenarioManifest")
+        if not isinstance(self.evidence, tuple):
+            object.__setattr__(self, "evidence", tuple(self.evidence))
+        if not self.evidence:
+            raise ValueError("scenario descriptor must contain at least one evidence reference")
+        if not all(isinstance(reference, EvidenceReference) for reference in self.evidence):
+            raise ValueError("evidence must contain only EvidenceReference values")
+
+        artifact_ids = [reference.artifact_id for reference in self.evidence]
+        if len(artifact_ids) != len(set(artifact_ids)):
+            raise ValueError("evidence artifact IDs must be unique")
+
+
+@dataclass(frozen=True)
 class ScenarioPack:
     """Complete immutable input bundle for one reproducible benchmark scenario."""
 

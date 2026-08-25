@@ -8,6 +8,7 @@ from opsbench.scenarios import (
     EvidenceArtifact,
     EvidenceReference,
     ScenarioManifest,
+    ScenarioDescriptor,
     ScenarioPack,
     load_manifest,
 )
@@ -256,6 +257,36 @@ class EvidenceReferenceTests(unittest.TestCase):
                         media_type="text/plain",
                         relative_path=relative_path,
                     )
+
+
+class ScenarioDescriptorTests(unittest.TestCase):
+    def build_manifest(self) -> ScenarioManifest:
+        return ScenarioManifest(
+            scenario_id="kubernetes-crashloop-001",
+            title="Diagnose a fictional CrashLoopBackOff deployment",
+            category="kubernetes",
+        )
+
+    def test_accepts_non_empty_unique_evidence_references(self) -> None:
+        descriptor = ScenarioDescriptor(
+            self.build_manifest(),
+            (
+                EvidenceReference("pod-logs.txt", "text/plain", "pod-logs.txt"),
+                EvidenceReference("deployment.yaml", "application/yaml", "deployment.yaml"),
+            ),
+        )
+
+        self.assertEqual(len(descriptor.evidence), 2)
+
+    def test_rejects_empty_duplicate_or_invalid_references(self) -> None:
+        reference = EvidenceReference("pod-logs.txt", "text/plain", "pod-logs.txt")
+
+        with self.assertRaisesRegex(ValueError, "at least one evidence reference"):
+            ScenarioDescriptor(self.build_manifest(), ())
+        with self.assertRaisesRegex(ValueError, "artifact IDs must be unique"):
+            ScenarioDescriptor(self.build_manifest(), (reference, reference))
+        with self.assertRaisesRegex(ValueError, "only EvidenceReference values"):
+            ScenarioDescriptor(self.build_manifest(), ("invalid",))
 
 
 class ScenarioPackTests(unittest.TestCase):
