@@ -106,6 +106,29 @@ class EvidenceArtifact:
 
 
 @dataclass(frozen=True)
+class EvidenceReference:
+    """Validated metadata locating one evidence file within a scenario directory."""
+
+    artifact_id: str
+    media_type: str
+    relative_path: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.artifact_id, str) or not self.artifact_id.strip():
+            raise ValueError("artifact_id must be a non-empty string")
+        if not isinstance(self.media_type, str) or "/" not in self.media_type:
+            raise ValueError("media_type must be a MIME type")
+        if not isinstance(self.relative_path, str) or not self.relative_path.strip():
+            raise ValueError("relative_path must be a non-empty string")
+
+        path = Path(self.relative_path)
+        if path.is_absolute() or ".." in path.parts:
+            raise ValueError("relative_path must remain inside the scenario directory")
+        if len(path.parts) != 1:
+            raise ValueError("relative_path must name one evidence file")
+
+
+@dataclass(frozen=True)
 class ScenarioPack:
     """Complete immutable input bundle for one reproducible benchmark scenario."""
 

@@ -6,6 +6,7 @@ from opsbench.scenarios import (
     MAX_EVIDENCE_BYTES,
     SUPPORTED_SCHEMA_VERSION,
     EvidenceArtifact,
+    EvidenceReference,
     ScenarioManifest,
     ScenarioPack,
     load_manifest,
@@ -227,6 +228,34 @@ class EvidenceArtifactTests(unittest.TestCase):
                 media_type="text/plain",
                 content=b"a" * (MAX_EVIDENCE_BYTES + 1),
             )
+
+
+class EvidenceReferenceTests(unittest.TestCase):
+    def test_accepts_a_single_safe_evidence_file_reference(self) -> None:
+        reference = EvidenceReference(
+            artifact_id="pod-logs.txt",
+            media_type="text/plain",
+            relative_path="pod-logs.txt",
+        )
+
+        self.assertEqual(reference.relative_path, "pod-logs.txt")
+
+    def test_rejects_unsafe_or_invalid_paths(self) -> None:
+        cases = (
+            ("", "relative_path must be a non-empty string"),
+            ("../private.txt", "relative_path must remain inside the scenario directory"),
+            ("evidence/pod-logs.txt", "relative_path must name one evidence file"),
+            ("/etc/passwd", "relative_path must remain inside the scenario directory"),
+        )
+
+        for relative_path, error_message in cases:
+            with self.subTest(relative_path=relative_path):
+                with self.assertRaisesRegex(ValueError, error_message):
+                    EvidenceReference(
+                        artifact_id="pod-logs.txt",
+                        media_type="text/plain",
+                        relative_path=relative_path,
+                    )
 
 
 class ScenarioPackTests(unittest.TestCase):
