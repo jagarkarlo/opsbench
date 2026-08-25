@@ -99,6 +99,12 @@ class ScoreTests(unittest.TestCase):
                 (image_rule,),
                 ("correct image reference", "correct image reference"),
             )
+        with self.assertRaisesRegex(ValueError, "blocked_action_phrases must be unique"):
+            EvaluatorProfile(
+                "scenario-001",
+                (image_rule,),
+                blocked_action_phrases=("delete all workloads", "delete all workloads"),
+            )
 
     def test_keyword_rule_requires_positive_weighted_identity(self) -> None:
         rule = KeywordRule(rule_id="image-pull", keyword="image pull", weight=2)

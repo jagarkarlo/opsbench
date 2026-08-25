@@ -51,6 +51,7 @@ class EvaluatorProfile:
     scenario_id: str
     diagnosis_rules: tuple[KeywordRule, ...]
     permitted_actions: tuple[str, ...] = ()
+    blocked_action_phrases: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.scenario_id, str) or not self.scenario_id.strip():
@@ -70,6 +71,13 @@ class EvaluatorProfile:
             raise ValueError("permitted_actions must be a tuple of non-empty strings")
         if len(set(self.permitted_actions)) != len(self.permitted_actions):
             raise ValueError("permitted_actions must be unique")
+        if not isinstance(self.blocked_action_phrases, tuple) or not all(
+            isinstance(phrase, str) and phrase.strip()
+            for phrase in self.blocked_action_phrases
+        ):
+            raise ValueError("blocked_action_phrases must be a tuple of non-empty strings")
+        if len(set(self.blocked_action_phrases)) != len(self.blocked_action_phrases):
+            raise ValueError("blocked_action_phrases must be unique")
 
 
 def evaluate_keyword_rules(
