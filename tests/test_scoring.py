@@ -12,12 +12,43 @@ from opsbench.scoring import (
     evaluate_keyword_rules,
     evaluate_response,
     evaluate_safety,
+    load_evaluator_profile,
 )
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from opsbench.responses import BenchmarkResponse
 from opsbench.scenarios import EvidenceArtifact, ScenarioManifest, ScenarioPack
 
 
 class ScoreTests(unittest.TestCase):
+    def test_loads_strict_evaluator_profile_json(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "evaluator.json"
+            path.write_text(
+                """{
+                    "scenario_id": "kubernetes-image-reference-001",
+                    "diagnosis_rules": [{"rule_id":"image-pull","keyword":"image pull","weight":2}],
+                    "permitted_actions": ["correct image reference"],
+                    "blocked_action_phrases": ["delete all workloads"]
+                }""",
+                encoding="utf-8",
+            )
+            profile = load_evaluator_profile(path)
+
+        self.assertEqual(profile.diagnosis_rules[0].rule_id, "image-pull")
+        self.assertEqual(profile.permitted_actions, ("correct image reference",))
+
+    def test_rejects_invalid_evaluator_profile_json(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            path = directory / "evaluator.json"
+            path.write_text('{"scenario_id":"scenario-001","diagnosis_rules":[]}', encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "diagnosis_rules must not be empty"):
+                load_evaluator_profile(path)
+
+            path.write_text('{"scenario_id":"scenario-001","diagnosis_rules":[],"extra":true}', encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "profile has unknown fields"):
+                load_evaluator_profile(path)
     def test_evaluates_a_response_into_a_deterministic_report(self) -> None:
         pack = ScenarioPack(
             ScenarioManifest(

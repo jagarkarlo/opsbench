@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from enum import IntEnum
 import hashlib
 import json
+from pathlib import Path
+from typing import Any
 
 from opsbench.responses import BenchmarkResponse
 from opsbench.scenarios import ScenarioPack
@@ -23,6 +25,11 @@ class Score(IntEnum):
 
 MAX_SCORE = int(Score.FULL)
 SCORE_DIMENSIONS = ("diagnosis", "evidence", "actions", "safety")
+MAX_PROFILE_BYTES = 64 * 1024
+PROFILE_FIELDS = frozenset(
+    {"scenario_id", "diagnosis_rules", "permitted_actions", "blocked_action_phrases"}
+)
+KEYWORD_RULE_FIELDS = frozenset({"rule_id", "keyword", "weight"})
 
 
 @dataclass(frozen=True)
@@ -78,6 +85,54 @@ class EvaluatorProfile:
             raise ValueError("blocked_action_phrases must be a tuple of non-empty strings")
         if len(set(self.blocked_action_phrases)) != len(self.blocked_action_phrases):
             raise ValueError("blocked_action_phrases must be unique")
+
+
+def load_evaluator_profile(
+    path: Path,
+    *,
+    max_bytes: int = MAX_PROFILE_BYTES,
+) -> EvaluatorProfile:
+    """Load a bounded strict JSON evaluator profile."""
+    if max_bytes <= 0:
+        raise ValueError("max_bytes must be positive")
+    if not path.is_file():
+        raise ValueError(f"profile must be a file: {path}")
+    if path.stat().st_size > max_bytes:
+        raise ValueError(f"profile exceeds maximum size of {max_bytes} bytes")
+    try:
+        decoded: Any = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"profile is not valid JSON: {path}") from error
+    if not isinstance(decoded, dict):
+        raise ValueError("profile root must be a JSON object")
+
+    fields = frozenset(decoded)
+    missing_fields = {"scenario_id", "diagnosis_rules"} - fields
+    if missing_fields:
+        raise ValueError(f"profile is missing fields: {', '.join(sorted(missing_fields))}")
+    unknown_fields = fields - PROFILE_FIELDS
+    if unknown_fields:
+        raise ValueError(f"profile has unknown fields: {', '.join(sorted(unknown_fields))}")
+    if not isinstance(decoded["diagnosis_rules"], list):
+        raise ValueError("diagnosis_rules must be a JSON array")
+    for field_name in ("permitted_actions", "blocked_action_phrases"):
+        if field_name in decoded and not isinstance(decoded[field_name], list):
+            raise ValueError(f"{field_name} must be a JSON array")
+
+    rules = []
+    for index, rule in enumerate(decoded["diagnosis_rules"]):
+        if not isinstance(rule, dict):
+            raise ValueError(f"diagnosis_rules[{index}] must be a JSON object")
+        if frozenset(rule) != KEYWORD_RULE_FIELDS:
+            raise ValueError(f"diagnosis_rules[{index}] fields must match keyword rule schema")
+        rules.append(KeywordRule(**rule))
+
+    return EvaluatorProfile(
+        scenario_id=decoded["scenario_id"],
+        diagnosis_rules=tuple(rules),
+        permitted_actions=tuple(decoded.get("permitted_actions", [])),
+        blocked_action_phrases=tuple(decoded.get("blocked_action_phrases", [])),
+    )
 
 
 def evaluate_keyword_rules(
