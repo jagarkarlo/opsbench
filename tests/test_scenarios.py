@@ -12,6 +12,7 @@ from opsbench.scenarios import (
     ScenarioPack,
     load_descriptor,
     load_manifest,
+    load_scenario_pack,
 )
 
 
@@ -349,6 +350,61 @@ class LoadDescriptorTests(unittest.TestCase):
                 r"evidence\[0\] fields invalid \(missing: relative_path; unknown: extra\)",
             ):
                 load_descriptor(path)
+
+
+class LoadScenarioPackTests(unittest.TestCase):
+    def write_descriptor(self, directory: Path, evidence_path: str = "pod-logs.txt") -> None:
+        (directory / "scenario.json").write_text(
+            """{
+                "manifest": {
+                    "schema_version": "1.0",
+                    "scenario_id": "kubernetes-crashloop-001",
+                    "title": "Diagnose a fictional CrashLoopBackOff deployment",
+                    "category": "kubernetes"
+                },
+                "evidence": [{
+                    "artifact_id": "pod-logs.txt",
+                    "media_type": "text/plain",
+                    "relative_path": "%s"
+                }]
+            }""" % evidence_path,
+            encoding="utf-8",
+        )
+
+    def test_materializes_declared_evidence_into_a_pack(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            self.write_descriptor(directory)
+            (directory / "pod-logs.txt").write_text(
+                "container restarted after a fictional configuration error\n",
+                encoding="utf-8",
+            )
+
+            pack = load_scenario_pack(directory)
+
+        self.assertEqual(pack.manifest.scenario_id, "kubernetes-crashloop-001")
+        self.assertEqual(pack.evidence[0].content, b"container restarted after a fictional configuration error\n")
+
+    def test_rejects_missing_directory_or_evidence_file(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            with self.assertRaisesRegex(ValueError, "scenario directory must be a directory"):
+                load_scenario_pack(directory / "missing")
+
+            self.write_descriptor(directory)
+            with self.assertRaisesRegex(ValueError, "evidence file must exist: pod-logs.txt"):
+                load_scenario_pack(directory)
+
+    def test_rejects_symlinked_evidence_outside_directory(self) -> None:
+        with TemporaryDirectory() as temporary_directory, TemporaryDirectory() as outside_directory:
+            directory = Path(temporary_directory)
+            outside_file = Path(outside_directory) / "outside.txt"
+            outside_file.write_text("private data must not be loaded\n", encoding="utf-8")
+            self.write_descriptor(directory)
+            (directory / "pod-logs.txt").symlink_to(outside_file)
+
+            with self.assertRaisesRegex(ValueError, "evidence path escapes scenario directory"):
+                load_scenario_pack(directory)
 
 
 class ScenarioPackTests(unittest.TestCase):

@@ -211,6 +211,36 @@ def load_descriptor(path: Path, *, max_bytes: int = MAX_MANIFEST_BYTES) -> Scena
     return ScenarioDescriptor(ScenarioManifest(**decoded["manifest"]), tuple(references))
 
 
+def load_scenario_pack(directory: Path) -> ScenarioPack:
+    """Materialize declared, contained evidence files into a reproducible scenario pack."""
+    if not directory.is_dir():
+        raise ValueError(f"scenario directory must be a directory: {directory}")
+
+    resolved_directory = directory.resolve()
+    descriptor = load_descriptor(resolved_directory / "scenario.json")
+    artifacts: list[EvidenceArtifact] = []
+    for reference in descriptor.evidence:
+        candidate = (resolved_directory / reference.relative_path).resolve()
+        if candidate.parent != resolved_directory:
+            raise ValueError(f"evidence path escapes scenario directory: {reference.relative_path}")
+        if not candidate.is_file():
+            raise ValueError(f"evidence file must exist: {reference.relative_path}")
+        if candidate.stat().st_size > MAX_EVIDENCE_BYTES:
+            raise ValueError(
+                f"evidence file exceeds maximum size of {MAX_EVIDENCE_BYTES} bytes: "
+                f"{reference.relative_path}"
+            )
+        artifacts.append(
+            EvidenceArtifact(
+                artifact_id=reference.artifact_id,
+                media_type=reference.media_type,
+                content=candidate.read_bytes(),
+            )
+        )
+
+    return ScenarioPack(descriptor.manifest, tuple(artifacts))
+
+
 @dataclass(frozen=True)
 class ScenarioPack:
     """Complete immutable input bundle for one reproducible benchmark scenario."""
