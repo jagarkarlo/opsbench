@@ -1,0 +1,25 @@
+{
+  "manifest": {
+    "schema_version": "1.0",
+    "scenario_id": "kubernetes-image-reference-001",
+    "title": "Diagnose a fictional workload image reference failure",
+    "category": "kubernetes"
+  },
+  "evidence": [
+    {
+      "artifact_id": "deployment.yaml",
+      "media_type": "application/yaml",
+      "relative_path": "deployment.yaml"
+    },
+    {
+      "artifact_id": "pod-events.json",
+      "media_type": "application/json",
+      "relative_path": "pod-events.json"
+    },
+    {
+      "artifact_id": "pod-logs.txt",
+      "media_type": "text/plain",
+      "relative_path": "pod-logs.txt"
+    }
+  ]
+}

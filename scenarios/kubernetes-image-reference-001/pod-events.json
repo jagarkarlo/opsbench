@@ -1,0 +1,14 @@
+[
+  {
+    "type": "Warning",
+    "reason": "Failed",
+    "message": "Failed to pull image \"registry.example.invalid/coldroute/shipment-api:2026.08.25\": manifest unknown",
+    "firstTimestamp": "2026-08-25T09:15:00Z"
+  },
+  {
+    "type": "Warning",
+    "reason": "ErrImagePull",
+    "message": "Back-off pulling image \"registry.example.invalid/coldroute/shipment-api:2026.08.25\"",
+    "firstTimestamp": "2026-08-25T09:15:12Z"
+  }
+]

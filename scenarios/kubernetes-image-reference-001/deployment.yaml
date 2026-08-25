@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shipment-api
+  namespace: coldroute-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: shipment-api
+  template:
+    metadata:
+      labels:
+        app: shipment-api
+    spec:
+      containers:
+        - name: shipment-api
+          image: registry.example.invalid/coldroute/shipment-api:2026.08.25
+          ports:
+            - containerPort: 8080

@@ -1,0 +1,2 @@
+The container did not start because the image registry could not provide the requested fictional tag.
+No application logs are available before the image pull succeeds.
