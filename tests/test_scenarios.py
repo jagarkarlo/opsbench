@@ -10,6 +10,7 @@ from opsbench.scenarios import (
     ScenarioManifest,
     ScenarioDescriptor,
     ScenarioPack,
+    load_descriptor,
     load_manifest,
 )
 
@@ -287,6 +288,67 @@ class ScenarioDescriptorTests(unittest.TestCase):
             ScenarioDescriptor(self.build_manifest(), (reference, reference))
         with self.assertRaisesRegex(ValueError, "only EvidenceReference values"):
             ScenarioDescriptor(self.build_manifest(), ("invalid",))
+
+
+class LoadDescriptorTests(unittest.TestCase):
+    def write_descriptor(self, directory: Path, content: str) -> Path:
+        path = directory / "scenario.json"
+        path.write_text(content, encoding="utf-8")
+        return path
+
+    def test_loads_manifest_and_evidence_metadata(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            path = self.write_descriptor(
+                Path(temporary_directory),
+                """{
+                    "manifest": {
+                        "schema_version": "1.0",
+                        "scenario_id": "kubernetes-crashloop-001",
+                        "title": "Diagnose a fictional CrashLoopBackOff deployment",
+                        "category": "kubernetes"
+                    },
+                    "evidence": [{
+                        "artifact_id": "pod-logs.txt",
+                        "media_type": "text/plain",
+                        "relative_path": "pod-logs.txt"
+                    }]
+                }""",
+            )
+
+            descriptor = load_descriptor(path)
+
+        self.assertEqual(descriptor.manifest.scenario_id, "kubernetes-crashloop-001")
+        self.assertEqual(descriptor.evidence[0].artifact_id, "pod-logs.txt")
+
+    def test_rejects_invalid_root_and_evidence_shapes(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            missing_path = self.write_descriptor(directory, '{"manifest":{}}')
+            with self.assertRaisesRegex(ValueError, "descriptor is missing fields: evidence"):
+                load_descriptor(missing_path)
+
+            invalid_evidence_path = self.write_descriptor(
+                directory,
+                '{"manifest":{"schema_version":"1.0","scenario_id":"example-001",'
+                '"title":"Example","category":"kubernetes"},"evidence":["logs.txt"]}',
+            )
+            with self.assertRaisesRegex(ValueError, r"evidence\[0\] must be a JSON object"):
+                load_descriptor(invalid_evidence_path)
+
+    def test_rejects_invalid_evidence_fields(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            path = self.write_descriptor(
+                Path(temporary_directory),
+                '{"manifest":{"schema_version":"1.0","scenario_id":"example-001",'
+                '"title":"Example","category":"kubernetes"},"evidence":[{'
+                '"artifact_id":"logs.txt","media_type":"text/plain","extra":true}]}',
+            )
+
+            with self.assertRaisesRegex(
+                ValueError,
+                r"evidence\[0\] fields invalid \(missing: relative_path; unknown: extra\)",
+            ):
+                load_descriptor(path)
 
 
 class ScenarioPackTests(unittest.TestCase):

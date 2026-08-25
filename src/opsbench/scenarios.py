@@ -22,6 +22,8 @@ SUPPORTED_CATEGORIES = frozenset(
 MAX_MANIFEST_BYTES = 64 * 1024
 MANIFEST_FIELDS = frozenset({"category", "scenario_id", "schema_version", "title"})
 MAX_EVIDENCE_BYTES = 512 * 1024
+DESCRIPTOR_FIELDS = frozenset({"manifest", "evidence"})
+EVIDENCE_REFERENCE_FIELDS = frozenset({"artifact_id", "media_type", "relative_path"})
 
 
 @dataclass(frozen=True)
@@ -148,6 +150,65 @@ class ScenarioDescriptor:
         artifact_ids = [reference.artifact_id for reference in self.evidence]
         if len(artifact_ids) != len(set(artifact_ids)):
             raise ValueError("evidence artifact IDs must be unique")
+
+
+def load_descriptor(path: Path, *, max_bytes: int = MAX_MANIFEST_BYTES) -> ScenarioDescriptor:
+    """Load validated manifest and evidence metadata from one scenario JSON file."""
+    if max_bytes <= 0:
+        raise ValueError("max_bytes must be positive")
+    if not path.is_file():
+        raise ValueError(f"descriptor must be a file: {path}")
+    if path.stat().st_size > max_bytes:
+        raise ValueError(f"descriptor exceeds maximum size of {max_bytes} bytes")
+
+    try:
+        decoded: Any = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"descriptor is not valid JSON: {path}") from error
+    if not isinstance(decoded, dict):
+        raise ValueError("descriptor root must be a JSON object")
+
+    actual_fields = frozenset(decoded)
+    missing_fields = DESCRIPTOR_FIELDS - actual_fields
+    if missing_fields:
+        raise ValueError(f"descriptor is missing fields: {', '.join(sorted(missing_fields))}")
+    unknown_fields = actual_fields - DESCRIPTOR_FIELDS
+    if unknown_fields:
+        raise ValueError(f"descriptor has unknown fields: {', '.join(sorted(unknown_fields))}")
+    if not isinstance(decoded["manifest"], dict):
+        raise ValueError("manifest must be a JSON object")
+    if not isinstance(decoded["evidence"], list):
+        raise ValueError("evidence must be a JSON array")
+
+    manifest_fields = frozenset(decoded["manifest"])
+    missing_manifest_fields = MANIFEST_FIELDS - manifest_fields
+    if missing_manifest_fields:
+        raise ValueError(
+            f"manifest is missing fields: {', '.join(sorted(missing_manifest_fields))}"
+        )
+    unknown_manifest_fields = manifest_fields - MANIFEST_FIELDS
+    if unknown_manifest_fields:
+        raise ValueError(
+            f"manifest has unknown fields: {', '.join(sorted(unknown_manifest_fields))}"
+        )
+
+    references: list[EvidenceReference] = []
+    for index, evidence in enumerate(decoded["evidence"]):
+        if not isinstance(evidence, dict):
+            raise ValueError(f"evidence[{index}] must be a JSON object")
+        evidence_fields = frozenset(evidence)
+        if evidence_fields != EVIDENCE_REFERENCE_FIELDS:
+            missing_fields = EVIDENCE_REFERENCE_FIELDS - evidence_fields
+            unknown_fields = evidence_fields - EVIDENCE_REFERENCE_FIELDS
+            details = []
+            if missing_fields:
+                details.append(f"missing: {', '.join(sorted(missing_fields))}")
+            if unknown_fields:
+                details.append(f"unknown: {', '.join(sorted(unknown_fields))}")
+            raise ValueError(f"evidence[{index}] fields invalid ({'; '.join(details)})")
+        references.append(EvidenceReference(**evidence))
+
+    return ScenarioDescriptor(ScenarioManifest(**decoded["manifest"]), tuple(references))
 
 
 @dataclass(frozen=True)
