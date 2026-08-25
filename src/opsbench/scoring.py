@@ -7,6 +7,9 @@ from enum import IntEnum
 import hashlib
 import json
 
+from opsbench.responses import BenchmarkResponse
+from opsbench.scenarios import ScenarioPack
+
 
 class Score(IntEnum):
     """Shared five-point scale used by each scoring dimension."""
@@ -88,6 +91,28 @@ def evaluate_keyword_rules(
             total_weight += rule.weight
 
     return Score(min(total_weight, MAX_SCORE)), tuple(matched_rule_ids)
+
+
+def evaluate_citations(
+    pack: ScenarioPack,
+    response: BenchmarkResponse,
+) -> tuple[Score, tuple[str, ...]]:
+    """Score response citations against declared evidence IDs without reading content."""
+    if not isinstance(pack, ScenarioPack):
+        raise ValueError("pack must be a ScenarioPack")
+    if not isinstance(response, BenchmarkResponse):
+        raise ValueError("response must be a BenchmarkResponse")
+    if response.scenario_id != pack.manifest.scenario_id:
+        raise ValueError("response scenario_id must match the scenario pack")
+
+    available_ids = {artifact.artifact_id for artifact in pack.evidence}
+    missing_ids = tuple(
+        artifact_id
+        for artifact_id in response.cited_artifact_ids
+        if artifact_id not in available_ids
+    )
+    valid_count = len(response.cited_artifact_ids) - len(missing_ids)
+    return Score(min(valid_count, MAX_SCORE)), missing_ids
 
 
 @dataclass(frozen=True)

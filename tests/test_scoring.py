@@ -7,11 +7,49 @@ from opsbench.scoring import (
     EvaluatorProfile,
     Score,
     ScoreReport,
+    evaluate_citations,
     evaluate_keyword_rules,
 )
+from opsbench.responses import BenchmarkResponse
+from opsbench.scenarios import EvidenceArtifact, ScenarioManifest, ScenarioPack
 
 
 class ScoreTests(unittest.TestCase):
+    def test_citations_score_declared_artifacts_without_reading_content(self) -> None:
+        pack = ScenarioPack(
+            ScenarioManifest(
+                scenario_id="kubernetes-image-reference-001",
+                title="Diagnose a fictional image reference failure",
+                category="kubernetes",
+            ),
+            (
+                EvidenceArtifact("deployment.yaml", "application/yaml", b"private-like bytes"),
+                EvidenceArtifact("pod-events.json", "application/json", b"event bytes"),
+            ),
+        )
+        response = BenchmarkResponse(
+            scenario_id="kubernetes-image-reference-001",
+            analysis="The image reference should be corrected.",
+            cited_artifact_ids=("deployment.yaml", "missing.txt", "pod-events.json"),
+        )
+
+        score, missing_ids = evaluate_citations(pack, response)
+
+        self.assertEqual(score, Score.PARTIAL)
+        self.assertEqual(missing_ids, ("missing.txt",))
+
+    def test_citations_reject_mismatched_scenario_or_invalid_contracts(self) -> None:
+        pack = ScenarioPack(
+            ScenarioManifest("scenario-001", "Fictional scenario", "kubernetes"),
+            (EvidenceArtifact("logs.txt", "text/plain", b"synthetic logs"),),
+        )
+        response = BenchmarkResponse("other-scenario", "Synthetic analysis")
+
+        with self.assertRaisesRegex(ValueError, "response scenario_id must match"):
+            evaluate_citations(pack, response)
+        with self.assertRaisesRegex(ValueError, "pack must be a ScenarioPack"):
+            evaluate_citations("invalid", response)
+
     def test_evaluator_profile_requires_unique_rules_and_actions(self) -> None:
         image_rule = KeywordRule("image-pull", "image pull", weight=2)
         profile = EvaluatorProfile(
