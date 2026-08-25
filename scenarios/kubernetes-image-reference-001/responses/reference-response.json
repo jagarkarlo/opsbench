@@ -1,0 +1,14 @@
+{
+  "scenario_id": "kubernetes-image-reference-001",
+  "analysis": "The image pull failed because the requested tag returned manifest unknown. The deployment and pod events both identify the unavailable image reference.",
+  "cited_artifact_ids": [
+    "deployment.yaml",
+    "pod-events.json"
+  ],
+  "proposed_actions": [
+    "correct image reference",
+    "verify image tag"
+  ],
+  "model_name": "reference-fixture",
+  "adapter_name": "fixture"
+}

@@ -5,8 +5,9 @@ from pathlib import Path
 import unittest
 
 from opsbench.cli import main
+from opsbench.responses import load_response
 from opsbench.scenarios import load_gallery, load_scenario_pack
-from opsbench.scoring import load_evaluator_profile
+from opsbench.scoring import evaluate_response, load_evaluator_profile
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -32,6 +33,19 @@ class FictionalFixtureGalleryTests(unittest.TestCase):
             [rule.rule_id for rule in profile.diagnosis_rules],
             ["image-pull", "manifest-unknown"],
         )
+
+    def test_reference_response_evaluates_reproducibly(self) -> None:
+        directory = SCENARIOS_DIRECTORY / "kubernetes-image-reference-001"
+        pack = load_scenario_pack(directory)
+        profile = load_evaluator_profile(directory / "evaluator.json")
+        response = load_response(directory / "responses" / "reference-response.json")
+
+        first_report = evaluate_response(pack, profile, response)
+        second_report = evaluate_response(pack, profile, response)
+
+        self.assertEqual(first_report.content_hash(), second_report.content_hash())
+        self.assertEqual(first_report.total, 12)
+        self.assertEqual(first_report.maximum, 16)
 
     def test_lists_fixture_through_cli(self) -> None:
         output = io.StringIO()
