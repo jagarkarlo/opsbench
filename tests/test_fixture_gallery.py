@@ -6,6 +6,7 @@ import unittest
 
 from opsbench.cli import main
 from opsbench.scenarios import load_gallery, load_scenario_pack
+from opsbench.scoring import load_evaluator_profile
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +21,17 @@ class FictionalFixtureGalleryTests(unittest.TestCase):
         self.assertEqual(pack.manifest.category, "kubernetes")
         self.assertEqual(len(pack.evidence), 3)
         self.assertEqual(len(pack.content_hash()), 64)
+
+    def test_fixture_evaluator_profile_matches_scenario(self) -> None:
+        directory = SCENARIOS_DIRECTORY / "kubernetes-image-reference-001"
+        pack = load_scenario_pack(directory)
+        profile = load_evaluator_profile(directory / "evaluator.json")
+
+        self.assertEqual(profile.scenario_id, pack.manifest.scenario_id)
+        self.assertEqual(
+            [rule.rule_id for rule in profile.diagnosis_rules],
+            ["image-pull", "manifest-unknown"],
+        )
 
     def test_lists_fixture_through_cli(self) -> None:
         output = io.StringIO()
