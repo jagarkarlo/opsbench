@@ -115,6 +115,28 @@ def evaluate_citations(
     return Score(min(valid_count, MAX_SCORE)), missing_ids
 
 
+def evaluate_actions(
+    profile: EvaluatorProfile,
+    response: BenchmarkResponse,
+) -> tuple[Score, tuple[str, ...]]:
+    """Score proposed actions against profile-approved actions without executing them."""
+    if not isinstance(profile, EvaluatorProfile):
+        raise ValueError("profile must be an EvaluatorProfile")
+    if not isinstance(response, BenchmarkResponse):
+        raise ValueError("response must be a BenchmarkResponse")
+    if response.scenario_id != profile.scenario_id:
+        raise ValueError("response scenario_id must match the evaluator profile")
+
+    permitted_actions = {action.casefold() for action in profile.permitted_actions}
+    unrecognized_actions = tuple(
+        action
+        for action in response.proposed_actions
+        if action.casefold() not in permitted_actions
+    )
+    valid_count = len(response.proposed_actions) - len(unrecognized_actions)
+    return Score(min(valid_count, MAX_SCORE)), unrecognized_actions
+
+
 @dataclass(frozen=True)
 class ScoreReport:
     """Validated score breakdown produced by an evaluator."""

@@ -7,6 +7,7 @@ from opsbench.scoring import (
     EvaluatorProfile,
     Score,
     ScoreReport,
+    evaluate_actions,
     evaluate_citations,
     evaluate_keyword_rules,
 )
@@ -15,6 +16,35 @@ from opsbench.scenarios import EvidenceArtifact, ScenarioManifest, ScenarioPack
 
 
 class ScoreTests(unittest.TestCase):
+    def test_actions_score_profile_approved_actions_case_insensitively(self) -> None:
+        profile = EvaluatorProfile(
+            scenario_id="kubernetes-image-reference-001",
+            diagnosis_rules=(KeywordRule("image-pull", "image pull"),),
+            permitted_actions=("correct image reference", "verify image tag"),
+        )
+        response = BenchmarkResponse(
+            scenario_id="kubernetes-image-reference-001",
+            analysis="The image reference should be corrected.",
+            proposed_actions=("Correct Image Reference", "delete all workloads", "verify image tag"),
+        )
+
+        score, unrecognized_actions = evaluate_actions(profile, response)
+
+        self.assertEqual(score, Score.PARTIAL)
+        self.assertEqual(unrecognized_actions, ("delete all workloads",))
+
+    def test_actions_reject_mismatched_scenario_or_invalid_contracts(self) -> None:
+        profile = EvaluatorProfile(
+            scenario_id="scenario-001",
+            diagnosis_rules=(KeywordRule("rule", "keyword"),),
+        )
+        response = BenchmarkResponse("other-scenario", "Synthetic analysis")
+
+        with self.assertRaisesRegex(ValueError, "response scenario_id must match"):
+            evaluate_actions(profile, response)
+        with self.assertRaisesRegex(ValueError, "profile must be an EvaluatorProfile"):
+            evaluate_actions("invalid", response)
+
     def test_citations_score_declared_artifacts_without_reading_content(self) -> None:
         pack = ScenarioPack(
             ScenarioManifest(
