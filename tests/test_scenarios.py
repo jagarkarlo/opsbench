@@ -9,9 +9,11 @@ from opsbench.scenarios import (
     EvidenceReference,
     ScenarioManifest,
     ScenarioDescriptor,
+    ScenarioGallery,
     ScenarioPack,
     load_descriptor,
     load_manifest,
+    load_gallery,
     load_scenario_pack,
 )
 
@@ -405,6 +407,61 @@ class LoadScenarioPackTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "evidence path escapes scenario directory"):
                 load_scenario_pack(directory)
+
+
+class ScenarioGalleryTests(unittest.TestCase):
+    def write_scenario(self, gallery: Path, name: str, scenario_id: str) -> None:
+        directory = gallery / name
+        directory.mkdir()
+        (directory / "scenario.json").write_text(
+            """{
+                "manifest": {
+                    "schema_version": "1.0",
+                    "scenario_id": "%s",
+                    "title": "Diagnose a fictional service restart",
+                    "category": "kubernetes"
+                },
+                "evidence": [{
+                    "artifact_id": "pod-logs.txt",
+                    "media_type": "text/plain",
+                    "relative_path": "pod-logs.txt"
+                }]
+            }""" % scenario_id,
+            encoding="utf-8",
+        )
+        (directory / "pod-logs.txt").write_text(
+            "fictional workload restarted after a configuration error\n",
+            encoding="utf-8",
+        )
+
+    def test_discovers_direct_scenario_directories_in_stable_order(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            gallery = Path(temporary_directory)
+            self.write_scenario(gallery, "zeta", "scenario-zeta")
+            self.write_scenario(gallery, "alpha", "scenario-alpha")
+            (gallery / "notes.txt").write_text("not a scenario", encoding="utf-8")
+
+            loaded_gallery = load_gallery(gallery)
+
+        self.assertEqual(
+            [scenario.manifest.scenario_id for scenario in loaded_gallery.scenarios],
+            ["scenario-alpha", "scenario-zeta"],
+        )
+        self.assertEqual(loaded_gallery.by_id("scenario-zeta").manifest.title, "Diagnose a fictional service restart")
+
+    def test_rejects_missing_gallery_and_duplicate_ids(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            gallery = Path(temporary_directory)
+            with self.assertRaisesRegex(ValueError, "gallery directory must be a directory"):
+                load_gallery(gallery / "missing")
+
+            self.write_scenario(gallery, "first", "duplicate-scenario")
+            self.write_scenario(gallery, "second", "duplicate-scenario")
+            with self.assertRaisesRegex(ValueError, "scenario IDs must be unique"):
+                load_gallery(gallery)
+
+        with self.assertRaisesRegex(ValueError, "scenario not found"):
+            ScenarioGallery(()).by_id("missing-scenario")
 
 
 class ScenarioPackTests(unittest.TestCase):

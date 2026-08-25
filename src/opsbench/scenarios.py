@@ -242,6 +242,41 @@ def load_scenario_pack(directory: Path) -> ScenarioPack:
 
 
 @dataclass(frozen=True)
+class ScenarioGallery:
+    """Immutable index of scenario directories available to a local benchmark run."""
+
+    scenarios: tuple[ScenarioPack, ...]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.scenarios, tuple) or not all(
+            isinstance(scenario, ScenarioPack) for scenario in self.scenarios
+        ):
+            raise ValueError("scenarios must be a tuple of ScenarioPack values")
+        scenario_ids = [scenario.manifest.scenario_id for scenario in self.scenarios]
+        if len(scenario_ids) != len(set(scenario_ids)):
+            raise ValueError("scenario IDs must be unique")
+
+    def by_id(self, scenario_id: str) -> ScenarioPack:
+        """Return one indexed scenario by its stable scenario ID."""
+        for scenario in self.scenarios:
+            if scenario.manifest.scenario_id == scenario_id:
+                return scenario
+        raise ValueError(f"scenario not found: {scenario_id}")
+
+
+def load_gallery(directory: Path) -> ScenarioGallery:
+    """Discover complete scenario directories directly below one gallery root."""
+    if not directory.is_dir():
+        raise ValueError(f"gallery directory must be a directory: {directory}")
+
+    scenarios = []
+    for candidate in sorted(directory.iterdir(), key=lambda path: path.name):
+        if candidate.is_dir() and (candidate / "scenario.json").is_file():
+            scenarios.append(load_scenario_pack(candidate))
+    return ScenarioGallery(tuple(scenarios))
+
+
+@dataclass(frozen=True)
 class ScenarioPack:
     """Complete immutable input bundle for one reproducible benchmark scenario."""
 
