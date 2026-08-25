@@ -103,6 +103,57 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(result["scenarios"][0]["scenario_id"], "kubernetes-crashloop-001")
         self.assertNotIn("evidence", result["scenarios"][0])
 
+    def test_evaluates_a_local_fictional_response(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            scenario = Path(temporary_directory) / "scenario"
+            scenario.mkdir()
+            (scenario / "scenario.json").write_text(
+                """{
+                    "manifest": {
+                        "schema_version": "1.0",
+                        "scenario_id": "kubernetes-image-reference-001",
+                        "title": "Diagnose a fictional image reference failure",
+                        "category": "kubernetes"
+                    },
+                    "evidence": [{
+                        "artifact_id": "pod-events.json",
+                        "media_type": "application/json",
+                        "relative_path": "pod-events.json"
+                    }]
+                }""",
+                encoding="utf-8",
+            )
+            (scenario / "pod-events.json").write_text("[]\n", encoding="utf-8")
+            (scenario / "evaluator.json").write_text(
+                """{
+                    "scenario_id": "kubernetes-image-reference-001",
+                    "diagnosis_rules": [{"rule_id":"image-pull","keyword":"image pull","weight":2}],
+                    "permitted_actions": ["correct image reference"],
+                    "blocked_action_phrases": ["delete all workloads"]
+                }""",
+                encoding="utf-8",
+            )
+            response_path = Path(temporary_directory) / "response.json"
+            response_path.write_text(
+                """{
+                    "scenario_id": "kubernetes-image-reference-001",
+                    "analysis": "The image pull failed.",
+                    "cited_artifact_ids": ["pod-events.json"],
+                    "proposed_actions": ["correct image reference"]
+                }""",
+                encoding="utf-8",
+            )
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                exit_code = main(["response", "evaluate", str(scenario), str(response_path)])
+
+        result = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(result["scenario_id"], "kubernetes-image-reference-001")
+        self.assertEqual(result["total"], 8)
+        self.assertEqual(result["maximum"], 16)
+
 
 if __name__ == "__main__":
     unittest.main()

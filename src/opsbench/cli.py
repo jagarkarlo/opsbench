@@ -6,7 +6,9 @@ import argparse
 import json
 from pathlib import Path
 
+from opsbench.responses import load_response
 from opsbench.scenarios import load_gallery, load_scenario_pack
+from opsbench.scoring import evaluate_response, load_evaluator_profile
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -68,6 +70,13 @@ def main(argv: list[str] | None = None) -> int:
                 sort_keys=True,
             )
         )
+    if parsed.command == "response" and parsed.response_command == "evaluate":
+        scenario_path = Path(parsed.scenario_path)
+        pack = load_scenario_pack(scenario_path)
+        profile = load_evaluator_profile(scenario_path / "evaluator.json")
+        response = load_response(Path(parsed.response_path))
+        report = evaluate_response(pack, profile, response)
+        print(json.dumps(report.to_dict(), sort_keys=True))
     return 0
 
 
