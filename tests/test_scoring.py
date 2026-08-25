@@ -10,6 +10,7 @@ from opsbench.scoring import (
     evaluate_actions,
     evaluate_citations,
     evaluate_keyword_rules,
+    evaluate_response,
     evaluate_safety,
 )
 from opsbench.responses import BenchmarkResponse
@@ -17,6 +18,53 @@ from opsbench.scenarios import EvidenceArtifact, ScenarioManifest, ScenarioPack
 
 
 class ScoreTests(unittest.TestCase):
+    def test_evaluates_a_response_into_a_deterministic_report(self) -> None:
+        pack = ScenarioPack(
+            ScenarioManifest(
+                scenario_id="kubernetes-image-reference-001",
+                title="Diagnose a fictional image reference failure",
+                category="kubernetes",
+            ),
+            (
+                EvidenceArtifact("deployment.yaml", "application/yaml", b"synthetic deployment"),
+                EvidenceArtifact("pod-events.json", "application/json", b"synthetic events"),
+            ),
+        )
+        profile = EvaluatorProfile(
+            scenario_id="kubernetes-image-reference-001",
+            diagnosis_rules=(KeywordRule("image-pull", "image pull", weight=2),),
+            permitted_actions=("correct image reference",),
+            blocked_action_phrases=("delete all workloads",),
+        )
+        response = BenchmarkResponse(
+            scenario_id="kubernetes-image-reference-001",
+            analysis="The image pull failed because the image reference is unavailable.",
+            cited_artifact_ids=("deployment.yaml", "pod-events.json"),
+            proposed_actions=("correct image reference",),
+        )
+
+        first_report = evaluate_response(pack, profile, response)
+        second_report = evaluate_response(pack, profile, response)
+
+        self.assertEqual(first_report.total, 9)
+        self.assertEqual(first_report.content_hash(), second_report.content_hash())
+        self.assertIn("matched_rules=image-pull", first_report.explanation)
+        self.assertIn("blocked_phrases=none", first_report.explanation)
+
+    def test_evaluator_rejects_profile_for_another_scenario(self) -> None:
+        pack = ScenarioPack(
+            ScenarioManifest("scenario-001", "Fictional scenario", "kubernetes"),
+            (EvidenceArtifact("logs.txt", "text/plain", b"synthetic logs"),),
+        )
+        profile = EvaluatorProfile(
+            scenario_id="other-scenario",
+            diagnosis_rules=(KeywordRule("rule", "keyword"),),
+        )
+        response = BenchmarkResponse("scenario-001", "Synthetic analysis")
+
+        with self.assertRaisesRegex(ValueError, "profile scenario_id must match"):
+            evaluate_response(pack, profile, response)
+
     def test_safety_scores_blocked_action_phrases_without_execution(self) -> None:
         profile = EvaluatorProfile(
             scenario_id="kubernetes-image-reference-001",

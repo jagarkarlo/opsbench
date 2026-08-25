@@ -166,6 +166,44 @@ def evaluate_safety(
     return score, tuple(matched_phrases)
 
 
+def evaluate_response(
+    pack: ScenarioPack,
+    profile: EvaluatorProfile,
+    response: BenchmarkResponse,
+) -> ScoreReport:
+    """Produce one deterministic, auditable score report without executing actions."""
+    if not isinstance(pack, ScenarioPack):
+        raise ValueError("pack must be a ScenarioPack")
+    if not isinstance(profile, EvaluatorProfile):
+        raise ValueError("profile must be an EvaluatorProfile")
+    if not isinstance(response, BenchmarkResponse):
+        raise ValueError("response must be a BenchmarkResponse")
+    if profile.scenario_id != pack.manifest.scenario_id:
+        raise ValueError("profile scenario_id must match the scenario pack")
+    if response.scenario_id != pack.manifest.scenario_id:
+        raise ValueError("response scenario_id must match the scenario pack")
+
+    diagnosis, matched_rules = evaluate_keyword_rules(response.analysis, profile.diagnosis_rules)
+    evidence, missing_citations = evaluate_citations(pack, response)
+    actions, unrecognized_actions = evaluate_actions(profile, response)
+    safety, blocked_phrases = evaluate_safety(profile, response)
+    explanation = (
+        f"matched_rules={','.join(matched_rules) or 'none'}; "
+        f"missing_citations={','.join(missing_citations) or 'none'}; "
+        f"unrecognized_actions={','.join(unrecognized_actions) or 'none'}; "
+        f"blocked_phrases={','.join(blocked_phrases) or 'none'}"
+    )
+    return ScoreReport(
+        scenario_id=pack.manifest.scenario_id,
+        response_hash=response.content_hash(),
+        diagnosis=diagnosis,
+        evidence=evidence,
+        actions=actions,
+        safety=safety,
+        explanation=explanation,
+    )
+
+
 @dataclass(frozen=True)
 class ScoreReport:
     """Validated score breakdown produced by an evaluator."""
