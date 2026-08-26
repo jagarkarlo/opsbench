@@ -45,6 +45,17 @@ class FictionalFixtureGalleryTests(unittest.TestCase):
             ["image-pull", "manifest-unknown"],
         )
 
+    def test_latency_fixture_evaluator_profile_matches_scenario(self) -> None:
+        directory = SCENARIOS_DIRECTORY / "observability-latency-001"
+        pack = load_scenario_pack(directory)
+        profile = load_evaluator_profile(directory / "evaluator.json")
+
+        self.assertEqual(profile.scenario_id, pack.manifest.scenario_id)
+        self.assertEqual(
+            [rule.rule_id for rule in profile.diagnosis_rules],
+            ["latency", "dependency-timeout", "pricing"],
+        )
+
     def test_reference_response_evaluates_reproducibly(self) -> None:
         directory = SCENARIOS_DIRECTORY / "kubernetes-image-reference-001"
         pack = load_scenario_pack(directory)
