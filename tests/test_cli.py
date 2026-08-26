@@ -22,6 +22,13 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(parsed.scenario_command, "list")
         self.assertEqual(parsed.path, "scenarios")
 
+    def test_parses_scenario_audit_command(self) -> None:
+        parsed = build_parser().parse_args(["scenario", "audit", "scenarios"])
+
+        self.assertEqual(parsed.command, "scenario")
+        self.assertEqual(parsed.scenario_command, "audit")
+        self.assertEqual(parsed.path, "scenarios")
+
     def test_parses_response_evaluate_command(self) -> None:
         parsed = build_parser().parse_args(
             ["response", "evaluate", "scenarios/example", "responses/example.json"]

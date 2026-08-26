@@ -25,6 +25,11 @@ def build_parser() -> argparse.ArgumentParser:
     list_parser = scenario_subparsers.add_parser("list", help="list a local scenario gallery")
     list_parser.add_argument("path")
 
+    audit_parser = scenario_subparsers.add_parser(
+        "audit", help="validate every scenario in a local gallery"
+    )
+    audit_parser.add_argument("path")
+
     response_parser = subparsers.add_parser("response", help="evaluate local benchmark responses")
     response_subparsers = response_parser.add_subparsers(dest="response_command", required=True)
     evaluate_parser = response_subparsers.add_parser(
