@@ -57,6 +57,15 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(parsed.run_id, "fixture-run-001")
         self.assertEqual(parsed.output_path, "results/run.json")
 
+    def test_parses_result_comparison_command(self) -> None:
+        parsed = build_parser().parse_args(
+            ["compare", "results", "results/first.json", "results/second.json"]
+        )
+
+        self.assertEqual(parsed.command, "compare")
+        self.assertEqual(parsed.compare_command, "results")
+        self.assertEqual(parsed.bundle_paths, ["results/first.json", "results/second.json"])
+
     def test_executes_fixture_run_and_writes_result_bundle(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             directory = Path(temporary_directory)

@@ -50,6 +50,13 @@ def build_parser() -> argparse.ArgumentParser:
     fixture_parser.add_argument("response_path")
     fixture_parser.add_argument("output_path")
     fixture_parser.add_argument("--run-id", required=True)
+
+    compare_parser = subparsers.add_parser("compare", help="compare local benchmark results")
+    compare_subparsers = compare_parser.add_subparsers(dest="compare_command", required=True)
+    results_parser = compare_subparsers.add_parser(
+        "results", help="summarize immutable result bundle files"
+    )
+    results_parser.add_argument("bundle_paths", nargs="+")
     return parser
 
 
