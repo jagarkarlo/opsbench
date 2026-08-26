@@ -220,6 +220,23 @@ class ScoreTests(unittest.TestCase):
                 blocked_action_phrases=("delete all workloads", "delete all workloads"),
             )
 
+    def test_evaluator_profile_has_reproducible_content_hash(self) -> None:
+        fields = {
+            "scenario_id": "scenario-001",
+            "diagnosis_rules": (KeywordRule("image-pull", "image pull", weight=2),),
+            "permitted_actions": ("correct image reference",),
+            "blocked_action_phrases": ("delete all workloads",),
+        }
+        first_profile = EvaluatorProfile(**fields)
+        equivalent_profile = EvaluatorProfile(**fields)
+        changed_profile = EvaluatorProfile(
+            **{**fields, "permitted_actions": ("verify image tag",)}
+        )
+
+        self.assertEqual(first_profile.content_hash(), equivalent_profile.content_hash())
+        self.assertEqual(len(first_profile.content_hash()), 64)
+        self.assertNotEqual(first_profile.content_hash(), changed_profile.content_hash())
+
     def test_keyword_rule_requires_positive_weighted_identity(self) -> None:
         rule = KeywordRule(rule_id="image-pull", keyword="image pull", weight=2)
 

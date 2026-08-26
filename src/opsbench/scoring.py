@@ -86,6 +86,28 @@ class EvaluatorProfile:
         if len(set(self.blocked_action_phrases)) != len(self.blocked_action_phrases):
             raise ValueError("blocked_action_phrases must be unique")
 
+    def to_dict(self) -> dict[str, str | list[str] | list[dict[str, int | str]]]:
+        return {
+            "blocked_action_phrases": list(self.blocked_action_phrases),
+            "diagnosis_rules": [
+                {"keyword": rule.keyword, "rule_id": rule.rule_id, "weight": rule.weight}
+                for rule in self.diagnosis_rules
+            ],
+            "permitted_actions": list(self.permitted_actions),
+            "scenario_id": self.scenario_id,
+        }
+
+    def canonical_json(self) -> str:
+        return json.dumps(
+            self.to_dict(),
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+
+    def content_hash(self) -> str:
+        return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
+
 
 def load_evaluator_profile(
     path: Path,
