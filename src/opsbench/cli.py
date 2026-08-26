@@ -8,6 +8,7 @@ from pathlib import Path
 
 from opsbench.adapters import FixtureResponseAdapter, HumanResponseAdapter
 from opsbench.comparisons import compare_bundles, summarize_trials
+from opsbench.prompts import render_prompt
 from opsbench.responses import load_response
 from opsbench.runner import execute_run
 from opsbench.runs import ResultBundle, load_result_bundle, write_result_bundle
@@ -33,7 +34,11 @@ def build_parser() -> argparse.ArgumentParser:
         "audit", help="validate every scenario in a local gallery"
     )
     audit_parser.add_argument("path")
-
+    prompt_parser = scenario_subparsers.add_parser(
+        "prompt", help="render a reproducible LLM prompt from a scenario pack"
+    )
+    prompt_parser.add_argument("path")
+    prompt_parser.add_argument("--instruction", help="custom system instruction")
     response_parser = subparsers.add_parser("response", help="evaluate local benchmark responses")
     response_subparsers = response_parser.add_subparsers(dest="response_command", required=True)
     evaluate_parser = response_subparsers.add_parser(
@@ -123,6 +128,13 @@ def main(argv: list[str] | None = None) -> int:
                 sort_keys=True,
             )
         )
+    if parsed.command == "scenario" and parsed.scenario_command == "prompt":
+        pack = load_scenario_pack(Path(parsed.path))
+        prompt_text = render_prompt(
+            pack,
+            system_instruction=parsed.instruction,
+        )
+        print(prompt_text, end="")
     if parsed.command == "response" and parsed.response_command == "evaluate":
         scenario_path = Path(parsed.scenario_path)
         pack = load_scenario_pack(scenario_path)

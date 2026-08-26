@@ -93,6 +93,12 @@ Validate one scenario pack:
 opsbench scenario validate scenarios/kubernetes-image-reference-001
 ```
 
+Render a structured, reproducible LLM prompt from a scenario pack:
+
+```bash
+opsbench scenario prompt scenarios/kubernetes-image-reference-001
+```
+
 Evaluate the synthetic reference response for a scenario:
 
 ```bash

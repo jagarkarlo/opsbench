@@ -31,6 +31,16 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(parsed.scenario_command, "audit")
         self.assertEqual(parsed.path, "scenarios")
 
+    def test_parses_scenario_prompt_command(self) -> None:
+        parsed = build_parser().parse_args(
+            ["scenario", "prompt", "scenarios/example", "--instruction", "Custom rule"]
+        )
+
+        self.assertEqual(parsed.command, "scenario")
+        self.assertEqual(parsed.scenario_command, "prompt")
+        self.assertEqual(parsed.path, "scenarios/example")
+        self.assertEqual(parsed.instruction, "Custom rule")
+
     def test_parses_response_evaluate_command(self) -> None:
         parsed = build_parser().parse_args(
             ["response", "evaluate", "scenarios/example", "responses/example.json"]
@@ -265,6 +275,48 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(result["evidence_count"], 1)
         self.assertTrue(result["valid"])
         self.assertEqual(len(result["pack_hash"]), 64)
+
+    def test_renders_scenario_prompt_via_cli(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            (directory / "scenario.json").write_text(
+                """{
+                    "manifest": {
+                        "schema_version": "1.0",
+                        "scenario_id": "kubernetes-crashloop-001",
+                        "title": "Diagnose a fictional CrashLoopBackOff deployment",
+                        "category": "kubernetes"
+                    },
+                    "evidence": [{
+                        "artifact_id": "pod-logs.txt",
+                        "media_type": "text/plain",
+                        "relative_path": "pod-logs.txt"
+                    }]
+                }""",
+                encoding="utf-8",
+            )
+            (directory / "pod-logs.txt").write_text(
+                "fictional workload restarted after a configuration error\n",
+                encoding="utf-8",
+            )
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "scenario",
+                        "prompt",
+                        str(directory),
+                        "--instruction",
+                        "Custom CLI instruction.",
+                    ]
+                )
+
+        rendered_text = output.getvalue()
+        self.assertEqual(exit_code, 0)
+        self.assertIn("# Incident Investigation: kubernetes-crashloop-001", rendered_text)
+        self.assertIn("Custom CLI instruction.", rendered_text)
+        self.assertIn("fictional workload restarted", rendered_text)
 
     def test_lists_scenario_gallery_without_evidence_content(self) -> None:
         with TemporaryDirectory() as temporary_directory:
