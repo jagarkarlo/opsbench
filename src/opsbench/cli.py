@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from opsbench.adapters import FixtureResponseAdapter
+from opsbench.adapters import FixtureResponseAdapter, HumanResponseAdapter
 from opsbench.comparisons import compare_bundles, summarize_trials
 from opsbench.responses import load_response
 from opsbench.runner import execute_run
@@ -51,6 +51,13 @@ def build_parser() -> argparse.ArgumentParser:
     fixture_parser.add_argument("response_path")
     fixture_parser.add_argument("output_path")
     fixture_parser.add_argument("--run-id", required=True)
+    human_parser = run_subparsers.add_parser(
+        "human", help="execute one locally supplied human response"
+    )
+    human_parser.add_argument("scenario_path")
+    human_parser.add_argument("response_path")
+    human_parser.add_argument("output_path")
+    human_parser.add_argument("--run-id", required=True)
 
     compare_parser = subparsers.add_parser("compare", help="compare local benchmark results")
     compare_subparsers = compare_parser.add_subparsers(dest="compare_command", required=True)
@@ -123,16 +130,21 @@ def main(argv: list[str] | None = None) -> int:
         response = load_response(Path(parsed.response_path))
         report = evaluate_response(pack, profile, response)
         print(json.dumps(report.to_dict(), sort_keys=True))
-    if parsed.command == "run" and parsed.run_command == "fixture":
+    if parsed.command == "run" and parsed.run_command in {"fixture", "human"}:
         scenario_path = Path(parsed.scenario_path)
         pack = load_scenario_pack(scenario_path)
         profile = load_evaluator_profile(scenario_path / "evaluator.json")
         response = load_response(Path(parsed.response_path))
+        adapter = (
+            FixtureResponseAdapter(response)
+            if parsed.run_command == "fixture"
+            else HumanResponseAdapter(response)
+        )
         result = execute_run(
             run_id=parsed.run_id,
             pack=pack,
             profile=profile,
-            adapter=FixtureResponseAdapter(response),
+            adapter=adapter,
         )
         bundle = ResultBundle(result.run, result.report)
         output_path = Path(parsed.output_path)

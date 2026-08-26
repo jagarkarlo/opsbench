@@ -47,3 +47,10 @@ class FixtureResponseAdapter:
             model_name=self._response.model_name,
             adapter_name=self.adapter_name,
         )
+
+
+class HumanResponseAdapter(FixtureResponseAdapter):
+    """Returns a locally supplied human response for a benchmark run."""
+
+    def __init__(self, response: BenchmarkResponse) -> None:
+        super().__init__(response, name="human")

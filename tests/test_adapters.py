@@ -1,6 +1,6 @@
 import unittest
 
-from opsbench.adapters import FixtureResponseAdapter, ResponseAdapter
+from opsbench.adapters import FixtureResponseAdapter, HumanResponseAdapter, ResponseAdapter
 from opsbench.responses import BenchmarkResponse
 from opsbench.scenarios import EvidenceArtifact, ScenarioManifest, ScenarioPack
 
@@ -56,6 +56,20 @@ class ResponseAdapterTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "fixture response scenario_id must match"):
             adapter.respond(pack)
+
+    def test_human_adapter_records_a_human_response(self) -> None:
+        pack = ScenarioPack(
+            ScenarioManifest("scenario-001", "Fictional scenario", "kubernetes"),
+            (EvidenceArtifact("logs.txt", "text/plain", b"synthetic logs"),),
+        )
+        adapter = HumanResponseAdapter(
+            BenchmarkResponse("scenario-001", "Human analysis.", model_name="Karlo")
+        )
+
+        response = adapter.respond(pack)
+
+        self.assertEqual(adapter.adapter_name, "human")
+        self.assertEqual(response.adapter_name, "human")
 
 
 if __name__ == "__main__":

@@ -59,6 +59,23 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(parsed.run_id, "fixture-run-001")
         self.assertEqual(parsed.output_path, "results/run.json")
 
+    def test_parses_human_run_command(self) -> None:
+        parsed = build_parser().parse_args(
+            [
+                "run",
+                "human",
+                "scenarios/example",
+                "responses/example.json",
+                "results/run.json",
+                "--run-id",
+                "human-run-001",
+            ]
+        )
+
+        self.assertEqual(parsed.command, "run")
+        self.assertEqual(parsed.run_command, "human")
+        self.assertEqual(parsed.run_id, "human-run-001")
+
     def test_parses_result_comparison_command(self) -> None:
         parsed = build_parser().parse_args(
             ["compare", "results", "results/first.json", "results/second.json"]
@@ -133,6 +150,48 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(command_result["report"]["total"], 8)
         self.assertEqual(bundle["run"]["model_name"], "fixture-model")
         self.assertEqual(len(command_result["bundle_hash"]), 64)
+
+    def test_executes_human_run_and_writes_result_bundle(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            scenario = directory / "scenario"
+            scenario.mkdir()
+            (scenario / "scenario.json").write_text(
+                '''{"manifest":{"schema_version":"1.0","scenario_id":"scenario-001","title":"Fictional scenario","category":"kubernetes"},"evidence":[{"artifact_id":"logs.txt","media_type":"text/plain","relative_path":"logs.txt"}]}''',
+                encoding="utf-8",
+            )
+            (scenario / "logs.txt").write_text("synthetic logs\n", encoding="utf-8")
+            (scenario / "evaluator.json").write_text(
+                '''{"scenario_id":"scenario-001","diagnosis_rules":[{"rule_id":"synthetic","keyword":"synthetic","weight":2}],"permitted_actions":["inspect logs"]}''',
+                encoding="utf-8",
+            )
+            response_path = directory / "response.json"
+            response_path.write_text(
+                '''{"scenario_id":"scenario-001","analysis":"Synthetic human analysis.","cited_artifact_ids":["logs.txt"],"proposed_actions":["inspect logs"],"model_name":"Karlo"}''',
+                encoding="utf-8",
+            )
+            output_path = directory / "results" / "human-run.json"
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "run",
+                        "human",
+                        str(scenario),
+                        str(response_path),
+                        str(output_path),
+                        "--run-id",
+                        "human-run-001",
+                    ]
+                )
+
+            command_result = json.loads(output.getvalue())
+            bundle = json.loads(output_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(command_result["run"]["runner_kind"], "human")
+        self.assertEqual(bundle["run"]["model_name"], "Karlo")
 
     def test_compares_saved_result_bundles(self) -> None:
         with TemporaryDirectory() as temporary_directory:

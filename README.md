@@ -115,6 +115,18 @@ opsbench run fixture \
   --run-id latency-run-001
 ```
 
+To record a human response, create a local response JSON with the same
+normalized schema, set its `model_name` to the participant label, and run it
+through the human adapter:
+
+```bash
+opsbench run human \
+  scenarios/observability-latency-001 \
+  my-response.json \
+  results/human-run-001.json \
+  --run-id human-run-001
+```
+
 Create another trial with a different run ID and output path, then compare the
 saved result bundles:
 
@@ -130,10 +142,10 @@ by the local writer.
 
 ## What Comes Next
 
-The next phase adds human and provider adapters, additional fully fictional
-GitOps, Terraform, and database scenarios, plus result storage and comparison
-views. A web UI and backend are deliberately deferred until those local contracts
-have stabilized.
+The next phase adds provider adapters, additional fully fictional GitOps,
+Terraform, and database scenarios, plus result storage and comparison views. A
+web UI and backend are deliberately deferred until those local contracts have
+stabilized.
 
 ## License
 
