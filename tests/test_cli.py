@@ -111,6 +111,43 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(len(result["scenarios"][0]["pack_hash"]), 64)
         self.assertNotIn("evidence", result["scenarios"][0])
 
+    def test_audits_scenario_gallery_without_evidence_content(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            gallery = Path(temporary_directory)
+            scenario = gallery / "alpha"
+            scenario.mkdir()
+            (scenario / "scenario.json").write_text(
+                """{
+                    "manifest": {
+                        "schema_version": "1.0",
+                        "scenario_id": "kubernetes-crashloop-001",
+                        "title": "Diagnose a fictional CrashLoopBackOff deployment",
+                        "category": "kubernetes"
+                    },
+                    "evidence": [{
+                        "artifact_id": "pod-logs.txt",
+                        "media_type": "text/plain",
+                        "relative_path": "pod-logs.txt"
+                    }]
+                }""",
+                encoding="utf-8",
+            )
+            (scenario / "pod-logs.txt").write_text(
+                "fictional workload restarted after a configuration error\n",
+                encoding="utf-8",
+            )
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                exit_code = main(["scenario", "audit", str(gallery)])
+
+        result = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertTrue(result["audit_passed"])
+        self.assertEqual(result["scenario_count"], 1)
+        self.assertEqual(result["scenarios"][0]["scenario_id"], "kubernetes-crashloop-001")
+        self.assertNotIn("evidence", result["scenarios"][0])
+
     def test_evaluates_a_local_fictional_response(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             scenario = Path(temporary_directory) / "scenario"

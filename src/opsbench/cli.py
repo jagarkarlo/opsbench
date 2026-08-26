@@ -76,6 +76,25 @@ def main(argv: list[str] | None = None) -> int:
                 sort_keys=True,
             )
         )
+    if parsed.command == "scenario" and parsed.scenario_command == "audit":
+        gallery = load_gallery(Path(parsed.path))
+        print(
+            json.dumps(
+                {
+                    "audit_passed": True,
+                    "scenario_count": len(gallery.scenarios),
+                    "scenarios": [
+                        {
+                            "category": scenario.manifest.category,
+                            "pack_hash": scenario.content_hash(),
+                            "scenario_id": scenario.manifest.scenario_id,
+                        }
+                        for scenario in gallery.scenarios
+                    ],
+                },
+                sort_keys=True,
+            )
+        )
     if parsed.command == "response" and parsed.response_command == "evaluate":
         scenario_path = Path(parsed.scenario_path)
         pack = load_scenario_pack(scenario_path)
