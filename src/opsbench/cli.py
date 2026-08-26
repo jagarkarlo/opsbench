@@ -37,6 +37,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     evaluate_parser.add_argument("scenario_path")
     evaluate_parser.add_argument("response_path")
+
+    run_parser = subparsers.add_parser("run", help="execute local benchmark runs")
+    run_subparsers = run_parser.add_subparsers(dest="run_command", required=True)
+    fixture_parser = run_subparsers.add_parser(
+        "fixture", help="execute one deterministic fixture response"
+    )
+    fixture_parser.add_argument("scenario_path")
+    fixture_parser.add_argument("response_path")
+    fixture_parser.add_argument("output_path")
+    fixture_parser.add_argument("--run-id", required=True)
     return parser
 
 

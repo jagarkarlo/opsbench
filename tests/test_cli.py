@@ -39,6 +39,24 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(parsed.scenario_path, "scenarios/example")
         self.assertEqual(parsed.response_path, "responses/example.json")
 
+    def test_parses_fixture_run_command(self) -> None:
+        parsed = build_parser().parse_args(
+            [
+                "run",
+                "fixture",
+                "scenarios/example",
+                "responses/example.json",
+                "results/run.json",
+                "--run-id",
+                "fixture-run-001",
+            ]
+        )
+
+        self.assertEqual(parsed.command, "run")
+        self.assertEqual(parsed.run_command, "fixture")
+        self.assertEqual(parsed.run_id, "fixture-run-001")
+        self.assertEqual(parsed.output_path, "results/run.json")
+
     def test_validates_scenario_directory_and_prints_pack_identity(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             directory = Path(temporary_directory)
