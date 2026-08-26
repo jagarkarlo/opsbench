@@ -134,12 +134,13 @@ opsbench run human \
 ```
 
 Create another trial with a different run ID and output path, then compare the
-saved result bundles:
+saved result bundles (add `--format markdown` for formatted tables):
 
 ```bash
 opsbench compare results \
   results/latency-run-001.json \
-  results/latency-run-002.json
+  results/latency-run-002.json \
+  --format markdown
 ```
 
 Comparison output includes only the scenario ID, runner totals, trial counts,

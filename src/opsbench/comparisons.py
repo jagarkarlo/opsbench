@@ -81,3 +81,22 @@ def summarize_trials(bundles: tuple[ResultBundle, ...]) -> tuple[RunnerStatistic
         )
         for runner_name, total_score in comparison.runner_totals
     )
+
+
+def render_markdown_comparison(bundles: tuple[ResultBundle, ...]) -> str:
+    """Render a clean Markdown comparison report from result bundles."""
+    summary = compare_bundles(bundles)
+    trials = summarize_trials(bundles)
+    lines = [
+        "# OpsBench Comparison Report",
+        "",
+        f"**Scenario**: `{summary.scenario_id}`",
+        "",
+        "| Runner | Trials | Total Score | Average Score |",
+        "|---|---|---|---|",
+    ]
+    for statistic in trials:
+        lines.append(
+            f"| {statistic.runner_name} | {statistic.trial_count} | {statistic.total_score} | {statistic.average_score:.2f} |"
+        )
+    return "\n".join(lines) + "\n"

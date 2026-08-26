@@ -88,12 +88,13 @@ class CliParserTests(unittest.TestCase):
 
     def test_parses_result_comparison_command(self) -> None:
         parsed = build_parser().parse_args(
-            ["compare", "results", "results/first.json", "results/second.json"]
+            ["compare", "results", "results/first.json", "results/second.json", "--format", "markdown"]
         )
 
         self.assertEqual(parsed.command, "compare")
         self.assertEqual(parsed.compare_command, "results")
         self.assertEqual(parsed.bundle_paths, ["results/first.json", "results/second.json"])
+        self.assertEqual(parsed.format, "markdown")
 
     def test_executes_fixture_run_and_writes_result_bundle(self) -> None:
         with TemporaryDirectory() as temporary_directory:
@@ -240,6 +241,44 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(result["scenario_id"], "scenario-001")
         self.assertEqual(result["trials"][0]["trial_count"], 2)
         self.assertEqual(result["trials"][0]["average_score"], 3.5)
+
+    def test_compares_saved_result_bundles_in_markdown_format(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            paths = []
+            for index, diagnosis_score in enumerate((Score.FULL, Score.GOOD), start=1):
+                response_hash = ("a" if index == 1 else "b") * 64
+                run = BenchmarkRun(
+                    run_id=f"fixture-run-{index}",
+                    runner_kind="fixture",
+                    started_at="2026-08-26T12:00:00Z",
+                    scenario_pack_hash="c" * 64,
+                    evaluator_profile_hash="d" * 64,
+                    response_hash=response_hash,
+                    model_name="fixture-model",
+                )
+                report = ScoreReport(
+                    scenario_id="scenario-001",
+                    response_hash=response_hash,
+                    diagnosis=diagnosis_score,
+                    evidence=Score.ZERO,
+                    actions=Score.ZERO,
+                    safety=Score.ZERO,
+                    explanation="Synthetic result.",
+                )
+                path = directory / f"result-{index}.json"
+                write_result_bundle(path, ResultBundle(run, report))
+                paths.append(str(path))
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                exit_code = main(["compare", "results", *paths, "--format", "markdown"])
+
+        markdown_report = output.getvalue()
+        self.assertEqual(exit_code, 0)
+        self.assertIn("# OpsBench Comparison Report", markdown_report)
+        self.assertIn("**Scenario**: `scenario-001`", markdown_report)
+        self.assertIn("| fixture-model | 2 | 7 | 3.50 |", markdown_report)
 
     def test_validates_scenario_directory_and_prints_pack_identity(self) -> None:
         with TemporaryDirectory() as temporary_directory:

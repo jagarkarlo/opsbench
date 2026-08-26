@@ -7,7 +7,11 @@ import json
 from pathlib import Path
 
 from opsbench.adapters import FixtureResponseAdapter, HumanResponseAdapter
-from opsbench.comparisons import compare_bundles, summarize_trials
+from opsbench.comparisons import (
+    compare_bundles,
+    render_markdown_comparison,
+    summarize_trials,
+)
 from opsbench.prompts import render_prompt
 from opsbench.responses import load_response
 from opsbench.runner import execute_run
@@ -70,6 +74,12 @@ def build_parser() -> argparse.ArgumentParser:
         "results", help="summarize immutable result bundle files"
     )
     results_parser.add_argument("bundle_paths", nargs="+")
+    results_parser.add_argument(
+        "--format",
+        choices=["json", "markdown"],
+        default="json",
+        help="output format (default: json)",
+    )
     return parser
 
 
@@ -174,29 +184,32 @@ def main(argv: list[str] | None = None) -> int:
         )
     if parsed.command == "compare" and parsed.compare_command == "results":
         bundles = tuple(load_result_bundle(Path(path)) for path in parsed.bundle_paths)
-        summary = compare_bundles(bundles)
-        trials = summarize_trials(bundles)
-        print(
-            json.dumps(
-                {
-                    "runner_totals": [
-                        {"runner_name": name, "total_score": total}
-                        for name, total in summary.runner_totals
-                    ],
-                    "scenario_id": summary.scenario_id,
-                    "trials": [
-                        {
-                            "average_score": statistic.average_score,
-                            "runner_name": statistic.runner_name,
-                            "total_score": statistic.total_score,
-                            "trial_count": statistic.trial_count,
-                        }
-                        for statistic in trials
-                    ],
-                },
-                sort_keys=True,
+        if parsed.format == "markdown":
+            print(render_markdown_comparison(bundles), end="")
+        else:
+            summary = compare_bundles(bundles)
+            trials = summarize_trials(bundles)
+            print(
+                json.dumps(
+                    {
+                        "runner_totals": [
+                            {"runner_name": name, "total_score": total}
+                            for name, total in summary.runner_totals
+                        ],
+                        "scenario_id": summary.scenario_id,
+                        "trials": [
+                            {
+                                "average_score": statistic.average_score,
+                                "runner_name": statistic.runner_name,
+                                "total_score": statistic.total_score,
+                                "trial_count": statistic.trial_count,
+                            }
+                            for statistic in trials
+                        ],
+                    },
+                    sort_keys=True,
+                )
             )
-        )
     return 0
 
 
