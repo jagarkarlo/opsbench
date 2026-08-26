@@ -24,6 +24,27 @@ class ComparisonSummary:
             raise ValueError("runner_totals must contain non-empty names and integer totals")
 
 
+@dataclass(frozen=True)
+class RunnerStatistics:
+    """Repeated-trial score statistics for one runner on one scenario."""
+
+    runner_name: str
+    trial_count: int
+    total_score: int
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.runner_name, str) or not self.runner_name.strip():
+            raise ValueError("runner_name must be a non-empty string")
+        if not isinstance(self.trial_count, int) or self.trial_count <= 0:
+            raise ValueError("trial_count must be a positive integer")
+        if not isinstance(self.total_score, int):
+            raise ValueError("total_score must be an integer")
+
+    @property
+    def average_score(self) -> float:
+        return self.total_score / self.trial_count
+
+
 def compare_bundles(bundles: tuple[ResultBundle, ...]) -> ComparisonSummary:
     """Summarize same-scenario bundles by runner identity in stable order."""
     if not isinstance(bundles, tuple) or not bundles:
@@ -42,4 +63,21 @@ def compare_bundles(bundles: tuple[ResultBundle, ...]) -> ComparisonSummary:
     return ComparisonSummary(
         scenario_id=next(iter(scenario_ids)),
         runner_totals=tuple(sorted(totals.items())),
+    )
+
+
+def summarize_trials(bundles: tuple[ResultBundle, ...]) -> tuple[RunnerStatistics, ...]:
+    """Return stable per-runner trial counts and average-ready totals."""
+    comparison = compare_bundles(bundles)
+    trial_counts: dict[str, int] = {}
+    for bundle in bundles:
+        runner_name = bundle.run.model_name or bundle.run.runner_kind
+        trial_counts[runner_name] = trial_counts.get(runner_name, 0) + 1
+    return tuple(
+        RunnerStatistics(
+            runner_name=runner_name,
+            trial_count=trial_counts[runner_name],
+            total_score=total_score,
+        )
+        for runner_name, total_score in comparison.runner_totals
     )

@@ -1,6 +1,6 @@
 import unittest
 
-from opsbench.comparisons import compare_bundles
+from opsbench.comparisons import compare_bundles, summarize_trials
 from opsbench.runs import BenchmarkRun, ResultBundle
 from opsbench.scoring import Score, ScoreReport
 
@@ -59,6 +59,20 @@ class ComparisonTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "all bundles must belong to the same scenario"):
             compare_bundles((build_bundle(run_id="run-001", model_name="fixture-alpha", total_score=Score.FULL), cross_scenario_bundle))
+
+    def test_summarizes_repeated_trials_by_runner(self) -> None:
+        statistics = summarize_trials(
+            (
+                build_bundle(run_id="run-001", model_name="fixture-alpha", total_score=Score.FULL),
+                build_bundle(run_id="run-002", model_name="fixture-alpha", total_score=Score.GOOD),
+            )
+        )
+
+        self.assertEqual(len(statistics), 1)
+        self.assertEqual(statistics[0].runner_name, "fixture-alpha")
+        self.assertEqual(statistics[0].trial_count, 2)
+        self.assertEqual(statistics[0].total_score, 7)
+        self.assertEqual(statistics[0].average_score, 3.5)
 
 
 if __name__ == "__main__":
