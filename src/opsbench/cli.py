@@ -7,9 +7,10 @@ import json
 from pathlib import Path
 
 from opsbench.adapters import FixtureResponseAdapter
+from opsbench.comparisons import compare_bundles, summarize_trials
 from opsbench.responses import load_response
 from opsbench.runner import execute_run
-from opsbench.runs import ResultBundle, write_result_bundle
+from opsbench.runs import ResultBundle, load_result_bundle, write_result_bundle
 from opsbench.scenarios import load_gallery, load_scenario_pack
 from opsbench.scoring import evaluate_response, load_evaluator_profile
 
@@ -143,6 +144,31 @@ def main(argv: list[str] | None = None) -> int:
                     "output_path": str(output_path),
                     "report": result.report.to_dict(),
                     "run": result.run.to_dict(),
+                },
+                sort_keys=True,
+            )
+        )
+    if parsed.command == "compare" and parsed.compare_command == "results":
+        bundles = tuple(load_result_bundle(Path(path)) for path in parsed.bundle_paths)
+        summary = compare_bundles(bundles)
+        trials = summarize_trials(bundles)
+        print(
+            json.dumps(
+                {
+                    "runner_totals": [
+                        {"runner_name": name, "total_score": total}
+                        for name, total in summary.runner_totals
+                    ],
+                    "scenario_id": summary.scenario_id,
+                    "trials": [
+                        {
+                            "average_score": statistic.average_score,
+                            "runner_name": statistic.runner_name,
+                            "total_score": statistic.total_score,
+                            "trial_count": statistic.trial_count,
+                        }
+                        for statistic in trials
+                    ],
                 },
                 sort_keys=True,
             )
