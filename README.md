@@ -104,12 +104,36 @@ opsbench response evaluate \
 The resulting JSON report contains diagnosis, evidence, action, and safety
 scores plus a reproducible response hash. It does not expose evidence content.
 
+Run the same response as an immutable local benchmark artifact:
+
+```bash
+mkdir -p results
+opsbench run fixture \
+  scenarios/observability-latency-001 \
+  scenarios/observability-latency-001/responses/reference-response.json \
+  results/latency-run-001.json \
+  --run-id latency-run-001
+```
+
+Create another trial with a different run ID and output path, then compare the
+saved result bundles:
+
+```bash
+opsbench compare results \
+  results/latency-run-001.json \
+  results/latency-run-002.json
+```
+
+Comparison output includes only the scenario ID, runner totals, trial counts,
+and average scores. Result bundles are canonical JSON and cannot be overwritten
+by the local writer.
+
 ## What Comes Next
 
-The next phase adds fixture and human adapters, immutable benchmark run
-manifests, repeated-trial comparison reports, and additional fully fictional
-GitOps, Terraform, and database scenarios. A web UI and backend are deliberately
-deferred until those local contracts have stabilized.
+The next phase adds human and provider adapters, additional fully fictional
+GitOps, Terraform, and database scenarios, plus result storage and comparison
+views. A web UI and backend are deliberately deferred until those local contracts
+have stabilized.
 
 ## License
 
