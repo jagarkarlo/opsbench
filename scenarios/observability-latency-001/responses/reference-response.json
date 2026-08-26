@@ -1,0 +1,15 @@
+{
+  "scenario_id": "observability-latency-001",
+  "analysis": "The checkout latency alert aligns with dependency timeout warnings from pricing. Inspect the pricing dependency and verify timeout configuration before changing capacity.",
+  "cited_artifact_ids": [
+    "alert.json",
+    "metrics.prom",
+    "service-logs.txt"
+  ],
+  "proposed_actions": [
+    "inspect pricing dependency",
+    "verify timeout configuration"
+  ],
+  "model_name": "reference-fixture",
+  "adapter_name": "fixture"
+}
