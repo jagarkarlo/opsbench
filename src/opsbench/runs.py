@@ -7,6 +7,8 @@ from datetime import datetime
 import hashlib
 import json
 
+from opsbench.scoring import ScoreReport
+
 
 RUN_SCHEMA_VERSION = "1.0"
 
@@ -72,3 +74,30 @@ class BenchmarkRun:
             self.to_dict(), ensure_ascii=True, separators=(",", ":"), sort_keys=True
         )
         return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()
+
+
+@dataclass(frozen=True)
+class ResultBundle:
+    """Portable immutable record joining a benchmark run to its score report."""
+
+    run: BenchmarkRun
+    report: ScoreReport
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.run, BenchmarkRun):
+            raise ValueError("run must be a BenchmarkRun")
+        if not isinstance(self.report, ScoreReport):
+            raise ValueError("report must be a ScoreReport")
+        if self.run.response_hash != self.report.response_hash:
+            raise ValueError("run response_hash must match the score report")
+
+    def to_dict(self) -> dict[str, dict[str, int | str | None]]:
+        return {"report": self.report.to_dict(), "run": self.run.to_dict()}
+
+    def canonical_json(self) -> str:
+        return json.dumps(
+            self.to_dict(), ensure_ascii=True, separators=(",", ":"), sort_keys=True
+        )
+
+    def content_hash(self) -> str:
+        return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
