@@ -94,6 +94,7 @@ class FictionalFixtureGalleryTests(unittest.TestCase):
             [scenario["scenario_id"] for scenario in result["scenarios"]],
             ["kubernetes-image-reference-001", "observability-latency-001"],
         )
+        self.assertTrue(all(len(scenario["pack_hash"]) == 64 for scenario in result["scenarios"]))
 
     def test_gallery_has_no_duplicate_scenario_ids(self) -> None:
         gallery = load_gallery(SCENARIOS_DIRECTORY)

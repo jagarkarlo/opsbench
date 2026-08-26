@@ -101,6 +101,7 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertEqual(result["scenario_count"], 1)
         self.assertEqual(result["scenarios"][0]["scenario_id"], "kubernetes-crashloop-001")
+        self.assertEqual(len(result["scenarios"][0]["pack_hash"]), 64)
         self.assertNotIn("evidence", result["scenarios"][0])
 
     def test_evaluates_a_local_fictional_response(self) -> None:

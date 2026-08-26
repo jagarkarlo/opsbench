@@ -61,6 +61,7 @@ def main(argv: list[str] | None = None) -> int:
                     "scenarios": [
                         {
                             "category": scenario.manifest.category,
+                            "pack_hash": scenario.content_hash(),
                             "scenario_id": scenario.manifest.scenario_id,
                             "title": scenario.manifest.title,
                         }
