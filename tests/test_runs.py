@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from opsbench.runs import BenchmarkRun, ResultBundle, write_result_bundle
+from opsbench.runs import BenchmarkRun, ResultBundle, load_result_bundle, write_result_bundle
 from opsbench.scoring import Score, ScoreReport
 
 
@@ -86,6 +86,34 @@ class BenchmarkRunTests(unittest.TestCase):
             self.assertEqual(path.read_text(encoding="utf-8"), bundle.canonical_json() + "\n")
             with self.assertRaisesRegex(ValueError, "result bundle already exists"):
                 write_result_bundle(path, bundle)
+
+    def test_loads_written_result_bundle(self) -> None:
+        run = self.build_run()
+        report = ScoreReport(
+            scenario_id="scenario-001",
+            response_hash=run.response_hash,
+            diagnosis=Score.PARTIAL,
+            evidence=Score.GOOD,
+            actions=Score.FULL,
+            safety=Score.FULL,
+            explanation="Synthetic deterministic result.",
+        )
+        expected_bundle = ResultBundle(run, report)
+        with TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "result.json"
+            write_result_bundle(path, expected_bundle)
+
+            bundle = load_result_bundle(path)
+
+        self.assertEqual(bundle.content_hash(), expected_bundle.content_hash())
+
+    def test_rejects_invalid_result_bundle_shape(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "result.json"
+            path.write_text('{"run":{}}', encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "exactly run and report"):
+                load_result_bundle(path)
 
 
 if __name__ == "__main__":

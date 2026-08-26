@@ -8,10 +8,11 @@ import hashlib
 import json
 from pathlib import Path
 
-from opsbench.scoring import ScoreReport
+from opsbench.scoring import Score, ScoreReport
 
 
 RUN_SCHEMA_VERSION = "1.0"
+MAX_RESULT_BUNDLE_BYTES = 2 * 1024 * 1024
 
 
 def _require_hash(field_name: str, value: str) -> None:
@@ -114,3 +115,49 @@ def write_result_bundle(path: Path, bundle: ResultBundle) -> None:
         raise ValueError(f"result bundle already exists: {path}")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(bundle.canonical_json() + "\n", encoding="utf-8")
+
+
+def load_result_bundle(path: Path, *, max_bytes: int = MAX_RESULT_BUNDLE_BYTES) -> ResultBundle:
+    """Load and validate one bounded result bundle written by OpsBench."""
+    if max_bytes <= 0:
+        raise ValueError("max_bytes must be positive")
+    if not path.is_file():
+        raise ValueError(f"result bundle must be a file: {path}")
+    if path.stat().st_size > max_bytes:
+        raise ValueError(f"result bundle exceeds maximum size of {max_bytes} bytes")
+    try:
+        decoded = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"result bundle is not valid JSON: {path}") from error
+    if not isinstance(decoded, dict) or frozenset(decoded) != {"run", "report"}:
+        raise ValueError("result bundle must contain exactly run and report objects")
+    if not isinstance(decoded["run"], dict) or not isinstance(decoded["report"], dict):
+        raise ValueError("result bundle run and report must be JSON objects")
+
+    run = BenchmarkRun(**decoded["run"])
+    report_fields = decoded["report"]
+    expected_report_fields = {
+        "actions",
+        "diagnosis",
+        "evidence",
+        "explanation",
+        "maximum",
+        "response_hash",
+        "safety",
+        "scenario_id",
+        "total",
+    }
+    if frozenset(report_fields) != expected_report_fields:
+        raise ValueError("result bundle report fields do not match the score report schema")
+    report = ScoreReport(
+        scenario_id=report_fields["scenario_id"],
+        response_hash=report_fields["response_hash"],
+        diagnosis=Score(report_fields["diagnosis"]),
+        evidence=Score(report_fields["evidence"]),
+        actions=Score(report_fields["actions"]),
+        safety=Score(report_fields["safety"]),
+        explanation=report_fields["explanation"],
+    )
+    if report.total != report_fields["total"] or report.maximum != report_fields["maximum"]:
+        raise ValueError("result bundle score totals do not match the score report")
+    return ResultBundle(run, report)
