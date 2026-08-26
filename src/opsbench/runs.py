@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import hashlib
 import json
+from pathlib import Path
 
 from opsbench.scoring import ScoreReport
 
@@ -101,3 +102,15 @@ class ResultBundle:
 
     def content_hash(self) -> str:
         return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
+
+
+def write_result_bundle(path: Path, bundle: ResultBundle) -> None:
+    """Write one immutable result bundle without replacing an existing artifact."""
+    if not isinstance(path, Path):
+        raise ValueError("path must be a Path")
+    if not isinstance(bundle, ResultBundle):
+        raise ValueError("bundle must be a ResultBundle")
+    if path.exists():
+        raise ValueError(f"result bundle already exists: {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(bundle.canonical_json() + "\n", encoding="utf-8")

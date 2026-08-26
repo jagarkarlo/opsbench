@@ -1,6 +1,8 @@
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
-from opsbench.runs import BenchmarkRun, ResultBundle
+from opsbench.runs import BenchmarkRun, ResultBundle, write_result_bundle
 from opsbench.scoring import Score, ScoreReport
 
 
@@ -63,6 +65,27 @@ class BenchmarkRunTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "run response_hash must match"):
             ResultBundle(run, report)
+
+    def test_writes_canonical_bundle_without_overwriting(self) -> None:
+        run = self.build_run()
+        report = ScoreReport(
+            scenario_id="scenario-001",
+            response_hash=run.response_hash,
+            diagnosis=Score.PARTIAL,
+            evidence=Score.GOOD,
+            actions=Score.FULL,
+            safety=Score.FULL,
+            explanation="Synthetic deterministic result.",
+        )
+        bundle = ResultBundle(run, report)
+        with TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "nested" / "result.json"
+
+            write_result_bundle(path, bundle)
+
+            self.assertEqual(path.read_text(encoding="utf-8"), bundle.canonical_json() + "\n")
+            with self.assertRaisesRegex(ValueError, "result bundle already exists"):
+                write_result_bundle(path, bundle)
 
 
 if __name__ == "__main__":
