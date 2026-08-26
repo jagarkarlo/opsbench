@@ -6,7 +6,10 @@ import argparse
 import json
 from pathlib import Path
 
+from opsbench.adapters import FixtureResponseAdapter
 from opsbench.responses import load_response
+from opsbench.runner import execute_run
+from opsbench.runs import ResultBundle, write_result_bundle
 from opsbench.scenarios import load_gallery, load_scenario_pack
 from opsbench.scoring import evaluate_response, load_evaluator_profile
 
@@ -112,6 +115,31 @@ def main(argv: list[str] | None = None) -> int:
         response = load_response(Path(parsed.response_path))
         report = evaluate_response(pack, profile, response)
         print(json.dumps(report.to_dict(), sort_keys=True))
+    if parsed.command == "run" and parsed.run_command == "fixture":
+        scenario_path = Path(parsed.scenario_path)
+        pack = load_scenario_pack(scenario_path)
+        profile = load_evaluator_profile(scenario_path / "evaluator.json")
+        response = load_response(Path(parsed.response_path))
+        result = execute_run(
+            run_id=parsed.run_id,
+            pack=pack,
+            profile=profile,
+            adapter=FixtureResponseAdapter(response),
+        )
+        bundle = ResultBundle(result.run, result.report)
+        output_path = Path(parsed.output_path)
+        write_result_bundle(output_path, bundle)
+        print(
+            json.dumps(
+                {
+                    "bundle_hash": bundle.content_hash(),
+                    "output_path": str(output_path),
+                    "report": result.report.to_dict(),
+                    "run": result.run.to_dict(),
+                },
+                sort_keys=True,
+            )
+        )
     return 0
 
 

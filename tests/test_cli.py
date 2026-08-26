@@ -57,6 +57,72 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(parsed.run_id, "fixture-run-001")
         self.assertEqual(parsed.output_path, "results/run.json")
 
+    def test_executes_fixture_run_and_writes_result_bundle(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            scenario = directory / "scenario"
+            scenario.mkdir()
+            (scenario / "scenario.json").write_text(
+                """{
+                    "manifest": {
+                        "schema_version": "1.0",
+                        "scenario_id": "scenario-001",
+                        "title": "Fictional scenario",
+                        "category": "kubernetes"
+                    },
+                    "evidence": [{
+                        "artifact_id": "logs.txt",
+                        "media_type": "text/plain",
+                        "relative_path": "logs.txt"
+                    }]
+                }""",
+                encoding="utf-8",
+            )
+            (scenario / "logs.txt").write_text("synthetic logs\n", encoding="utf-8")
+            (scenario / "evaluator.json").write_text(
+                """{
+                    "scenario_id": "scenario-001",
+                    "diagnosis_rules": [{"rule_id":"synthetic","keyword":"synthetic","weight":2}],
+                    "permitted_actions": ["inspect logs"]
+                }""",
+                encoding="utf-8",
+            )
+            response_path = directory / "response.json"
+            response_path.write_text(
+                """{
+                    "scenario_id": "scenario-001",
+                    "analysis": "Synthetic analysis.",
+                    "cited_artifact_ids": ["logs.txt"],
+                    "proposed_actions": ["inspect logs"],
+                    "model_name": "fixture-model"
+                }""",
+                encoding="utf-8",
+            )
+            output_path = directory / "results" / "fixture-run.json"
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "run",
+                        "fixture",
+                        str(scenario),
+                        str(response_path),
+                        str(output_path),
+                        "--run-id",
+                        "fixture-run-001",
+                    ]
+                )
+
+            command_result = json.loads(output.getvalue())
+            bundle = json.loads(output_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(command_result["run"]["run_id"], "fixture-run-001")
+        self.assertEqual(command_result["report"]["total"], 8)
+        self.assertEqual(bundle["run"]["model_name"], "fixture-model")
+        self.assertEqual(len(command_result["bundle_hash"]), 64)
+
     def test_validates_scenario_directory_and_prints_pack_identity(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             directory = Path(temporary_directory)
