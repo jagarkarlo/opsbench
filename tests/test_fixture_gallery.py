@@ -15,6 +15,17 @@ SCENARIOS_DIRECTORY = REPOSITORY_ROOT / "scenarios"
 
 
 class FictionalFixtureGalleryTests(unittest.TestCase):
+    def test_loads_fictional_latency_scenario(self) -> None:
+        pack = load_scenario_pack(SCENARIOS_DIRECTORY / "observability-latency-001")
+
+        self.assertEqual(pack.manifest.scenario_id, "observability-latency-001")
+        self.assertEqual(pack.manifest.category, "observability")
+        self.assertEqual([artifact.artifact_id for artifact in pack.evidence], [
+            "alert.json",
+            "metrics.prom",
+            "service-logs.txt",
+        ])
+
     def test_loads_fictional_image_reference_scenario(self) -> None:
         pack = load_scenario_pack(SCENARIOS_DIRECTORY / "kubernetes-image-reference-001")
 
@@ -54,8 +65,11 @@ class FictionalFixtureGalleryTests(unittest.TestCase):
 
         result = json.loads(output.getvalue())
         self.assertEqual(exit_code, 0)
-        self.assertEqual(result["scenario_count"], 1)
-        self.assertEqual(result["scenarios"][0]["scenario_id"], "kubernetes-image-reference-001")
+        self.assertEqual(result["scenario_count"], 2)
+        self.assertEqual(
+            [scenario["scenario_id"] for scenario in result["scenarios"]],
+            ["kubernetes-image-reference-001", "observability-latency-001"],
+        )
 
     def test_gallery_has_no_duplicate_scenario_ids(self) -> None:
         gallery = load_gallery(SCENARIOS_DIRECTORY)

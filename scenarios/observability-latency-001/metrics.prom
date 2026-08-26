@@ -1,0 +1,12 @@
+# HELP checkout_request_duration_seconds Synthetic checkout request duration histogram.
+# TYPE checkout_request_duration_seconds histogram
+checkout_request_duration_seconds_bucket{le="0.5"} 420
+checkout_request_duration_seconds_bucket{le="1"} 680
+checkout_request_duration_seconds_bucket{le="1.5"} 810
+checkout_request_duration_seconds_bucket{le="3"} 960
+checkout_request_duration_seconds_bucket{le="+Inf"} 1000
+checkout_request_duration_seconds_count 1000
+checkout_request_duration_seconds_sum 1685
+# HELP checkout_dependency_timeout_total Synthetic dependency timeout counter.
+# TYPE checkout_dependency_timeout_total counter
+checkout_dependency_timeout_total{dependency="pricing"} 37

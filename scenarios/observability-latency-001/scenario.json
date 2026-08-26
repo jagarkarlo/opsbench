@@ -1,0 +1,25 @@
+{
+  "manifest": {
+    "schema_version": "1.0",
+    "scenario_id": "observability-latency-001",
+    "title": "Diagnose a fictional checkout latency alert",
+    "category": "observability"
+  },
+  "evidence": [
+    {
+      "artifact_id": "alert.json",
+      "media_type": "application/json",
+      "relative_path": "alert.json"
+    },
+    {
+      "artifact_id": "metrics.prom",
+      "media_type": "text/plain",
+      "relative_path": "metrics.prom"
+    },
+    {
+      "artifact_id": "service-logs.txt",
+      "media_type": "text/plain",
+      "relative_path": "service-logs.txt"
+    }
+  ]
+}

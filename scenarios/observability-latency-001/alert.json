@@ -1,0 +1,6 @@
+{
+  "alert": "CheckoutLatencyHigh",
+  "severity": "warning",
+  "summary": "The fictional checkout service p95 latency exceeded 1.5 seconds for ten minutes.",
+  "startsAt": "2026-08-26T10:05:00Z"
+}

@@ -1,0 +1,4 @@
+2026-08-26T10:02:14Z WARN checkout-api dependency request timed out dependency=pricing timeout_ms=1200
+2026-08-26T10:03:01Z WARN checkout-api dependency request timed out dependency=pricing timeout_ms=1200
+2026-08-26T10:04:47Z INFO checkout-api completed request duration_ms=1842 status=200
+2026-08-26T10:05:18Z INFO checkout-api completed request duration_ms=2016 status=200
