@@ -1,0 +1,14 @@
+{
+  "scenario_id": "gitops-drift-001",
+  "analysis": "The application is OutOfSync because live cluster replica count (1) drifted from desired target (3).",
+  "cited_artifact_ids": [
+    "application-status.json",
+    "desired-target.yaml",
+    "live-cluster.yaml"
+  ],
+  "proposed_actions": [
+    "sync argocd application"
+  ],
+  "model_name": "reference-fixture",
+  "adapter_name": "fixture"
+}

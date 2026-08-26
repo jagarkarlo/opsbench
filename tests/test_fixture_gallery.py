@@ -15,6 +15,17 @@ SCENARIOS_DIRECTORY = REPOSITORY_ROOT / "scenarios"
 
 
 class FictionalFixtureGalleryTests(unittest.TestCase):
+    def test_loads_fictional_gitops_drift_scenario(self) -> None:
+        pack = load_scenario_pack(SCENARIOS_DIRECTORY / "gitops-drift-001")
+
+        self.assertEqual(pack.manifest.scenario_id, "gitops-drift-001")
+        self.assertEqual(pack.manifest.category, "gitops")
+        self.assertEqual([artifact.artifact_id for artifact in pack.evidence], [
+            "application-status.json",
+            "desired-target.yaml",
+            "live-cluster.yaml",
+        ])
+
     def test_loads_fictional_latency_scenario(self) -> None:
         pack = load_scenario_pack(SCENARIOS_DIRECTORY / "observability-latency-001")
 
@@ -56,6 +67,17 @@ class FictionalFixtureGalleryTests(unittest.TestCase):
             ["latency", "dependency-timeout", "pricing"],
         )
 
+    def test_gitops_fixture_evaluator_profile_matches_scenario(self) -> None:
+        directory = SCENARIOS_DIRECTORY / "gitops-drift-001"
+        pack = load_scenario_pack(directory)
+        profile = load_evaluator_profile(directory / "evaluator.json")
+
+        self.assertEqual(profile.scenario_id, pack.manifest.scenario_id)
+        self.assertEqual(
+            [rule.rule_id for rule in profile.diagnosis_rules],
+            ["out-of-sync", "replica-drift"],
+        )
+
     def test_reference_response_evaluates_reproducibly(self) -> None:
         directory = SCENARIOS_DIRECTORY / "kubernetes-image-reference-001"
         pack = load_scenario_pack(directory)
@@ -82,6 +104,19 @@ class FictionalFixtureGalleryTests(unittest.TestCase):
         self.assertEqual(first_report.total, 13)
         self.assertEqual(first_report.maximum, 16)
 
+    def test_gitops_reference_response_evaluates_reproducibly(self) -> None:
+        directory = SCENARIOS_DIRECTORY / "gitops-drift-001"
+        pack = load_scenario_pack(directory)
+        profile = load_evaluator_profile(directory / "evaluator.json")
+        response = load_response(directory / "responses" / "reference-response.json")
+
+        first_report = evaluate_response(pack, profile, response)
+        second_report = evaluate_response(pack, profile, response)
+
+        self.assertEqual(first_report.content_hash(), second_report.content_hash())
+        self.assertEqual(first_report.total, 12)
+        self.assertEqual(first_report.maximum, 16)
+
     def test_lists_fixture_through_cli(self) -> None:
         output = io.StringIO()
         with redirect_stdout(output):
@@ -89,10 +124,10 @@ class FictionalFixtureGalleryTests(unittest.TestCase):
 
         result = json.loads(output.getvalue())
         self.assertEqual(exit_code, 0)
-        self.assertEqual(result["scenario_count"], 2)
+        self.assertEqual(result["scenario_count"], 3)
         self.assertEqual(
             [scenario["scenario_id"] for scenario in result["scenarios"]],
-            ["kubernetes-image-reference-001", "observability-latency-001"],
+            ["gitops-drift-001", "kubernetes-image-reference-001", "observability-latency-001"],
         )
         self.assertTrue(all(len(scenario["pack_hash"]) == 64 for scenario in result["scenarios"]))
 

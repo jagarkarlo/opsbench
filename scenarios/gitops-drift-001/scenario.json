@@ -1,0 +1,25 @@
+{
+  "manifest": {
+    "schema_version": "1.0",
+    "scenario_id": "gitops-drift-001",
+    "title": "Diagnose a fictional GitOps application drift",
+    "category": "gitops"
+  },
+  "evidence": [
+    {
+      "artifact_id": "application-status.json",
+      "media_type": "application/json",
+      "relative_path": "application-status.json"
+    },
+    {
+      "artifact_id": "desired-target.yaml",
+      "media_type": "application/yaml",
+      "relative_path": "desired-target.yaml"
+    },
+    {
+      "artifact_id": "live-cluster.yaml",
+      "media_type": "application/yaml",
+      "relative_path": "live-cluster.yaml"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "scenario_id": "gitops-drift-001",
+  "diagnosis_rules": [
+    {
+      "rule_id": "out-of-sync",
+      "keyword": "outofsync",
+      "weight": 2
+    },
+    {
+      "rule_id": "replica-drift",
+      "keyword": "replica",
+      "weight": 2
+    }
+  ],
+  "permitted_actions": [
+    "sync argocd application",
+    "trigger auto sync"
+  ],
+  "blocked_action_phrases": [
+    "delete argocd application",
+    "force push to git"
+  ]
+}

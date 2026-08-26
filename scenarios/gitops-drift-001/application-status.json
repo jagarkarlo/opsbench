@@ -1,0 +1,20 @@
+{
+  "name": "payment-service",
+  "sync": {
+    "status": "OutOfSync",
+    "comparedTo": {
+      "destination": {
+        "namespace": "payments",
+        "server": "https://kubernetes.default.svc"
+      },
+      "source": {
+        "path": "apps/payment-service",
+        "repoURL": "https://github.com/example/gitops-repo.git",
+        "targetRevision": "HEAD"
+      }
+    }
+  },
+  "health": {
+    "status": "Healthy"
+  }
+}
