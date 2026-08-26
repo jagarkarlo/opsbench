@@ -45,10 +45,21 @@ OpsBench begins as a local, dependency-light Python package. Provider adapters,
 distributed execution, persistence, observability, and deployment are introduced
 behind stable interfaces in later milestones.
 
-## Repository Status
+## Current Capability
 
-The repository foundation is complete. The next milestone defines and validates
-the versioned scenario contract before adding model integrations.
+OpsBench currently runs entirely locally with no model provider, database, API,
+or execution engine required. It includes:
+
+- Bounded, versioned scenario manifests and evidence artifacts.
+- Deterministic scenario-pack, response, and score-report hashes.
+- Symlink-safe scenario loading and metadata-only gallery auditing.
+- Deterministic diagnosis, citation, action, and safety scoring.
+- Two fully fictional scenarios: a Kubernetes image reference failure and an
+  observability latency investigation.
+- Offline response evaluation through the command line.
+
+Every scenario and response in this repository is synthetic. The evaluator
+never executes proposed actions and never calls an AI provider.
 
 See [the architecture](docs/architecture.md) and [the roadmap](docs/roadmap.md)
 for the system boundaries and implementation sequence.
@@ -61,6 +72,44 @@ source .venv/bin/activate
 python -m pip install -e .
 python -m unittest discover -s tests -v
 ```
+
+## Run Locally
+
+List the built-in fictional scenarios and their reproducible input hashes:
+
+```bash
+opsbench scenario list scenarios
+```
+
+Validate every scenario in the gallery without printing evidence bodies:
+
+```bash
+opsbench scenario audit scenarios
+```
+
+Validate one scenario pack:
+
+```bash
+opsbench scenario validate scenarios/kubernetes-image-reference-001
+```
+
+Evaluate the synthetic reference response for a scenario:
+
+```bash
+opsbench response evaluate \
+  scenarios/observability-latency-001 \
+  scenarios/observability-latency-001/responses/reference-response.json
+```
+
+The resulting JSON report contains diagnosis, evidence, action, and safety
+scores plus a reproducible response hash. It does not expose evidence content.
+
+## What Comes Next
+
+The next phase adds fixture and human adapters, immutable benchmark run
+manifests, repeated-trial comparison reports, and additional fully fictional
+GitOps, Terraform, and database scenarios. A web UI and backend are deliberately
+deferred until those local contracts have stabilized.
 
 ## License
 
