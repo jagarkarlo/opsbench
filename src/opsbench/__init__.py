@@ -14,6 +14,7 @@ from opsbench.responses import parse_response_text
 from opsbench.runner import execute_run, execute_suite
 from opsbench.server import create_server
 from opsbench.store import RunQuery, SQLiteResultStore
+from opsbench.tracing import TraceSpan, TraceTracer
 from opsbench.validator import lint_scenario
 from opsbench.web import render_dashboard_html
 
@@ -26,6 +27,8 @@ __all__ = [
     "OpenAIResponseAdapter",
     "RunQuery",
     "SQLiteResultStore",
+    "TraceSpan",
+    "TraceTracer",
     "create_server",
     "execute_run",
     "execute_suite",
