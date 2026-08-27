@@ -89,6 +89,11 @@ class BenchmarkServerTests(unittest.TestCase):
         self.assertIn("OpsBench Web Console", html_text)
         self.assertIn("scenario-001", html_text)
 
+    def test_metrics_endpoint(self) -> None:
+        status, text = self._get_html("/metrics")
+        self.assertEqual(status, HTTPStatus.OK)
+        self.assertIn("opsbench_total_runs_indexed 1", text)
+
     def test_health_endpoint(self) -> None:
         status, data = self._get("/api/v1/health")
         self.assertEqual(status, HTTPStatus.OK)

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+from opsbench.metrics import generate_prometheus_metrics
 from opsbench.scenarios import load_gallery
 from opsbench.store import RunQuery, SQLiteResultStore
 from opsbench.web import render_dashboard_html
@@ -41,6 +42,17 @@ class BenchmarkRequestHandler(BaseHTTPRequestHandler):
 
         if path == "/api/v1/health":
             self._send_json(HTTPStatus.OK, {"status": "ok", "version": "0.1.0"})
+            return
+
+        if path == "/metrics":
+            store = SQLiteResultStore(self.db_path)
+            try:
+                metrics_text = generate_prometheus_metrics(store)
+                self._send_text(HTTPStatus.OK, metrics_text, "text/plain; version=0.0.4; charset=utf-8")
+            except Exception as error:
+                self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(error)})
+            finally:
+                store.close()
             return
 
         if path == "/api/v1/scenarios":
@@ -124,9 +136,12 @@ class BenchmarkRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _send_html(self, status: int, html_text: str) -> None:
-        body = html_text.encode("utf-8")
+        self._send_text(status, html_text, "text/html; charset=utf-8")
+
+    def _send_text(self, status: int, text: str, content_type: str) -> None:
+        body = text.encode("utf-8")
         self.send_response(status)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
