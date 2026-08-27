@@ -212,9 +212,9 @@ docker compose up -d
 
 ## What Comes Next
 
-Phase 1 (Benchmark Core) and Phase 2 (Execution) are complete. The next phase
-(Phase 3: Platform Services) introduces a FastAPI control plane, PostgreSQL
-metadata persistence, object storage, and a web console.
+Phase 1 (Benchmark Core), Phase 2 (Execution), and Phase 3 (Platform Services)
+are complete. The next phase (Phase 4: Operations) introduces Kubernetes & Helm
+deployments, OpenTelemetry tracing, and GitOps examples.
 
 ## License
 

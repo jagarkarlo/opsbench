@@ -19,13 +19,14 @@ Each milestone must remain runnable and independently verifiable.
 - Concurrent local runner with timeouts and bounded retries.
 - Reproducible result bundles and comparison reports.
 
-## Phase 3: Platform Services
+## Phase 3: Platform Services (Completed in v0.4.0)
 
-- FastAPI control plane and worker API.
-- PostgreSQL metadata and object-storage evidence.
-- Queue-backed distributed workers and idempotent job claims.
-- Authentication, projects, teams, and role-based access.
-- Web console for scenario and run analysis.
+- Zero-dependency HTTP REST API server (`opsbench serve`).
+- SQLite result store index (`SQLiteResultStore` & `opsbench store`).
+- Result store JSON package export and import (`opsbench store export/import`).
+- Web Console HTML dashboard (`render_dashboard_html`).
+- Scenario static linter and validator (`opsbench scenario lint`).
+- Prometheus exposition format metrics collector (`/metrics`).
 
 ## Phase 4: Operations
 
