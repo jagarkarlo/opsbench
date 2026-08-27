@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: opsbench-server
+  namespace: opsbench
+  labels:
+    app.kubernetes.io/name: opsbench-server
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/part-of: opsbench
+  annotations:
+    ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: opsbench.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: opsbench-server
+                port:
+                  name: http

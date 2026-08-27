@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opsbench-config
+  namespace: opsbench
+  labels:
+    app.kubernetes.io/name: opsbench-server
+    app.kubernetes.io/component: config
+    app.kubernetes.io/part-of: opsbench
+data:
+  OPSBENCH_HOST: "0.0.0.0"
+  OPSBENCH_PORT: "8080"
+  OPSBENCH_LOG_LEVEL: "INFO"
