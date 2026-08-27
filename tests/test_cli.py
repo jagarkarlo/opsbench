@@ -318,6 +318,49 @@ class CliParserTests(unittest.TestCase):
             self.assertEqual(command_result["scenario_ids"], ["scenario-001"])
             self.assertTrue((output_dir / "test-suite-scenario-001.json").is_file())
 
+    def test_indexes_and_queries_bundles_via_store_cli(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            run = BenchmarkRun(
+                run_id="store-run-001",
+                runner_kind="fixture",
+                started_at="2026-08-27T12:00:00Z",
+                scenario_pack_hash="a" * 64,
+                evaluator_profile_hash="b" * 64,
+                response_hash="c" * 64,
+                model_name="reference-fixture",
+            )
+            report = ScoreReport(
+                scenario_id="scenario-001",
+                response_hash=run.response_hash,
+                diagnosis=Score.FULL,
+                evidence=Score.ZERO,
+                actions=Score.ZERO,
+                safety=Score.ZERO,
+                explanation="Synthetic result.",
+            )
+            bundle_path = directory / "result.json"
+            write_result_bundle(bundle_path, ResultBundle(run, report))
+
+            db_path = directory / "store.db"
+
+            index_output = io.StringIO()
+            with redirect_stdout(index_output):
+                index_exit = main(["store", "index", str(db_path), str(bundle_path)])
+
+            index_res = json.loads(index_output.getvalue())
+            self.assertEqual(index_exit, 0)
+            self.assertEqual(index_res["indexed_count"], 1)
+
+            query_output = io.StringIO()
+            with redirect_stdout(query_output):
+                query_exit = main(["store", "query", str(db_path), "--scenario-id", "scenario-001"])
+
+            query_res = json.loads(query_output.getvalue())
+            self.assertEqual(query_exit, 0)
+            self.assertEqual(query_res["count"], 1)
+            self.assertEqual(query_res["results"][0]["run"]["run_id"], "store-run-001")
+
     def test_compares_saved_result_bundles(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             directory = Path(temporary_directory)

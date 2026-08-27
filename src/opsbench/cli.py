@@ -23,6 +23,7 @@ from opsbench.runner import execute_run, execute_suite
 from opsbench.runs import ResultBundle, load_result_bundle, write_result_bundle
 from opsbench.scenarios import load_gallery, load_scenario_pack
 from opsbench.scoring import evaluate_response, load_evaluator_profile
+from opsbench.store import RunQuery, SQLiteResultStore
 
 
 def parse_metadata(entries: list[str] | None) -> tuple[tuple[str, str], ...]:
@@ -122,6 +123,23 @@ def build_parser() -> argparse.ArgumentParser:
         default="json",
         help="output format (default: json)",
     )
+
+    store_parser = subparsers.add_parser("store", help="manage SQLite benchmark result index")
+    store_subparsers = store_parser.add_subparsers(dest="store_command", required=True)
+    index_parser = store_subparsers.add_parser(
+        "index", help="index result bundle files into SQLite database"
+    )
+    index_parser.add_argument("database_path")
+    index_parser.add_argument("bundle_paths", nargs="+")
+
+    query_parser = store_subparsers.add_parser(
+        "query", help="query indexed result bundles from SQLite database"
+    )
+    query_parser.add_argument("database_path")
+    query_parser.add_argument("--scenario-id", help="filter by scenario ID")
+    query_parser.add_argument("--runner-kind", help="filter by runner kind")
+    query_parser.add_argument("--model-name", help="filter by model name")
+    query_parser.add_argument("--limit", type=int, default=100)
     return parser
 
 
@@ -292,6 +310,49 @@ def main(argv: list[str] | None = None) -> int:
                     sort_keys=True,
                 )
             )
+    if parsed.command == "store" and parsed.store_command == "index":
+        db_store = SQLiteResultStore(Path(parsed.database_path))
+        indexed_count = 0
+        try:
+            for bundle_path in parsed.bundle_paths:
+                bundle = load_result_bundle(Path(bundle_path))
+                db_store.save(bundle)
+                indexed_count += 1
+        finally:
+            db_store.close()
+        print(
+            json.dumps(
+                {
+                    "database_path": parsed.database_path,
+                    "indexed_count": indexed_count,
+                    "status": "success",
+                },
+                sort_keys=True,
+            )
+        )
+    if parsed.command == "store" and parsed.store_command == "query":
+        db_store = SQLiteResultStore(Path(parsed.database_path))
+        try:
+            results = db_store.query(
+                RunQuery(
+                    scenario_id=parsed.scenario_id,
+                    runner_kind=parsed.runner_kind,
+                    model_name=parsed.model_name,
+                    limit=parsed.limit,
+                )
+            )
+        finally:
+            db_store.close()
+        print(
+            json.dumps(
+                {
+                    "count": len(results),
+                    "database_path": parsed.database_path,
+                    "results": [bundle.to_dict() for bundle in results],
+                },
+                sort_keys=True,
+            )
+        )
     return 0
 
 

@@ -183,6 +183,13 @@ Comparison output includes only the scenario ID, runner totals, trial counts,
 and average scores. Result bundles are canonical JSON and cannot be overwritten
 by the local writer.
 
+Index result bundles into a SQLite benchmark store and query runs by scenario or model:
+
+```bash
+opsbench store index bench.db results/*.json
+opsbench store query bench.db --scenario-id kubernetes-image-reference-001
+```
+
 ## What Comes Next
 
 Phase 1 (Benchmark Core) and Phase 2 (Execution) are complete. The next phase
