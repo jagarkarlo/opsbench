@@ -7,6 +7,7 @@ from opsbench.adapters import (
     OpenAIResponseAdapter,
 )
 from opsbench.export import export_store_to_json, import_json_to_store
+from opsbench.metrics import generate_prometheus_metrics
 from opsbench.prompts import render_prompt
 from opsbench.responses import parse_response_text
 from opsbench.runner import execute_run, execute_suite
@@ -27,6 +28,7 @@ __all__ = [
     "execute_run",
     "execute_suite",
     "export_store_to_json",
+    "generate_prometheus_metrics",
     "import_json_to_store",
     "lint_scenario",
     "parse_response_text",
