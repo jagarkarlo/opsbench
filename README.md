@@ -94,6 +94,12 @@ Validate one scenario pack:
 opsbench scenario validate scenarios/kubernetes-image-reference-001
 ```
 
+Statically lint a scenario directory for schema errors and duplicate rules:
+
+```bash
+opsbench scenario lint scenarios/kubernetes-image-reference-001
+```
+
 Render a structured, reproducible LLM prompt from a scenario pack:
 
 ```bash

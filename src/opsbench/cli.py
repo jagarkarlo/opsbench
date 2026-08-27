@@ -26,6 +26,7 @@ from opsbench.scenarios import load_gallery, load_scenario_pack
 from opsbench.scoring import evaluate_response, load_evaluator_profile
 from opsbench.server import create_server
 from opsbench.store import RunQuery, SQLiteResultStore
+from opsbench.validator import lint_scenario
 
 
 def parse_metadata(entries: list[str] | None) -> tuple[tuple[str, str], ...]:
@@ -64,6 +65,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     prompt_parser.add_argument("path")
     prompt_parser.add_argument("--instruction", help="custom system instruction")
+    lint_parser = scenario_subparsers.add_parser(
+        "lint", help="statically lint a scenario directory for potential issues"
+    )
+    lint_parser.add_argument("path")
     response_parser = subparsers.add_parser("response", help="evaluate local benchmark responses")
     response_subparsers = response_parser.add_subparsers(dest="response_command", required=True)
     evaluate_parser = response_subparsers.add_parser(
@@ -225,6 +230,19 @@ def main(argv: list[str] | None = None) -> int:
             system_instruction=parsed.instruction,
         )
         print(prompt_text, end="")
+    if parsed.command == "scenario" and parsed.scenario_command == "lint":
+        issues = lint_scenario(Path(parsed.path))
+        print(
+            json.dumps(
+                {
+                    "issue_count": len(issues),
+                    "issues": issues,
+                    "path": parsed.path,
+                    "status": "clean" if not issues else "issues_found",
+                },
+                sort_keys=True,
+            )
+        )
     if parsed.command == "response" and parsed.response_command == "evaluate":
         scenario_path = Path(parsed.scenario_path)
         pack = load_scenario_pack(scenario_path)

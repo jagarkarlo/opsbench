@@ -41,6 +41,13 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(parsed.path, "scenarios/example")
         self.assertEqual(parsed.instruction, "Custom rule")
 
+    def test_parses_scenario_lint_command(self) -> None:
+        parsed = build_parser().parse_args(["scenario", "lint", "scenarios/example"])
+
+        self.assertEqual(parsed.command, "scenario")
+        self.assertEqual(parsed.scenario_command, "lint")
+        self.assertEqual(parsed.path, "scenarios/example")
+
     def test_parses_response_evaluate_command(self) -> None:
         parsed = build_parser().parse_args(
             ["response", "evaluate", "scenarios/example", "responses/example.json"]
@@ -327,6 +334,29 @@ class CliParserTests(unittest.TestCase):
             self.assertEqual(command_result["bundle_count"], 1)
             self.assertEqual(command_result["scenario_ids"], ["scenario-001"])
             self.assertTrue((output_dir / "test-suite-scenario-001.json").is_file())
+
+    def test_lints_scenario_via_cli(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            scenario = Path(temporary_directory) / "kubernetes-image-reference-001"
+            scenario.mkdir()
+            (scenario / "scenario.json").write_text(
+                '''{"manifest":{"schema_version":"1.0","scenario_id":"kubernetes-image-reference-001","title":"Fictional scenario","category":"kubernetes"},"evidence":[{"artifact_id":"pod-logs.txt","media_type":"text/plain","relative_path":"pod-logs.txt"}]}''',
+                encoding="utf-8",
+            )
+            (scenario / "pod-logs.txt").write_text("restarted\n", encoding="utf-8")
+            (scenario / "evaluator.json").write_text(
+                '''{"scenario_id":"kubernetes-image-reference-001","diagnosis_rules":[{"rule_id":"restarted","keyword":"restarted","weight":1}],"permitted_actions":[]}''',
+                encoding="utf-8",
+            )
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                exit_code = main(["scenario", "lint", str(scenario)])
+
+        result = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(result["status"], "clean")
+        self.assertEqual(result["issue_count"], 0)
 
     def test_indexes_and_queries_bundles_via_store_cli(self) -> None:
         with TemporaryDirectory() as temporary_directory:
