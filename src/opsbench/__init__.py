@@ -6,6 +6,7 @@ from opsbench.adapters import (
     HumanResponseAdapter,
     OpenAIResponseAdapter,
 )
+from opsbench.export import export_store_to_json, import_json_to_store
 from opsbench.prompts import render_prompt
 from opsbench.responses import parse_response_text
 from opsbench.runner import execute_run, execute_suite
@@ -24,6 +25,8 @@ __all__ = [
     "create_server",
     "execute_run",
     "execute_suite",
+    "export_store_to_json",
+    "import_json_to_store",
     "parse_response_text",
     "render_dashboard_html",
     "render_prompt",
