@@ -7,6 +7,7 @@ from opsbench.adapters import (
     OpenAIResponseAdapter,
 )
 from opsbench.export import export_store_to_json, import_json_to_store
+from opsbench.logging import JSONLogger, format_json_log_entry
 from opsbench.metrics import generate_prometheus_metrics
 from opsbench.prompts import render_prompt
 from opsbench.responses import parse_response_text
@@ -21,6 +22,7 @@ __all__ = [
     "FixtureResponseAdapter",
     "GalleryFixtureResponseAdapter",
     "HumanResponseAdapter",
+    "JSONLogger",
     "OpenAIResponseAdapter",
     "RunQuery",
     "SQLiteResultStore",
@@ -28,6 +30,7 @@ __all__ = [
     "execute_run",
     "execute_suite",
     "export_store_to_json",
+    "format_json_log_entry",
     "generate_prometheus_metrics",
     "import_json_to_store",
     "lint_scenario",
