@@ -1,0 +1,15 @@
+{
+  "scenario_id": "terraform-resource-conflict-001",
+  "analysis": "The Terraform plan failed because the subnet already exists in the cloud provider but is missing from the state. The resource must be imported into state.",
+  "cited_artifact_ids": [
+    "main.tf",
+    "state-summary.json",
+    "terraform-plan.txt"
+  ],
+  "proposed_actions": [
+    "import existing subnet into state",
+    "verify cloud subnet configuration"
+  ],
+  "model_name": "reference-fixture",
+  "adapter_name": "fixture"
+}

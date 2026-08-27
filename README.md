@@ -54,9 +54,9 @@ or execution engine required. It includes:
 - Deterministic scenario-pack, response, and score-report hashes.
 - Symlink-safe scenario loading and metadata-only gallery auditing.
 - Deterministic diagnosis, citation, action, and safety scoring.
-- Four fully fictional scenarios covering Kubernetes image pull failure,
-  observability latency investigation, GitOps drift detection, and PostgreSQL
-  transaction deadlock analysis.
+- Five fully fictional scenarios covering all supported categories: Kubernetes
+  image pull failure, observability latency investigation, GitOps drift detection,
+  PostgreSQL transaction deadlock analysis, and Terraform resource import conflict.
 - Offline response evaluation through the command line.
 
 Every scenario and response in this repository is synthetic. The evaluator

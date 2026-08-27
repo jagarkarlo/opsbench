@@ -1,0 +1,22 @@
+Terraform used the selected providers to generate the following execution plan.
+Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_subnet.app_subnet will be created
+  + resource "aws_subnet" "app_subnet" {
+      + arn               = (known after apply)
+      + availability_zone = "us-east-1a"
+      + cidr_block        = "10.0.1.0/24"
+      + id                = (known after apply)
+      + vpc_id            = "vpc-0a1b2c3d"
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+Error: A resource with the ID "subnet-09f182a3" already exists in the cloud provider.
+  with aws_subnet.app_subnet,
+  on main.tf line 1, in resource "aws_subnet" "app_subnet":
+  1: resource "aws_subnet" "app_subnet" {
+Terraform cannot create this resource because it already exists outside the state.

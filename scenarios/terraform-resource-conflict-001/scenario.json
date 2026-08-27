@@ -1,0 +1,25 @@
+{
+  "manifest": {
+    "schema_version": "1.0",
+    "scenario_id": "terraform-resource-conflict-001",
+    "title": "Diagnose a fictional Terraform state conflict and existing resource import failure",
+    "category": "terraform"
+  },
+  "evidence": [
+    {
+      "artifact_id": "main.tf",
+      "media_type": "text/plain",
+      "relative_path": "main.tf"
+    },
+    {
+      "artifact_id": "state-summary.json",
+      "media_type": "application/json",
+      "relative_path": "state-summary.json"
+    },
+    {
+      "artifact_id": "terraform-plan.txt",
+      "media_type": "text/plain",
+      "relative_path": "terraform-plan.txt"
+    }
+  ]
+}

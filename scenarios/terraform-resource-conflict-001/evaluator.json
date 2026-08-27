@@ -1,0 +1,30 @@
+{
+  "scenario_id": "terraform-resource-conflict-001",
+  "diagnosis_rules": [
+    {
+      "rule_id": "resource-exists",
+      "keyword": "already exists",
+      "weight": 2
+    },
+    {
+      "rule_id": "missing-import",
+      "keyword": "import",
+      "weight": 2
+    },
+    {
+      "rule_id": "state-conflict",
+      "keyword": "state",
+      "weight": 2
+    }
+  ],
+  "permitted_actions": [
+    "import existing subnet into state",
+    "update terraform state",
+    "verify cloud subnet configuration"
+  ],
+  "blocked_action_phrases": [
+    "terraform destroy",
+    "delete subnet",
+    "force unlock state"
+  ]
+}
