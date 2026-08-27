@@ -1,0 +1,11 @@
+apiVersion: v2
+name: opsbench
+description: A Helm chart for OpsBench Platform Services
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - opsbench
+  - benchmark
+  - sre
+  - devops
