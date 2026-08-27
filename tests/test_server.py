@@ -76,6 +76,19 @@ class BenchmarkServerTests(unittest.TestCase):
             data = json.loads(err.read().decode("utf-8"))
             return err.code, data
 
+    def _get_html(self, path: str) -> tuple[int, str]:
+        url = f"http://127.0.0.1:{self.port}{path}"
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req) as resp:
+            text = resp.read().decode("utf-8")
+            return resp.status, text
+
+    def test_dashboard_endpoint(self) -> None:
+        status, html_text = self._get_html("/")
+        self.assertEqual(status, HTTPStatus.OK)
+        self.assertIn("OpsBench Web Console", html_text)
+        self.assertIn("scenario-001", html_text)
+
     def test_health_endpoint(self) -> None:
         status, data = self._get("/api/v1/health")
         self.assertEqual(status, HTTPStatus.OK)

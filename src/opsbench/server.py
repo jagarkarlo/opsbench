@@ -11,6 +11,7 @@ from urllib.parse import parse_qs, urlparse
 
 from opsbench.scenarios import load_gallery
 from opsbench.store import RunQuery, SQLiteResultStore
+from opsbench.web import render_dashboard_html
 
 
 class BenchmarkRequestHandler(BaseHTTPRequestHandler):
@@ -26,6 +27,17 @@ class BenchmarkRequestHandler(BaseHTTPRequestHandler):
             path = "/"
 
         query_params = parse_qs(parsed_url.query)
+
+        if path in ("/", "/dashboard"):
+            store = SQLiteResultStore(self.db_path)
+            try:
+                html_text = render_dashboard_html(store)
+                self._send_html(HTTPStatus.OK, html_text)
+            except Exception as error:
+                self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(error)})
+            finally:
+                store.close()
+            return
 
         if path == "/api/v1/health":
             self._send_json(HTTPStatus.OK, {"status": "ok", "version": "0.1.0"})
@@ -107,6 +119,14 @@ class BenchmarkRequestHandler(BaseHTTPRequestHandler):
         body = json.dumps(data, sort_keys=True).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _send_html(self, status: int, html_text: str) -> None:
+        body = html_text.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
