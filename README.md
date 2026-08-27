@@ -141,10 +141,20 @@ opsbench run human \
   --run-id human-run-001
 ```
 
-Run a complete benchmark suite across every scenario in a gallery in a single command:
+Run a run against any OpenAI-compatible API endpoint (Ollama, vLLM, OpenAI, etc.):
 
 ```bash
-opsbench run suite scenarios results --run-prefix full-suite --metadata seed=42
+opsbench run openai \
+  scenarios/kubernetes-image-reference-001 \
+  results/openai-run-001.json \
+  --model gpt-4o \
+  --run-id openai-run-001
+```
+
+Run a complete benchmark suite across every scenario in a gallery concurrently:
+
+```bash
+opsbench run suite scenarios results --run-prefix full-suite --max-workers 4 --metadata seed=42
 ```
 
 Create another trial with a different run ID and output path, then compare the
@@ -163,10 +173,9 @@ by the local writer.
 
 ## What Comes Next
 
-The next phase adds provider adapters, additional fully fictional GitOps,
-Terraform, and database scenarios, plus result storage and comparison views. A
-web UI and backend are deliberately deferred until those local contracts have
-stabilized.
+Phase 1 (Benchmark Core) and Phase 2 (Execution) are complete. The next phase
+(Phase 3: Platform Services) introduces a FastAPI control plane, PostgreSQL
+metadata persistence, object storage, and a web console.
 
 ## License
 

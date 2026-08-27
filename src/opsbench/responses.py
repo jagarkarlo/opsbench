@@ -91,19 +91,24 @@ class BenchmarkResponse:
         return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
 
 
-def load_response(path: Path, *, max_bytes: int = MAX_RESPONSE_BYTES) -> BenchmarkResponse:
-    """Load one bounded JSON response into the normalized response contract."""
-    if max_bytes <= 0:
-        raise ValueError("max_bytes must be positive")
-    if not path.is_file():
-        raise ValueError(f"response must be a file: {path}")
-    if path.stat().st_size > max_bytes:
-        raise ValueError(f"response exceeds maximum size of {max_bytes} bytes")
+def parse_response_text(text: str) -> BenchmarkResponse:
+    """Parse a raw JSON string (with optional markdown code fencing) into a BenchmarkResponse."""
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("response text must be a non-empty string")
+
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        lines = cleaned.splitlines()
+        if lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        cleaned = "\n".join(lines).strip()
 
     try:
-        decoded: Any = json.loads(path.read_text(encoding="utf-8"))
+        decoded: Any = json.loads(cleaned)
     except json.JSONDecodeError as error:
-        raise ValueError(f"response is not valid JSON: {path}") from error
+        raise ValueError(f"response text is not valid JSON: {error}") from error
 
     if not isinstance(decoded, dict):
         raise ValueError("response root must be a JSON object")
@@ -122,3 +127,15 @@ def load_response(path: Path, *, max_bytes: int = MAX_RESPONSE_BYTES) -> Benchma
     decoded["cited_artifact_ids"] = tuple(decoded.get("cited_artifact_ids", []))
     decoded["proposed_actions"] = tuple(decoded.get("proposed_actions", []))
     return BenchmarkResponse(**decoded)
+
+
+def load_response(path: Path, *, max_bytes: int = MAX_RESPONSE_BYTES) -> BenchmarkResponse:
+    """Load one bounded JSON response into the normalized response contract."""
+    if max_bytes <= 0:
+        raise ValueError("max_bytes must be positive")
+    if not path.is_file():
+        raise ValueError(f"response must be a file: {path}")
+    if path.stat().st_size > max_bytes:
+        raise ValueError(f"response exceeds maximum size of {MAX_RESPONSE_BYTES} bytes")
+
+    return parse_response_text(path.read_text(encoding="utf-8"))

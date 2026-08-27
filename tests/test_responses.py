@@ -2,7 +2,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from opsbench.responses import BenchmarkResponse, SUPPORTED_RESPONSE_VERSION, load_response
+from opsbench.responses import (
+    BenchmarkResponse,
+    SUPPORTED_RESPONSE_VERSION,
+    load_response,
+    parse_response_text,
+)
 
 
 class BenchmarkResponseTests(unittest.TestCase):
@@ -123,7 +128,7 @@ class LoadResponseTests(unittest.TestCase):
                 load_response(invalid_path)
 
             missing_path = self.write_response(directory, '{"scenario_id":"scenario-001"}')
-            with self.assertRaisesRegex(ValueError, "response is missing fields: analysis"):
+            with self.assertRaisesRegex(ValueError, "response is missing fields"):
                 load_response(missing_path)
 
             unknown_path = self.write_response(
@@ -137,13 +142,36 @@ class LoadResponseTests(unittest.TestCase):
         with TemporaryDirectory() as temporary_directory:
             directory = Path(temporary_directory)
             invalid_json_path = self.write_response(directory, "not-json")
-            with self.assertRaisesRegex(ValueError, "response is not valid JSON"):
+            with self.assertRaisesRegex(ValueError, "response text is not valid JSON"):
                 load_response(invalid_json_path)
 
             invalid_array_path = self.write_response(
                 directory,
                 '{"scenario_id":"scenario-001","analysis":"Healthy.","proposed_actions":"none"}',
             )
+            with self.assertRaisesRegex(ValueError, "proposed_actions must be a JSON array"):
+                load_response(invalid_array_path)
+
+    def test_parses_response_text_with_markdown_fencing(self) -> None:
+        fenced_json = """```json
+{
+  "scenario_id": "scenario-001",
+  "analysis": "Fenced analysis.",
+  "cited_artifact_ids": ["logs.txt"],
+  "proposed_actions": ["inspect logs"]
+}
+```"""
+        response = parse_response_text(fenced_json)
+
+        self.assertEqual(response.scenario_id, "scenario-001")
+        self.assertEqual(response.analysis, "Fenced analysis.")
+        self.assertEqual(response.cited_artifact_ids, ("logs.txt",))
+
+    def test_rejects_invalid_response_text(self) -> None:
+        with self.assertRaisesRegex(ValueError, "response text must be a non-empty string"):
+            parse_response_text("   ")
+        with self.assertRaisesRegex(ValueError, "response text is not valid JSON"):
+            parse_response_text("not json")
             with self.assertRaisesRegex(ValueError, "proposed_actions must be a JSON array"):
                 load_response(invalid_array_path)
 

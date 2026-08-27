@@ -10,6 +10,7 @@ from opsbench.adapters import (
     FixtureResponseAdapter,
     GalleryFixtureResponseAdapter,
     HumanResponseAdapter,
+    OpenAIResponseAdapter,
 )
 from opsbench.comparisons import (
     compare_bundles,
@@ -86,12 +87,27 @@ def build_parser() -> argparse.ArgumentParser:
     human_parser.add_argument("output_path")
     human_parser.add_argument("--run-id", required=True)
     human_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
+    openai_parser = run_subparsers.add_parser(
+        "openai", help="execute a run against an OpenAI-compatible endpoint"
+    )
+    openai_parser.add_argument("scenario_path")
+    openai_parser.add_argument("output_path")
+    openai_parser.add_argument("--model", required=True, help="model identifier (e.g. gpt-4o, llama3)")
+    openai_parser.add_argument(
+        "--api-base", default="http://localhost:11434/v1", help="OpenAI-compatible API base URL"
+    )
+    openai_parser.add_argument("--api-key", help="optional API authorization key")
+    openai_parser.add_argument("--temperature", type=float, default=0.0)
+    openai_parser.add_argument("--timeout", type=float, default=60.0)
+    openai_parser.add_argument("--run-id", required=True)
+    openai_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
     suite_parser = run_subparsers.add_parser(
         "suite", help="execute a response adapter across an entire scenario gallery"
     )
     suite_parser.add_argument("gallery_path")
     suite_parser.add_argument("output_dir")
     suite_parser.add_argument("--run-prefix", default="suite-run")
+    suite_parser.add_argument("--max-workers", type=int, default=1, help="concurrency for gallery runs")
     suite_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
 
     compare_parser = subparsers.add_parser("compare", help="compare local benchmark results")
@@ -178,16 +194,24 @@ def main(argv: list[str] | None = None) -> int:
         response = load_response(Path(parsed.response_path))
         report = evaluate_response(pack, profile, response)
         print(json.dumps(report.to_dict(), sort_keys=True))
-    if parsed.command == "run" and parsed.run_command in {"fixture", "human"}:
+    if parsed.command == "run" and parsed.run_command in {"fixture", "human", "openai"}:
         scenario_path = Path(parsed.scenario_path)
         pack = load_scenario_pack(scenario_path)
         profile = load_evaluator_profile(scenario_path / "evaluator.json")
-        response = load_response(Path(parsed.response_path))
-        adapter = (
-            FixtureResponseAdapter(response)
-            if parsed.run_command == "fixture"
-            else HumanResponseAdapter(response)
-        )
+        if parsed.run_command == "fixture":
+            response = load_response(Path(parsed.response_path))
+            adapter = FixtureResponseAdapter(response)
+        elif parsed.run_command == "human":
+            response = load_response(Path(parsed.response_path))
+            adapter = HumanResponseAdapter(response)
+        else:
+            adapter = OpenAIResponseAdapter(
+                model_name=parsed.model,
+                api_base=parsed.api_base,
+                api_key=parsed.api_key,
+                temperature=parsed.temperature,
+                timeout=parsed.timeout,
+            )
         result = execute_run(
             run_id=parsed.run_id,
             pack=pack,
@@ -226,6 +250,7 @@ def main(argv: list[str] | None = None) -> int:
             output_directory=output_dir,
             adapter=adapter,
             run_prefix=parsed.run_prefix,
+            max_workers=parsed.max_workers,
             metadata=parse_metadata(parsed.metadata),
         )
         print(

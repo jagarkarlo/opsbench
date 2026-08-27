@@ -1,9 +1,13 @@
+import io
+import json
 import unittest
+from unittest.mock import MagicMock, patch
 
 from opsbench.adapters import (
     FixtureResponseAdapter,
     GalleryFixtureResponseAdapter,
     HumanResponseAdapter,
+    OpenAIResponseAdapter,
     ResponseAdapter,
 )
 from opsbench.responses import BenchmarkResponse
@@ -109,6 +113,66 @@ class ResponseAdapterTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "no fixture response available for scenario"):
             adapter.respond(pack)
+
+    def test_openai_adapter_formats_request_and_parses_json_response(self) -> None:
+        pack = ScenarioPack(
+            ScenarioManifest("scenario-001", "Fictional scenario", "kubernetes"),
+            (EvidenceArtifact("logs.txt", "text/plain", b"synthetic logs"),),
+        )
+        mock_response_body = {
+            "choices": [
+                {
+                    "message": {
+                        "content": '```json\n{"scenario_id": "scenario-001", "analysis": "OpenAI model analysis.", "cited_artifact_ids": ["logs.txt"], "proposed_actions": ["inspect logs"]}\n```'
+                    }
+                }
+            ]
+        }
+        mock_handle = MagicMock()
+        mock_handle.read.return_value = json.dumps(mock_response_body).encode("utf-8")
+        mock_handle.__enter__.return_value = mock_handle
+
+        with patch("urllib.request.urlopen", return_value=mock_handle) as mock_urlopen:
+            adapter = OpenAIResponseAdapter(
+                model_name="gpt-4o",
+                api_base="http://localhost:11434/v1",
+                api_key="test-key",
+            )
+            response = adapter.respond(pack)
+
+        self.assertEqual(adapter.adapter_name, "openai-compatible")
+        self.assertEqual(response.scenario_id, "scenario-001")
+        self.assertEqual(response.model_name, "gpt-4o")
+        self.assertEqual(response.analysis, "OpenAI model analysis.")
+        self.assertEqual(response.cited_artifact_ids, ("logs.txt",))
+
+        mock_urlopen.assert_called_once()
+        request = mock_urlopen.call_args[0][0]
+        self.assertEqual(request.full_url, "http://localhost:11434/v1/chat/completions")
+        self.assertEqual(request.headers["Authorization"], "Bearer test-key")
+
+    def test_openai_adapter_rejects_mismatched_scenario_id(self) -> None:
+        pack = ScenarioPack(
+            ScenarioManifest("scenario-001", "Fictional scenario", "kubernetes"),
+            (EvidenceArtifact("logs.txt", "text/plain", b"synthetic logs"),),
+        )
+        mock_response_body = {
+            "choices": [
+                {
+                    "message": {
+                        "content": '{"scenario_id": "other-scenario", "analysis": "Wrong scenario."}'
+                    }
+                }
+            ]
+        }
+        mock_handle = MagicMock()
+        mock_handle.read.return_value = json.dumps(mock_response_body).encode("utf-8")
+        mock_handle.__enter__.return_value = mock_handle
+
+        with patch("urllib.request.urlopen", return_value=mock_handle):
+            adapter = OpenAIResponseAdapter(model_name="gpt-4o")
+            with self.assertRaisesRegex(ValueError, "OpenAI model returned scenario_id"):
+                adapter.respond(pack)
 
 
 if __name__ == "__main__":

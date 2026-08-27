@@ -95,6 +95,8 @@ class CliParserTests(unittest.TestCase):
                 "results",
                 "--run-prefix",
                 "benchmark-run",
+                "--max-workers",
+                "4",
             ]
         )
 
@@ -103,6 +105,29 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(parsed.gallery_path, "scenarios")
         self.assertEqual(parsed.output_dir, "results")
         self.assertEqual(parsed.run_prefix, "benchmark-run")
+        self.assertEqual(parsed.max_workers, 4)
+
+    def test_parses_openai_run_command(self) -> None:
+        parsed = build_parser().parse_args(
+            [
+                "run",
+                "openai",
+                "scenarios/example",
+                "results/run.json",
+                "--model",
+                "gpt-4o",
+                "--api-base",
+                "http://localhost:11434/v1",
+                "--run-id",
+                "openai-run-001",
+            ]
+        )
+
+        self.assertEqual(parsed.command, "run")
+        self.assertEqual(parsed.run_command, "openai")
+        self.assertEqual(parsed.model, "gpt-4o")
+        self.assertEqual(parsed.api_base, "http://localhost:11434/v1")
+        self.assertEqual(parsed.run_id, "openai-run-001")
 
     def test_parses_canonical_run_metadata(self) -> None:
         parsed = build_parser().parse_args(

@@ -92,6 +92,42 @@ class BenchmarkRunnerTests(unittest.TestCase):
             self.assertEqual(bundles[0].run.run_id, "test-suite-scenario-001")
             self.assertTrue((output_dir / "test-suite-scenario-001.json").is_file())
 
+    def test_executes_suite_concurrently_with_max_workers(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            gallery = Path(temporary_directory) / "scenarios"
+            output_dir = Path(temporary_directory) / "results"
+            for name, sid in (("alpha", "scenario-001"), ("beta", "scenario-002")):
+                scenario = gallery / name
+                scenario.mkdir(parents=True)
+                (scenario / "scenario.json").write_text(
+                    f'''{{"manifest":{{"schema_version":"1.0","scenario_id":"{sid}","title":"Fictional scenario","category":"kubernetes"}},"evidence":[{{"artifact_id":"logs.txt","media_type":"text/plain","relative_path":"logs.txt"}}]}}''',
+                    encoding="utf-8",
+                )
+                (scenario / "logs.txt").write_text("synthetic logs\n", encoding="utf-8")
+                (scenario / "evaluator.json").write_text(
+                    f'''{{"scenario_id":"{sid}","diagnosis_rules":[{{"rule_id":"synthetic","keyword":"synthetic","weight":2}}],"permitted_actions":["inspect logs"]}}''',
+                    encoding="utf-8",
+                )
+            adapter = GalleryFixtureResponseAdapter(
+                {
+                    "scenario-001": BenchmarkResponse("scenario-001", "Alpha analysis."),
+                    "scenario-002": BenchmarkResponse("scenario-002", "Beta analysis."),
+                }
+            )
+
+            bundles = execute_suite(
+                gallery_directory=gallery,
+                output_directory=output_dir,
+                adapter=adapter,
+                run_prefix="parallel-suite",
+                max_workers=2,
+                started_at=datetime(2026, 8, 26, 12, 0, tzinfo=timezone.utc),
+            )
+
+            self.assertEqual(len(bundles), 2)
+            self.assertEqual(bundles[0].run.run_id, "parallel-suite-scenario-001")
+            self.assertEqual(bundles[1].run.run_id, "parallel-suite-scenario-002")
+
 
 if __name__ == "__main__":
     unittest.main()
