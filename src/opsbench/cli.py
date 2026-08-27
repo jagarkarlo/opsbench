@@ -17,6 +17,7 @@ from opsbench.comparisons import (
     render_markdown_comparison,
     summarize_trials,
 )
+from opsbench.export import export_store_to_json, import_json_to_store
 from opsbench.prompts import render_prompt
 from opsbench.responses import load_response
 from opsbench.runner import execute_run, execute_suite
@@ -141,6 +142,18 @@ def build_parser() -> argparse.ArgumentParser:
     query_parser.add_argument("--runner-kind", help="filter by runner kind")
     query_parser.add_argument("--model-name", help="filter by model name")
     query_parser.add_argument("--limit", type=int, default=100)
+
+    export_parser = store_subparsers.add_parser(
+        "export", help="export SQLite database result bundles to a JSON package file"
+    )
+    export_parser.add_argument("database_path")
+    export_parser.add_argument("export_path")
+
+    import_parser = store_subparsers.add_parser(
+        "import", help="import result bundles from a JSON package file into a SQLite database"
+    )
+    import_parser.add_argument("database_path")
+    import_parser.add_argument("import_path")
 
     serve_parser = subparsers.add_parser("serve", help="start the OpsBench HTTP REST API server")
     serve_parser.add_argument("--host", default="127.0.0.1", help="host address to bind (default: 127.0.0.1)")
@@ -356,6 +369,40 @@ def main(argv: list[str] | None = None) -> int:
                     "count": len(results),
                     "database_path": parsed.database_path,
                     "results": [bundle.to_dict() for bundle in results],
+                },
+                sort_keys=True,
+            )
+        )
+    if parsed.command == "store" and parsed.store_command == "export":
+        db_store = SQLiteResultStore(Path(parsed.database_path))
+        try:
+            exported_count = export_store_to_json(db_store, Path(parsed.export_path))
+        finally:
+            db_store.close()
+        print(
+            json.dumps(
+                {
+                    "database_path": parsed.database_path,
+                    "export_path": parsed.export_path,
+                    "exported_count": exported_count,
+                    "status": "success",
+                },
+                sort_keys=True,
+            )
+        )
+    if parsed.command == "store" and parsed.store_command == "import":
+        db_store = SQLiteResultStore(Path(parsed.database_path))
+        try:
+            imported_count = import_json_to_store(db_store, Path(parsed.import_path))
+        finally:
+            db_store.close()
+        print(
+            json.dumps(
+                {
+                    "database_path": parsed.database_path,
+                    "import_path": parsed.import_path,
+                    "imported_count": imported_count,
+                    "status": "success",
                 },
                 sort_keys=True,
             )

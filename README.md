@@ -188,6 +188,8 @@ Index result bundles into a SQLite benchmark store and query runs by scenario or
 ```bash
 opsbench store index bench.db results/*.json
 opsbench store query bench.db --scenario-id kubernetes-image-reference-001
+opsbench store export bench.db archive.json
+opsbench store import imported.db archive.json
 ```
 
 Start the OpsBench REST API server to expose scenarios and query indexed runs via HTTP:

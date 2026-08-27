@@ -371,6 +371,24 @@ class CliParserTests(unittest.TestCase):
             self.assertEqual(query_res["count"], 1)
             self.assertEqual(query_res["results"][0]["run"]["run_id"], "store-run-001")
 
+            export_file = directory / "archive.json"
+            export_output = io.StringIO()
+            with redirect_stdout(export_output):
+                export_exit = main(["store", "export", str(db_path), str(export_file)])
+
+            export_res = json.loads(export_output.getvalue())
+            self.assertEqual(export_exit, 0)
+            self.assertEqual(export_res["exported_count"], 1)
+
+            db_import_path = directory / "imported_store.db"
+            import_output = io.StringIO()
+            with redirect_stdout(import_output):
+                import_exit = main(["store", "import", str(db_import_path), str(export_file)])
+
+            import_res = json.loads(import_output.getvalue())
+            self.assertEqual(import_exit, 0)
+            self.assertEqual(import_res["imported_count"], 1)
+
     def test_compares_saved_result_bundles(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             directory = Path(temporary_directory)
