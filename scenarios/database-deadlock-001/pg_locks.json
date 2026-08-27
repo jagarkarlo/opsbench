@@ -1,0 +1,32 @@
+[
+  {
+    "locktype": "transactionid",
+    "database": 16384,
+    "relation": null,
+    "pid": 1042,
+    "mode": "ShareLock",
+    "granted": false,
+    "fastpath": false,
+    "transaction_id": 89201
+  },
+  {
+    "locktype": "transactionid",
+    "database": 16384,
+    "relation": null,
+    "pid": 1089,
+    "mode": "ExclusiveLock",
+    "granted": true,
+    "fastpath": false,
+    "transaction_id": 89201
+  },
+  {
+    "locktype": "relation",
+    "database": 16384,
+    "relation": 24588,
+    "pid": 1089,
+    "mode": "RowExclusiveLock",
+    "granted": true,
+    "fastpath": true,
+    "transaction_id": 89201
+  }
+]

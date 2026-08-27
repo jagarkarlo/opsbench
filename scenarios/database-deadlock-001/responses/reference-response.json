@@ -1,0 +1,15 @@
+{
+  "scenario_id": "database-deadlock-001",
+  "analysis": "The PostgreSQL deadlock was detected because Process 1042 and Process 1089 encountered a lock conflict in transaction execution.",
+  "cited_artifact_ids": [
+    "pg_locks.json",
+    "pg_stat_activity.txt",
+    "application-logs.txt"
+  ],
+  "proposed_actions": [
+    "align lock acquisition order",
+    "retry failed transaction"
+  ],
+  "model_name": "reference-fixture",
+  "adapter_name": "fixture"
+}

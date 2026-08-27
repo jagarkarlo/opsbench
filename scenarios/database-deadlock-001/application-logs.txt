@@ -1,0 +1,4 @@
+2026-08-27T10:14:02Z ERROR [order-fulfillment] psycopg2.errors.DeadlockDetected: deadlock detected
+DETAIL: Process 1042 waits for ShareLock on transaction 89201; blocked by process 1089.
+Process 1089 waits for ExclusiveLock on relation 24588; blocked by process 1042.
+HINT: See server log for query details.

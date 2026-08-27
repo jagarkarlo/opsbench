@@ -1,0 +1,25 @@
+{
+  "manifest": {
+    "schema_version": "1.0",
+    "scenario_id": "database-deadlock-001",
+    "title": "Diagnose a fictional PostgreSQL transaction deadlock and query timeout",
+    "category": "database"
+  },
+  "evidence": [
+    {
+      "artifact_id": "pg_locks.json",
+      "media_type": "application/json",
+      "relative_path": "pg_locks.json"
+    },
+    {
+      "artifact_id": "pg_stat_activity.txt",
+      "media_type": "text/plain",
+      "relative_path": "pg_stat_activity.txt"
+    },
+    {
+      "artifact_id": "application-logs.txt",
+      "media_type": "text/plain",
+      "relative_path": "application-logs.txt"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "scenario_id": "database-deadlock-001",
+  "diagnosis_rules": [
+    {
+      "rule_id": "deadlock",
+      "keyword": "deadlock",
+      "weight": 2
+    },
+    {
+      "rule_id": "lock-conflict",
+      "keyword": "lock",
+      "weight": 2
+    },
+    {
+      "rule_id": "transaction-order",
+      "keyword": "transaction",
+      "weight": 2
+    }
+  ],
+  "permitted_actions": [
+    "align lock acquisition order",
+    "cancel blocking process",
+    "enable deadlock detection",
+    "retry failed transaction"
+  ],
+  "blocked_action_phrases": [
+    "drop database",
+    "truncate",
+    "reboot server"
+  ]
+}
