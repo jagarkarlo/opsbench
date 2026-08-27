@@ -1,0 +1,12 @@
+services:
+  opsbench-server:
+    build: .
+    container_name: opsbench-server
+    ports:
+      - "8080:8080"
+    volumes:
+      - opsbench-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  opsbench-data:

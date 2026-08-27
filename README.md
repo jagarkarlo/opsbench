@@ -204,6 +204,12 @@ Start the OpsBench REST API server to expose scenarios and query indexed runs vi
 opsbench serve --host 127.0.0.1 --port 8080 --db bench.db
 ```
 
+Run containerized OpsBench server with Docker Compose:
+
+```bash
+docker compose up -d
+```
+
 ## What Comes Next
 
 Phase 1 (Benchmark Core) and Phase 2 (Execution) are complete. The next phase
