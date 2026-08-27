@@ -28,6 +28,19 @@ class BenchmarkRunTests(unittest.TestCase):
         self.assertEqual(first_run.content_hash(), equivalent_run.content_hash())
         self.assertNotEqual(first_run.content_hash(), changed_run.content_hash())
 
+    def test_canonicalizes_metadata_and_includes_it_in_identity(self) -> None:
+        run = self.build_run(metadata=(("temperature", "0"), ("seed", "42")))
+        changed_run = self.build_run(metadata=(("seed", "43"), ("temperature", "0")))
+
+        self.assertEqual(run.to_dict()["metadata"], {"seed": "42", "temperature": "0"})
+        self.assertNotEqual(run.content_hash(), changed_run.content_hash())
+
+    def test_rejects_invalid_or_duplicate_metadata(self) -> None:
+        with self.assertRaisesRegex(ValueError, "metadata keys must be unique"):
+            self.build_run(metadata=(("seed", "42"), ("seed", "43")))
+        with self.assertRaisesRegex(ValueError, "metadata must be a tuple"):
+            self.build_run(metadata=(("", "42"),))
+
     def test_rejects_invalid_timestamp_and_hashes(self) -> None:
         with self.assertRaisesRegex(ValueError, "started_at must be an ISO-8601 timestamp"):
             self.build_run(started_at="soon")

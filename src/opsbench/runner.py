@@ -26,6 +26,7 @@ def execute_run(
     profile: EvaluatorProfile,
     adapter: ResponseAdapter,
     started_at: datetime | None = None,
+    metadata: tuple[tuple[str, str], ...] = (),
 ) -> RunResult:
     """Execute one local response adapter and evaluate it without side effects."""
     if not isinstance(pack, ScenarioPack):
@@ -47,6 +48,7 @@ def execute_run(
         evaluator_profile_hash=profile.content_hash(),
         response_hash=response.content_hash(),
         model_name=response.model_name,
+        metadata=metadata,
     )
     report = evaluate_response(pack, profile, response)
     return RunResult(run=run, report=report)

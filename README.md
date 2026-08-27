@@ -119,8 +119,15 @@ opsbench run fixture \
   scenarios/observability-latency-001 \
   scenarios/observability-latency-001/responses/reference-response.json \
   results/latency-run-001.json \
-  --run-id latency-run-001
+  --run-id latency-run-001 \
+  --metadata seed=42 \
+  --metadata temperature=0
 ```
+
+Use repeatable `--metadata key=value` values to record non-secret experiment
+configuration such as a seed, temperature, adapter version, or prompt revision.
+Metadata is canonicalized and included in the immutable run identity. Do not
+place credentials or private operational data in metadata.
 
 To record a human response, create a local response JSON with the same
 normalized schema, set its `model_name` to the participant label, and run it

@@ -20,6 +20,19 @@ from opsbench.scenarios import load_gallery, load_scenario_pack
 from opsbench.scoring import evaluate_response, load_evaluator_profile
 
 
+def parse_metadata(entries: list[str] | None) -> tuple[tuple[str, str], ...]:
+    """Parse repeatable metadata key=value entries into canonical run metadata."""
+    metadata: list[tuple[str, str]] = []
+    for entry in entries or []:
+        key, separator, value = entry.partition("=")
+        if not separator or not key.strip() or not value.strip():
+            raise ValueError("metadata entries must use non-empty key=value format")
+        metadata.append((key.strip(), value.strip()))
+    if len({key for key, _ in metadata}) != len(metadata):
+        raise ValueError("metadata keys must be unique")
+    return tuple(sorted(metadata))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="opsbench")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -60,6 +73,7 @@ def build_parser() -> argparse.ArgumentParser:
     fixture_parser.add_argument("response_path")
     fixture_parser.add_argument("output_path")
     fixture_parser.add_argument("--run-id", required=True)
+    fixture_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
     human_parser = run_subparsers.add_parser(
         "human", help="execute one locally supplied human response"
     )
@@ -67,6 +81,7 @@ def build_parser() -> argparse.ArgumentParser:
     human_parser.add_argument("response_path")
     human_parser.add_argument("output_path")
     human_parser.add_argument("--run-id", required=True)
+    human_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
 
     compare_parser = subparsers.add_parser("compare", help="compare local benchmark results")
     compare_subparsers = compare_parser.add_subparsers(dest="compare_command", required=True)
@@ -167,6 +182,7 @@ def main(argv: list[str] | None = None) -> int:
             pack=pack,
             profile=profile,
             adapter=adapter,
+            metadata=parse_metadata(parsed.metadata),
         )
         bundle = ResultBundle(result.run, result.report)
         output_path = Path(parsed.output_path)

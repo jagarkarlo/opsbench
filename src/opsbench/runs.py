@@ -33,6 +33,7 @@ class BenchmarkRun:
     evaluator_profile_hash: str
     response_hash: str
     model_name: str | None = None
+    metadata: tuple[tuple[str, str], ...] = ()
     run_schema_version: str = RUN_SCHEMA_VERSION
 
     def __post_init__(self) -> None:
@@ -48,6 +49,17 @@ class BenchmarkRun:
             raise ValueError(f"unsupported run_schema_version: {self.run_schema_version!r}")
         if self.model_name is not None and not isinstance(self.model_name, str):
             raise ValueError("model_name must be a string or None")
+        if not isinstance(self.metadata, tuple) or not all(
+            isinstance(item, tuple)
+            and len(item) == 2
+            and all(isinstance(value, str) and value.strip() for value in item)
+            for item in self.metadata
+        ):
+            raise ValueError("metadata must be a tuple of non-empty string key-value pairs")
+        metadata_keys = [key for key, _ in self.metadata]
+        if len(metadata_keys) != len(set(metadata_keys)):
+            raise ValueError("metadata keys must be unique")
+        object.__setattr__(self, "metadata", tuple(sorted(self.metadata)))
         try:
             datetime.fromisoformat(self.started_at.replace("Z", "+00:00"))
         except ValueError as error:
@@ -59,9 +71,10 @@ class BenchmarkRun:
         ):
             _require_hash(field_name, value)
 
-    def to_dict(self) -> dict[str, str | None]:
+    def to_dict(self) -> dict[str, str | None | dict[str, str]]:
         return {
             "evaluator_profile_hash": self.evaluator_profile_hash,
+            "metadata": dict(self.metadata),
             "model_name": self.model_name,
             "response_hash": self.response_hash,
             "run_id": self.run_id,
@@ -134,7 +147,16 @@ def load_result_bundle(path: Path, *, max_bytes: int = MAX_RESULT_BUNDLE_BYTES) 
     if not isinstance(decoded["run"], dict) or not isinstance(decoded["report"], dict):
         raise ValueError("result bundle run and report must be JSON objects")
 
-    run = BenchmarkRun(**decoded["run"])
+    run_fields = decoded["run"]
+    metadata = run_fields.get("metadata", {})
+    if not isinstance(metadata, dict) or not all(
+        isinstance(key, str) and isinstance(value, str) for key, value in metadata.items()
+    ):
+        raise ValueError("result bundle metadata must be a JSON object of strings")
+    run = BenchmarkRun(
+        **{key: value for key, value in run_fields.items() if key != "metadata"},
+        metadata=tuple(metadata.items()),
+    )
     report_fields = decoded["report"]
     expected_report_fields = {
         "actions",

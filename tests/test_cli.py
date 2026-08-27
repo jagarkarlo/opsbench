@@ -5,7 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from opsbench.cli import build_parser, main
+from opsbench.cli import build_parser, main, parse_metadata
 from opsbench.runs import BenchmarkRun, ResultBundle, write_result_bundle
 from opsbench.scoring import Score, ScoreReport
 
@@ -86,6 +86,33 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(parsed.run_command, "human")
         self.assertEqual(parsed.run_id, "human-run-001")
 
+    def test_parses_canonical_run_metadata(self) -> None:
+        parsed = build_parser().parse_args(
+            [
+                "run",
+                "fixture",
+                "scenarios/example",
+                "responses/example.json",
+                "results/run.json",
+                "--run-id",
+                "fixture-run-001",
+                "--metadata",
+                "temperature=0",
+                "--metadata",
+                "seed=42",
+            ]
+        )
+
+        self.assertEqual(
+            parse_metadata(parsed.metadata), (("seed", "42"), ("temperature", "0"))
+        )
+
+    def test_rejects_malformed_or_duplicate_run_metadata(self) -> None:
+        with self.assertRaisesRegex(ValueError, "key=value"):
+            parse_metadata(["seed"])
+        with self.assertRaisesRegex(ValueError, "keys must be unique"):
+            parse_metadata(["seed=42", "seed=43"])
+
     def test_parses_result_comparison_command(self) -> None:
         parsed = build_parser().parse_args(
             ["compare", "results", "results/first.json", "results/second.json", "--format", "markdown"]
@@ -160,6 +187,7 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(command_result["run"]["run_id"], "fixture-run-001")
         self.assertEqual(command_result["report"]["total"], 8)
         self.assertEqual(bundle["run"]["model_name"], "fixture-model")
+        self.assertEqual(bundle["run"]["metadata"], {})
         self.assertEqual(len(command_result["bundle_hash"]), 64)
 
     def test_executes_human_run_and_writes_result_bundle(self) -> None:
