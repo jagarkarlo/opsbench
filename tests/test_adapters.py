@@ -1,6 +1,11 @@
 import unittest
 
-from opsbench.adapters import FixtureResponseAdapter, HumanResponseAdapter, ResponseAdapter
+from opsbench.adapters import (
+    FixtureResponseAdapter,
+    GalleryFixtureResponseAdapter,
+    HumanResponseAdapter,
+    ResponseAdapter,
+)
 from opsbench.responses import BenchmarkResponse
 from opsbench.scenarios import EvidenceArtifact, ScenarioManifest, ScenarioPack
 
@@ -70,6 +75,40 @@ class ResponseAdapterTests(unittest.TestCase):
 
         self.assertEqual(adapter.adapter_name, "human")
         self.assertEqual(response.adapter_name, "human")
+
+    def test_gallery_fixture_adapter_matches_scenarios(self) -> None:
+        pack_alpha = ScenarioPack(
+            ScenarioManifest("scenario-001", "Fictional scenario", "kubernetes"),
+            (EvidenceArtifact("logs.txt", "text/plain", b"synthetic logs"),),
+        )
+        pack_beta = ScenarioPack(
+            ScenarioManifest("scenario-002", "Fictional scenario", "observability"),
+            (EvidenceArtifact("metrics.prom", "text/plain", b"up 1"),),
+        )
+        adapter = GalleryFixtureResponseAdapter(
+            {
+                "scenario-001": BenchmarkResponse("scenario-001", "Alpha analysis."),
+                "scenario-002": BenchmarkResponse("scenario-002", "Beta analysis."),
+            }
+        )
+
+        resp_alpha = adapter.respond(pack_alpha)
+        resp_beta = adapter.respond(pack_beta)
+
+        self.assertEqual(resp_alpha.analysis, "Alpha analysis.")
+        self.assertEqual(resp_beta.analysis, "Beta analysis.")
+
+    def test_gallery_fixture_adapter_rejects_missing_scenario(self) -> None:
+        pack = ScenarioPack(
+            ScenarioManifest("scenario-003", "Fictional scenario", "database"),
+            (EvidenceArtifact("logs.txt", "text/plain", b"synthetic logs"),),
+        )
+        adapter = GalleryFixtureResponseAdapter(
+            {"scenario-001": BenchmarkResponse("scenario-001", "Alpha analysis.")}
+        )
+
+        with self.assertRaisesRegex(ValueError, "no fixture response available for scenario"):
+            adapter.respond(pack)
 
 
 if __name__ == "__main__":

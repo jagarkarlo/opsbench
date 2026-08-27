@@ -6,7 +6,11 @@ import argparse
 import json
 from pathlib import Path
 
-from opsbench.adapters import FixtureResponseAdapter, HumanResponseAdapter
+from opsbench.adapters import (
+    FixtureResponseAdapter,
+    GalleryFixtureResponseAdapter,
+    HumanResponseAdapter,
+)
 from opsbench.comparisons import (
     compare_bundles,
     render_markdown_comparison,
@@ -14,7 +18,7 @@ from opsbench.comparisons import (
 )
 from opsbench.prompts import render_prompt
 from opsbench.responses import load_response
-from opsbench.runner import execute_run
+from opsbench.runner import execute_run, execute_suite
 from opsbench.runs import ResultBundle, load_result_bundle, write_result_bundle
 from opsbench.scenarios import load_gallery, load_scenario_pack
 from opsbench.scoring import evaluate_response, load_evaluator_profile
@@ -82,6 +86,13 @@ def build_parser() -> argparse.ArgumentParser:
     human_parser.add_argument("output_path")
     human_parser.add_argument("--run-id", required=True)
     human_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
+    suite_parser = run_subparsers.add_parser(
+        "suite", help="execute a response adapter across an entire scenario gallery"
+    )
+    suite_parser.add_argument("gallery_path")
+    suite_parser.add_argument("output_dir")
+    suite_parser.add_argument("--run-prefix", default="suite-run")
+    suite_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
 
     compare_parser = subparsers.add_parser("compare", help="compare local benchmark results")
     compare_subparsers = compare_parser.add_subparsers(dest="compare_command", required=True)
@@ -194,6 +205,36 @@ def main(argv: list[str] | None = None) -> int:
                     "output_path": str(output_path),
                     "report": result.report.to_dict(),
                     "run": result.run.to_dict(),
+                },
+                sort_keys=True,
+            )
+        )
+    if parsed.command == "run" and parsed.run_command == "suite":
+        gallery_path = Path(parsed.gallery_path)
+        output_dir = Path(parsed.output_dir)
+        responses: dict[str, BenchmarkResponse] = {}
+        for candidate in sorted(gallery_path.iterdir(), key=lambda path: path.name):
+            if candidate.is_dir() and (candidate / "scenario.json").is_file():
+                response_path = candidate / "responses" / "reference-response.json"
+                if not response_path.is_file():
+                    raise ValueError(f"scenario missing reference response: {candidate}")
+                response = load_response(response_path)
+                responses[response.scenario_id] = response
+        adapter = GalleryFixtureResponseAdapter(responses)
+        bundles = execute_suite(
+            gallery_directory=gallery_path,
+            output_directory=output_dir,
+            adapter=adapter,
+            run_prefix=parsed.run_prefix,
+            metadata=parse_metadata(parsed.metadata),
+        )
+        print(
+            json.dumps(
+                {
+                    "bundle_count": len(bundles),
+                    "bundle_hashes": [bundle.content_hash() for bundle in bundles],
+                    "output_dir": str(output_dir),
+                    "scenario_ids": [bundle.report.scenario_id for bundle in bundles],
                 },
                 sort_keys=True,
             )

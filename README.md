@@ -141,6 +141,12 @@ opsbench run human \
   --run-id human-run-001
 ```
 
+Run a complete benchmark suite across every scenario in a gallery in a single command:
+
+```bash
+opsbench run suite scenarios results --run-prefix full-suite --metadata seed=42
+```
+
 Create another trial with a different run ID and output path, then compare the
 saved result bundles (add `--format markdown` for formatted tables):
 

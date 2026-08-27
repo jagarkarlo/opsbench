@@ -1,9 +1,11 @@
 from datetime import datetime, timezone
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 
-from opsbench.adapters import FixtureResponseAdapter
+from opsbench.adapters import FixtureResponseAdapter, GalleryFixtureResponseAdapter
 from opsbench.responses import BenchmarkResponse
-from opsbench.runner import execute_run
+from opsbench.runner import execute_run, execute_suite
 from opsbench.scenarios import EvidenceArtifact, ScenarioManifest, ScenarioPack
 from opsbench.scoring import EvaluatorProfile, KeywordRule
 
@@ -58,6 +60,37 @@ class BenchmarkRunnerTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "profile scenario_id must match"):
             execute_run(run_id="fixture-run-001", pack=self.build_pack(), profile=profile, adapter=adapter)
+
+    def test_executes_suite_across_gallery_directory(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            gallery = Path(temporary_directory) / "scenarios"
+            output_dir = Path(temporary_directory) / "results"
+            scenario = gallery / "alpha"
+            scenario.mkdir(parents=True)
+            (scenario / "scenario.json").write_text(
+                '''{"manifest":{"schema_version":"1.0","scenario_id":"scenario-001","title":"Fictional scenario","category":"kubernetes"},"evidence":[{"artifact_id":"logs.txt","media_type":"text/plain","relative_path":"logs.txt"}]}''',
+                encoding="utf-8",
+            )
+            (scenario / "logs.txt").write_text("synthetic logs\n", encoding="utf-8")
+            (scenario / "evaluator.json").write_text(
+                '''{"scenario_id":"scenario-001","diagnosis_rules":[{"rule_id":"synthetic","keyword":"synthetic","weight":2}],"permitted_actions":["inspect logs"]}''',
+                encoding="utf-8",
+            )
+            adapter = GalleryFixtureResponseAdapter(
+                {"scenario-001": BenchmarkResponse("scenario-001", "Synthetic analysis.")}
+            )
+
+            bundles = execute_suite(
+                gallery_directory=gallery,
+                output_directory=output_dir,
+                adapter=adapter,
+                run_prefix="test-suite",
+                started_at=datetime(2026, 8, 26, 12, 0, tzinfo=timezone.utc),
+            )
+
+            self.assertEqual(len(bundles), 1)
+            self.assertEqual(bundles[0].run.run_id, "test-suite-scenario-001")
+            self.assertTrue((output_dir / "test-suite-scenario-001.json").is_file())
 
 
 if __name__ == "__main__":
