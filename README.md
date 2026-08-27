@@ -190,6 +190,12 @@ opsbench store index bench.db results/*.json
 opsbench store query bench.db --scenario-id kubernetes-image-reference-001
 ```
 
+Start the OpsBench REST API server to expose scenarios and query indexed runs via HTTP:
+
+```bash
+opsbench serve --host 127.0.0.1 --port 8080 --db bench.db
+```
+
 ## What Comes Next
 
 Phase 1 (Benchmark Core) and Phase 2 (Execution) are complete. The next phase

@@ -23,6 +23,7 @@ from opsbench.runner import execute_run, execute_suite
 from opsbench.runs import ResultBundle, load_result_bundle, write_result_bundle
 from opsbench.scenarios import load_gallery, load_scenario_pack
 from opsbench.scoring import evaluate_response, load_evaluator_profile
+from opsbench.server import create_server
 from opsbench.store import RunQuery, SQLiteResultStore
 
 
@@ -140,6 +141,12 @@ def build_parser() -> argparse.ArgumentParser:
     query_parser.add_argument("--runner-kind", help="filter by runner kind")
     query_parser.add_argument("--model-name", help="filter by model name")
     query_parser.add_argument("--limit", type=int, default=100)
+
+    serve_parser = subparsers.add_parser("serve", help="start the OpsBench HTTP REST API server")
+    serve_parser.add_argument("--host", default="127.0.0.1", help="host address to bind (default: 127.0.0.1)")
+    serve_parser.add_argument("--port", type=int, default=8080, help="port to listen on (default: 8080)")
+    serve_parser.add_argument("--gallery-path", default="scenarios", help="path to scenarios gallery directory")
+    serve_parser.add_argument("--db", default=":memory:", help="path to SQLite result database file")
     return parser
 
 
@@ -353,6 +360,20 @@ def main(argv: list[str] | None = None) -> int:
                 sort_keys=True,
             )
         )
+    if parsed.command == "serve":
+        server = create_server(
+            host=parsed.host,
+            port=parsed.port,
+            gallery_path=Path(parsed.gallery_path),
+            db_path=Path(parsed.db) if parsed.db != ":memory:" else ":memory:",
+        )
+        print(f"OpsBench REST API server running on http://{parsed.host}:{parsed.port}")
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            server.server_close()
     return 0
 
 

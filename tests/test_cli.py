@@ -129,6 +129,16 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(parsed.api_base, "http://localhost:11434/v1")
         self.assertEqual(parsed.run_id, "openai-run-001")
 
+    def test_parses_serve_command(self) -> None:
+        parsed = build_parser().parse_args(
+            ["serve", "--host", "0.0.0.0", "--port", "9090", "--db", "test.db"]
+        )
+
+        self.assertEqual(parsed.command, "serve")
+        self.assertEqual(parsed.host, "0.0.0.0")
+        self.assertEqual(parsed.port, 9090)
+        self.assertEqual(parsed.db, "test.db")
+
     def test_parses_canonical_run_metadata(self) -> None:
         parsed = build_parser().parse_args(
             [
