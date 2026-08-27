@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: opsbench-server
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: opsbench-server
+    app.kubernetes.io/part-of: opsbench
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/jagarkarlo/opsbench.git
+    targetRevision: HEAD
+    path: charts/opsbench
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: opsbench
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
