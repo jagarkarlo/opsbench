@@ -141,13 +141,25 @@ opsbench run human \
   --run-id human-run-001
 ```
 
-Run a run against any OpenAI-compatible API endpoint (Ollama, vLLM, OpenAI, etc.):
+Run a run against a local OpenAI-compatible server (e.g. Ollama or vLLM running on `http://localhost:11434/v1`):
+
+```bash
+opsbench run openai \
+  scenarios/kubernetes-image-reference-001 \
+  results/openai-run-001.json \
+  --model llama3 \
+  --run-id openai-run-001
+```
+
+Or target official cloud OpenAI API endpoints by specifying `--api-base` and `--api-key`:
 
 ```bash
 opsbench run openai \
   scenarios/kubernetes-image-reference-001 \
   results/openai-run-001.json \
   --model gpt-4o \
+  --api-base https://api.openai.com/v1 \
+  --api-key "$OPENAI_API_KEY" \
   --run-id openai-run-001
 ```
 
