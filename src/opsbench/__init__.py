@@ -9,6 +9,7 @@ from opsbench.adapters import (
 from opsbench.export import export_store_to_json, import_json_to_store
 from opsbench.logging import JSONLogger, format_json_log_entry
 from opsbench.metrics import generate_prometheus_metrics
+from opsbench.pipeline_view import render_pipeline_html
 from opsbench.prompts import render_prompt
 from opsbench.responses import parse_response_text
 from opsbench.runner import execute_run, execute_suite
@@ -39,5 +40,6 @@ __all__ = [
     "lint_scenario",
     "parse_response_text",
     "render_dashboard_html",
+    "render_pipeline_html",
     "render_prompt",
 ]
