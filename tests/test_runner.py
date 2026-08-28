@@ -8,6 +8,7 @@ from opsbench.responses import BenchmarkResponse
 from opsbench.runner import execute_run, execute_suite
 from opsbench.scenarios import EvidenceArtifact, ScenarioManifest, ScenarioPack
 from opsbench.scoring import EvaluatorProfile, KeywordRule
+from opsbench.tracing import TraceTracer
 
 
 class BenchmarkRunnerTests(unittest.TestCase):
@@ -127,6 +128,60 @@ class BenchmarkRunnerTests(unittest.TestCase):
             self.assertEqual(len(bundles), 2)
             self.assertEqual(bundles[0].run.run_id, "parallel-suite-scenario-001")
             self.assertEqual(bundles[1].run.run_id, "parallel-suite-scenario-002")
+
+    def test_execute_run_records_a_trace_span_when_tracer_is_provided(self) -> None:
+        tracer = TraceTracer("opsbench-test")
+        adapter = FixtureResponseAdapter(BenchmarkResponse("scenario-001", "Synthetic analysis."))
+
+        execute_run(
+            run_id="fixture-run-001",
+            pack=self.build_pack(),
+            profile=self.build_profile(),
+            adapter=adapter,
+            tracer=tracer,
+        )
+
+        spans = tracer.recorded_spans()
+        self.assertEqual(len(spans), 1)
+        self.assertEqual(spans[0].name, "execute_run")
+        self.assertEqual(dict(spans[0].attributes)["run_id"], "fixture-run-001")
+
+    def test_execute_suite_links_child_spans_to_a_shared_parent(self) -> None:
+        tracer = TraceTracer()
+        with TemporaryDirectory() as temporary_directory:
+            gallery = Path(temporary_directory) / "scenarios"
+            output_dir = Path(temporary_directory) / "results"
+            scenario = gallery / "alpha"
+            scenario.mkdir(parents=True)
+            (scenario / "scenario.json").write_text(
+                '''{"manifest":{"schema_version":"1.0","scenario_id":"scenario-001","title":"Fictional scenario","category":"kubernetes"},"evidence":[{"artifact_id":"logs.txt","media_type":"text/plain","relative_path":"logs.txt"}]}''',
+                encoding="utf-8",
+            )
+            (scenario / "logs.txt").write_text("synthetic logs\n", encoding="utf-8")
+            (scenario / "evaluator.json").write_text(
+                '''{"scenario_id":"scenario-001","diagnosis_rules":[{"rule_id":"synthetic","keyword":"synthetic","weight":2}],"permitted_actions":["inspect logs"]}''',
+                encoding="utf-8",
+            )
+            adapter = GalleryFixtureResponseAdapter(
+                {"scenario-001": BenchmarkResponse("scenario-001", "Synthetic analysis.")}
+            )
+
+            execute_suite(
+                gallery_directory=gallery,
+                output_directory=output_dir,
+                adapter=adapter,
+                run_prefix="traced-suite",
+                started_at=datetime(2026, 8, 26, 12, 0, tzinfo=timezone.utc),
+                tracer=tracer,
+            )
+
+        spans = tracer.recorded_spans()
+        self.assertEqual(len(spans), 2)
+        suite_span, run_span = spans
+        self.assertEqual(suite_span.name, "execute_suite")
+        self.assertEqual(run_span.name, "execute_run")
+        self.assertEqual(run_span.trace_id, suite_span.trace_id)
+        self.assertEqual(run_span.parent_span_id, suite_span.span_id)
 
 
 if __name__ == "__main__":

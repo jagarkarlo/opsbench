@@ -11,6 +11,7 @@ from opsbench.adapters import ResponseAdapter
 from opsbench.runs import BenchmarkRun, ResultBundle, write_result_bundle
 from opsbench.scenarios import ScenarioPack, load_scenario_pack
 from opsbench.scoring import EvaluatorProfile, ScoreReport, evaluate_response, load_evaluator_profile
+from opsbench.tracing import TraceSpan, TraceTracer
 
 
 @dataclass(frozen=True)
@@ -29,6 +30,8 @@ def execute_run(
     adapter: ResponseAdapter,
     started_at: datetime | None = None,
     metadata: tuple[tuple[str, str], ...] = (),
+    tracer: TraceTracer | None = None,
+    parent_span: TraceSpan | None = None,
 ) -> RunResult:
     """Execute one local response adapter and evaluate it without side effects."""
     if not isinstance(pack, ScenarioPack):
@@ -37,6 +40,14 @@ def execute_run(
         raise ValueError("profile must be an EvaluatorProfile")
     if profile.scenario_id != pack.manifest.scenario_id:
         raise ValueError("profile scenario_id must match the scenario pack")
+
+    if tracer is not None:
+        tracer.start_span(
+            "execute_run",
+            trace_id=parent_span.trace_id if parent_span else None,
+            parent_span_id=parent_span.span_id if parent_span else None,
+            attributes={"run_id": run_id, "scenario_id": pack.manifest.scenario_id},
+        )
 
     response = adapter.respond(pack)
     timestamp = started_at or datetime.now(timezone.utc)
@@ -65,6 +76,7 @@ def execute_suite(
     started_at: datetime | None = None,
     metadata: tuple[tuple[str, str], ...] = (),
     max_workers: int = 1,
+    tracer: TraceTracer | None = None,
 ) -> tuple[ResultBundle, ...]:
     """Execute a response adapter across an entire scenario gallery and write immutable result bundles."""
     if not isinstance(gallery_directory, Path) or not gallery_directory.is_dir():
@@ -87,6 +99,12 @@ def execute_suite(
     if not scenarios_to_run:
         raise ValueError(f"no scenario packs found in gallery directory: {gallery_directory}")
 
+    suite_span = (
+        tracer.start_span("execute_suite", attributes={"run_prefix": run_prefix})
+        if tracer is not None
+        else None
+    )
+
     def _run_single(dir_path: Path, profile_path: Path) -> ResultBundle:
         pack = load_scenario_pack(dir_path)
         profile = load_evaluator_profile(profile_path)
@@ -98,6 +116,8 @@ def execute_suite(
             adapter=adapter,
             started_at=started_at,
             metadata=metadata,
+            tracer=tracer,
+            parent_span=suite_span,
         )
         bundle = ResultBundle(run_result.run, run_result.report)
         write_result_bundle(output_directory / f"{run_id}.json", bundle)
