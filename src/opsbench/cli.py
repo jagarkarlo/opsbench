@@ -171,6 +171,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=os.environ.get("OPSBENCH_API_TOKEN"),
         help="require this bearer token on all endpoints except /api/v1/health (default: $OPSBENCH_API_TOKEN)",
     )
+
+    doctor_parser = subparsers.add_parser(
+        "doctor", help="validate a scenario gallery and result database for common misconfigurations"
+    )
+    doctor_parser.add_argument("--gallery-path", default="scenarios", help="path to scenarios gallery directory")
+    doctor_parser.add_argument("--db", default=None, help="optional path to a SQLite result database file to check")
     return parser
 
 
@@ -448,6 +454,36 @@ def main(argv: list[str] | None = None) -> int:
             pass
         finally:
             server.server_close()
+    if parsed.command == "doctor":
+        report: dict[str, object] = {"gallery_path": parsed.gallery_path}
+        healthy = True
+
+        try:
+            gallery = load_gallery(Path(parsed.gallery_path))
+            report["gallery_ok"] = True
+            report["scenario_count"] = len(gallery.scenarios)
+        except Exception as error:
+            healthy = False
+            report["gallery_ok"] = False
+            report["gallery_error"] = str(error)
+
+        if parsed.db:
+            report["database_path"] = parsed.db
+            try:
+                doctor_store = SQLiteResultStore(parsed.db)
+                try:
+                    doctor_store.query(RunQuery(limit=1))
+                    report["database_ok"] = True
+                finally:
+                    doctor_store.close()
+            except Exception as error:
+                healthy = False
+                report["database_ok"] = False
+                report["database_error"] = str(error)
+
+        report["status"] = "ok" if healthy else "error"
+        print(json.dumps(report, sort_keys=True))
+        return 0 if healthy else 1
     return 0
 
 

@@ -697,6 +697,44 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(result["total"], 8)
         self.assertEqual(result["maximum"], 16)
 
+    def test_doctor_reports_healthy_gallery_and_database(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            gallery = Path(temporary_directory) / "scenarios"
+            scenario = gallery / "alpha"
+            scenario.mkdir(parents=True)
+            (scenario / "scenario.json").write_text(
+                '{"manifest":{"schema_version":"1.0","scenario_id":"scenario-001","title":"Fictional scenario","category":"kubernetes"},'
+                '"evidence":[{"artifact_id":"logs.txt","media_type":"text/plain","relative_path":"logs.txt"}]}',
+                encoding="utf-8",
+            )
+            (scenario / "logs.txt").write_text("synthetic logs\n", encoding="utf-8")
+            db_path = Path(temporary_directory) / "doctor.db"
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                exit_code = main(["doctor", "--gallery-path", str(gallery), "--db", str(db_path)])
+
+        result = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(result["status"], "ok")
+        self.assertTrue(result["gallery_ok"])
+        self.assertEqual(result["scenario_count"], 1)
+        self.assertTrue(result["database_ok"])
+
+    def test_doctor_reports_a_missing_gallery_directory(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            missing_gallery = Path(temporary_directory) / "does-not-exist"
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                exit_code = main(["doctor", "--gallery-path", str(missing_gallery)])
+
+        result = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(result["status"], "error")
+        self.assertFalse(result["gallery_ok"])
+        self.assertIn("gallery_error", result)
+
 
 if __name__ == "__main__":
     unittest.main()
