@@ -1,0 +1,12 @@
+# Prometheus scrape config snippet for OpsBench server /metrics endpoint.
+# Merge this job entry into your prometheus.yml scrape_configs list.
+scrape_configs:
+  - job_name: opsbench-server
+    metrics_path: /metrics
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - "opsbench-server.opsbench.svc.cluster.local:8080"
+        labels:
+          app: opsbench-server
+          component: benchmark-platform

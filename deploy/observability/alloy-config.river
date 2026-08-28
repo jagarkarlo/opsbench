@@ -1,0 +1,29 @@
+// Grafana Alloy config for shipping OpsBench server JSON logs to Loki.
+// Assumes the container writes structured JSON logs to stdout (see opsbench.logging).
+
+discovery.kubernetes "opsbench_pods" {
+  role = "pod"
+  namespaces {
+    names = ["opsbench"]
+  }
+}
+
+discovery.relabel "opsbench_pods" {
+  targets = discovery.kubernetes.opsbench_pods.targets
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+    target_label  = "app"
+  }
+}
+
+loki.source.kubernetes "opsbench_logs" {
+  targets    = discovery.relabel.opsbench_pods.output
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki-gateway.loki.svc.cluster.local:3100/loki/api/v1/push"
+  }
+}
