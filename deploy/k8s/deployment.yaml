@@ -19,10 +19,22 @@ spec:
         app.kubernetes.io/component: api-server
         app.kubernetes.io/part-of: opsbench
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: opsbench-server
           image: ghcr.io/jagarkarlo/opsbench:latest
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           args:
             - "serve"
             - "--host"
@@ -33,6 +45,9 @@ spec:
             - "scenarios"
             - "--db"
             - "/app/data/benchmarks.db"
+          env:
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
           ports:
             - name: http
               containerPort: 8080
@@ -59,8 +74,12 @@ spec:
           volumeMounts:
             - name: opsbench-storage
               mountPath: /app/data
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: opsbench-storage
+          emptyDir: {}
+        - name: tmp
           emptyDir: {}
 ---
 apiVersion: v1
