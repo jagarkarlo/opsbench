@@ -132,5 +132,52 @@ class BenchmarkServerTests(unittest.TestCase):
         self.assertEqual(status, HTTPStatus.NOT_FOUND)
 
 
+class BenchmarkServerAuthTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmpdir = TemporaryDirectory()
+        self.gallery_path = Path(self.tmpdir.name) / "scenarios"
+        self.gallery_path.mkdir()
+        self.server = create_server(
+            "127.0.0.1", 0, gallery_path=self.gallery_path, db_path=":memory:", api_token="secret-token"
+        )
+        self.port = self.server.server_port
+        self.server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.server_thread.start()
+
+    def tearDown(self) -> None:
+        self.server.shutdown()
+        self.server.server_close()
+        self.tmpdir.cleanup()
+
+    def _get(self, path: str, token: str | None = None) -> tuple[int, dict]:
+        url = f"http://127.0.0.1:{self.port}{path}"
+        headers = {"Authorization": f"Bearer {token}"} if token else {}
+        req = urllib.request.Request(url, headers=headers)
+        try:
+            with urllib.request.urlopen(req) as resp:
+                return resp.status, json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as err:
+            return err.code, json.loads(err.read().decode("utf-8"))
+
+    def test_health_endpoint_stays_unauthenticated(self) -> None:
+        status, data = self._get("/api/v1/health")
+        self.assertEqual(status, HTTPStatus.OK)
+        self.assertEqual(data["status"], "ok")
+
+    def test_missing_token_is_rejected(self) -> None:
+        status, data = self._get("/api/v1/scenarios")
+        self.assertEqual(status, HTTPStatus.UNAUTHORIZED)
+        self.assertIn("bearer token", data["error"])
+
+    def test_wrong_token_is_rejected(self) -> None:
+        status, _data = self._get("/api/v1/scenarios", token="wrong-token")
+        self.assertEqual(status, HTTPStatus.UNAUTHORIZED)
+
+    def test_correct_token_is_accepted(self) -> None:
+        status, data = self._get("/api/v1/scenarios", token="secret-token")
+        self.assertEqual(status, HTTPStatus.OK)
+        self.assertEqual(data["scenario_count"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()

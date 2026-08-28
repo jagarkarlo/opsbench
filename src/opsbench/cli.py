@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 from opsbench.adapters import (
@@ -165,6 +166,11 @@ def build_parser() -> argparse.ArgumentParser:
     serve_parser.add_argument("--port", type=int, default=8080, help="port to listen on (default: 8080)")
     serve_parser.add_argument("--gallery-path", default="scenarios", help="path to scenarios gallery directory")
     serve_parser.add_argument("--db", default=":memory:", help="path to SQLite result database file")
+    serve_parser.add_argument(
+        "--api-token",
+        default=os.environ.get("OPSBENCH_API_TOKEN"),
+        help="require this bearer token on all endpoints except /api/v1/health (default: $OPSBENCH_API_TOKEN)",
+    )
     return parser
 
 
@@ -431,8 +437,11 @@ def main(argv: list[str] | None = None) -> int:
             port=parsed.port,
             gallery_path=Path(parsed.gallery_path),
             db_path=Path(parsed.db) if parsed.db != ":memory:" else ":memory:",
+            api_token=parsed.api_token,
         )
         print(f"OpsBench REST API server running on http://{parsed.host}:{parsed.port}")
+        if not parsed.api_token:
+            print("Warning: no --api-token configured; all endpoints are unauthenticated.")
         try:
             server.serve_forever()
         except KeyboardInterrupt:

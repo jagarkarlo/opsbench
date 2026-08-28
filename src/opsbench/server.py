@@ -21,6 +21,17 @@ class BenchmarkRequestHandler(BaseHTTPRequestHandler):
 
     gallery_path: Path = Path("scenarios")
     db_path: Path | str = ":memory:"
+    api_token: str | None = None
+
+    def _is_authorized(self) -> bool:
+        """Return True when no token is configured or the request presents a matching bearer token."""
+        if not self.api_token:
+            return True
+        header = self.headers.get("Authorization", "")
+        prefix = "Bearer "
+        if not header.startswith(prefix):
+            return False
+        return header[len(prefix) :] == self.api_token
 
     def do_GET(self) -> None:
         parsed_url = urlparse(self.path)
@@ -29,6 +40,10 @@ class BenchmarkRequestHandler(BaseHTTPRequestHandler):
             path = "/"
 
         query_params = parse_qs(parsed_url.query)
+
+        if path != "/api/v1/health" and not self._is_authorized():
+            self._send_json(HTTPStatus.UNAUTHORIZED, {"error": "missing or invalid bearer token"})
+            return
 
         if path in ("/", "/dashboard"):
             store = SQLiteResultStore(self.db_path)
@@ -161,11 +176,12 @@ def create_server(
     port: int = 8080,
     gallery_path: Path = Path("scenarios"),
     db_path: Path | str = ":memory:",
+    api_token: str | None = None,
 ) -> HTTPServer:
     """Create a configured OpsBench HTTPServer instance."""
     class_handler = type(
         "ConfiguredBenchmarkRequestHandler",
         (BenchmarkRequestHandler,),
-        {"gallery_path": gallery_path, "db_path": db_path},
+        {"gallery_path": gallery_path, "db_path": db_path, "api_token": api_token},
     )
     return HTTPServer((host, port), class_handler)
