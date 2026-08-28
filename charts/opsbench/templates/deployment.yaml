@@ -17,10 +17,14 @@ spec:
         app.kubernetes.io/name: {{ include "opsbench.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
           args:
             - "serve"
             - "--host"
@@ -31,6 +35,13 @@ spec:
             - "scenarios"
             - "--db"
             - "/app/data/benchmarks.db"
+          env:
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+            {{- if .Values.apiToken }}
+            - name: OPSBENCH_API_TOKEN
+              value: {{ .Values.apiToken | quote }}
+            {{- end }}
           ports:
             - name: http
               containerPort: 8080
@@ -49,3 +60,9 @@ spec:
               port: 8080
             initialDelaySeconds: 3
             periodSeconds: 5
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
