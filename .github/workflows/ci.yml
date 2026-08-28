@@ -28,5 +28,18 @@ jobs:
       - name: Run public safety scan
         run: ./scripts/public_safety_scan.sh
 
+      - name: Validate deployment YAML
+        run: |
+          python -m pip install pyyaml
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+
+          paths = list(Path("deploy").rglob("*.yaml"))
+          for path in paths:
+              list(yaml.safe_load_all(path.read_text(encoding="utf-8")))
+              print(f"validated {path}")
+          PY
+
       - name: Run tests
         run: python -m unittest discover -s tests -v
