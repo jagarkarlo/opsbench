@@ -2,11 +2,18 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+RUN groupadd --system --gid 10001 opsbench \
+	&& useradd --system --uid 10001 --gid 10001 --no-create-home opsbench \
+	&& mkdir -p /app/data \
+	&& chown -R opsbench:opsbench /app
+
 COPY pyproject.toml README.md ./
 COPY src ./src
 COPY scenarios ./scenarios
 
 RUN pip install --no-cache-dir -e .
+
+USER 10001:10001
 
 EXPOSE 8080
 
