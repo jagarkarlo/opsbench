@@ -1,0 +1,45 @@
+---
+- name: Provision OpsBench server on a Linux host
+  hosts: opsbench_servers
+  become: true
+  vars:
+    opsbench_repo_url: "https://github.com/jagarkarlo/opsbench.git"
+    opsbench_install_dir: "/opt/opsbench"
+    opsbench_port: 8080
+
+  tasks:
+    - name: Ensure Python 3 and pip are installed
+      ansible.builtin.package:
+        name:
+          - python3
+          - python3-pip
+          - python3-venv
+          - git
+        state: present
+
+    - name: Clone or update the OpsBench repository
+      ansible.builtin.git:
+        repo: "{{ opsbench_repo_url }}"
+        dest: "{{ opsbench_install_dir }}"
+        version: main
+
+    - name: Create a virtual environment and install OpsBench
+      ansible.builtin.pip:
+        name: "{{ opsbench_install_dir }}"
+        virtualenv: "{{ opsbench_install_dir }}/.venv"
+        virtualenv_command: python3 -m venv
+
+    - name: Install systemd unit for the OpsBench server
+      ansible.builtin.template:
+        src: opsbench.service.j2
+        dest: /etc/systemd/system/opsbench.service
+        mode: "0644"
+      notify: Reload and restart opsbench
+
+  handlers:
+    - name: Reload and restart opsbench
+      ansible.builtin.systemd:
+        name: opsbench
+        daemon_reload: true
+        enabled: true
+        state: restarted

@@ -1,0 +1,13 @@
+[Unit]
+Description=OpsBench REST API server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory={{ opsbench_install_dir }}
+ExecStart={{ opsbench_install_dir }}/.venv/bin/opsbench serve --host 0.0.0.0 --port {{ opsbench_port }} --gallery-path scenarios --db /opt/opsbench/data/benchmarks.db
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
