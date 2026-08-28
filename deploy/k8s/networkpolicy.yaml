@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: opsbench-server
+  namespace: opsbench
+  labels:
+    app.kubernetes.io/name: opsbench-server
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/part-of: opsbench
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: opsbench-server
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Only accept traffic on the server's HTTP port, from any source in-cluster
+    # (the ingress controller and same-namespace pods). Combine with the
+    # bearer-token API auth for defense in depth.
+    - ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # Allow DNS resolution.
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow outbound HTTPS (e.g. pulling container images is handled by the
+    # kubelet, not pod egress; this covers any future external calls made by
+    # OpsBench itself, such as OpenAI-compatible adapters).
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
