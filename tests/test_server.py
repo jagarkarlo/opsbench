@@ -94,12 +94,6 @@ class BenchmarkServerTests(unittest.TestCase):
         self.assertEqual(status, HTTPStatus.OK)
         self.assertIn("opsbench_total_runs_indexed 1", text)
 
-    def test_pipeline_endpoint(self) -> None:
-        status, html_text = self._get_html("/pipeline")
-        self.assertEqual(status, HTTPStatus.OK)
-        self.assertIn("OpsBench Pipeline", html_text)
-        self.assertIn("Deploy", html_text)
-
     def test_health_endpoint(self) -> None:
         status, data = self._get("/api/v1/health")
         self.assertEqual(status, HTTPStatus.OK)

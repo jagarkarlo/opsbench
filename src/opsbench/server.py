@@ -10,7 +10,6 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from opsbench.metrics import generate_prometheus_metrics
-from opsbench.pipeline_view import render_pipeline_html
 from opsbench.scenarios import load_gallery
 from opsbench.store import RunQuery, SQLiteResultStore
 from opsbench.web import render_dashboard_html
@@ -54,10 +53,6 @@ class BenchmarkRequestHandler(BaseHTTPRequestHandler):
                 self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(error)})
             finally:
                 store.close()
-            return
-
-        if path == "/pipeline":
-            self._send_html(HTTPStatus.OK, render_pipeline_html())
             return
 
         if path == "/api/v1/health":

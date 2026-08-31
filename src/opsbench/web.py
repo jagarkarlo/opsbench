@@ -155,8 +155,7 @@ def render_dashboard_html(store: SQLiteResultStore) -> str:
     <div class="container">
         <h1>OpsBench Web Console</h1>
         <div class="subtitle">
-            Open Benchmark Platform for AI Incident Diagnosis &middot;
-            <a href="/pipeline" style="color: var(--primary);">View 3D Pipeline</a>
+            Open Benchmark Platform for AI Incident Diagnosis
         </div>
 
         <div class="metrics">
