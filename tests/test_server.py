@@ -125,6 +125,12 @@ class BenchmarkServerTests(unittest.TestCase):
         status, data = self._get("/api/v1/unknown")
         self.assertEqual(status, HTTPStatus.NOT_FOUND)
 
+    def test_pipeline_route_no_longer_exists(self) -> None:
+        """Guard against the removed 3D visualization prototype silently coming back."""
+        for path in ("/pipeline", "/pipeline.js", "/pipeline.css"):
+            status, _data = self._get(path)
+            self.assertEqual(status, HTTPStatus.NOT_FOUND)
+
 
 class BenchmarkServerAuthTests(unittest.TestCase):
     def setUp(self) -> None:
