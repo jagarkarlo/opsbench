@@ -45,25 +45,33 @@ OpsBench begins as a local, dependency-light Python package. Provider adapters,
 distributed execution, persistence, observability, and deployment are introduced
 behind stable interfaces in later milestones.
 
-## Current Capability
+## Current Capability (v0.5.0)
 
-OpsBench currently runs entirely locally with no model provider, database, API,
-or execution engine required. It includes:
+OpsBench runs entirely locally; no model provider is required to explore it.
+It includes:
 
-- Bounded, versioned scenario manifests and evidence artifacts.
-- Deterministic scenario-pack, response, and score-report hashes.
-- Symlink-safe scenario loading and metadata-only gallery auditing.
+- Bounded, versioned scenario manifests and evidence artifacts with
+  deterministic content hashing.
 - Deterministic diagnosis, citation, action, and safety scoring.
-- Five fully fictional scenarios covering all supported categories: Kubernetes
-  image pull failure, observability latency investigation, GitOps drift detection,
-  PostgreSQL transaction deadlock analysis, and Terraform resource import conflict.
-- Offline response evaluation through the command line.
+- Five fully fictional scenarios: Kubernetes image pull failure, observability
+  latency investigation, GitOps drift detection, PostgreSQL transaction
+  deadlock analysis, and Terraform resource import conflict.
+- Fixture, human, and OpenAI-compatible response adapters, plus a concurrent
+  scenario-suite runner and reproducible result comparisons.
+- A zero-dependency HTTP REST API (`opsbench serve`), a SQLite result store,
+  a `/metrics` Prometheus endpoint, and a web console dashboard.
+- Optional bearer-token API authentication and an `opsbench doctor` command
+  for validating a scenario gallery and result database.
+- Reference Docker/Compose, Kubernetes, Helm, Argo CD, and Terraform
+  deployment assets, hardened to run as non-root with a default-deny
+  `NetworkPolicy`.
 
 Every scenario and response in this repository is synthetic. The evaluator
 never executes proposed actions and never calls an AI provider.
 
-See [the architecture](docs/architecture.md) and [the roadmap](docs/roadmap.md)
-for the system boundaries and implementation sequence.
+See [the architecture](docs/architecture.md), [the roadmap](docs/roadmap.md),
+and [the changelog](CHANGELOG.md) for system boundaries and release history.
+
 
 ## Development
 
@@ -212,9 +220,11 @@ docker compose up -d
 
 ## What Comes Next
 
-Phase 1 (Benchmark Core), Phase 2 (Execution), and Phase 3 (Platform Services)
-are complete. The next phase (Phase 4: Operations) introduces Kubernetes & Helm
-deployments, OpenTelemetry tracing, and GitOps examples.
+Phase 1 (Benchmark Core), Phase 2 (Execution), Phase 3 (Platform Services),
+and the core of Phase 4 (Operations) are complete as of v0.5.0. Remaining
+Phase 4 work is backup/restore, load, chaos, and disaster-recovery exercises,
+plus real OpenTelemetry trace export. See [the roadmap](docs/roadmap.md) for
+details, and Phase 5 (Ecosystem) for what follows.
 
 ## License
 
