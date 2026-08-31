@@ -99,6 +99,10 @@ class BenchmarkServerTests(unittest.TestCase):
         self.assertEqual(status, HTTPStatus.OK)
         self.assertEqual(data["status"], "ok")
 
+        from opsbench import __version__
+
+        self.assertEqual(data["version"], __version__)
+
     def test_scenarios_endpoint(self) -> None:
         status, data = self._get("/api/v1/scenarios")
         self.assertEqual(status, HTTPStatus.OK)

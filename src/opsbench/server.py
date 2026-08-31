@@ -56,7 +56,9 @@ class BenchmarkRequestHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/v1/health":
-            self._send_json(HTTPStatus.OK, {"status": "ok", "version": "0.1.0"})
+            from opsbench import __version__  # local import: opsbench.__init__ imports this module
+
+            self._send_json(HTTPStatus.OK, {"status": "ok", "version": __version__})
             return
 
         if path == "/metrics":
