@@ -28,13 +28,21 @@ Each milestone must remain runnable and independently verifiable.
 - Scenario static linter and validator (`opsbench scenario lint`).
 - Prometheus exposition format metrics collector (`/metrics`).
 
-## Phase 4: Operations
+## Phase 4: Operations (Core completed in v0.5.0)
 
-- Prometheus metrics, structured logs, and OpenTelemetry traces.
-- Docker Compose development environment.
-- Kubernetes and Helm deployment.
-- Argo CD GitOps examples and Terraform infrastructure.
+- Prometheus metrics, structured logs, and OpenTelemetry-style traces.
+- Docker Compose development environment, hardened to run as non-root.
+- Kubernetes and Helm deployment, hardened with a non-root/read-only
+  security context and a default-deny `NetworkPolicy`.
+- Argo CD GitOps examples and a Terraform Kubernetes module.
+- Bearer-token API authentication and a CI-enforced public safety scan.
+- `opsbench doctor` environment/config validation command.
+
+Deferred to a later milestone (not yet implemented):
+
 - Backup, restore, load, chaos, and disaster-recovery exercises.
+- Real OpenTelemetry exporters (the current tracer only records spans
+  in-process; nothing is shipped to a collector yet).
 
 ## Phase 5: Ecosystem
 
