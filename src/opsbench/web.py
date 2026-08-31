@@ -106,27 +106,31 @@ def render_dashboard_html(store: SQLiteResultStore) -> str:
             padding-bottom: 1.25rem;
             border-bottom: 2px solid var(--ink);
         }}
-        .metrics {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
+        .stat-line {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: .35rem 0;
+            margin-bottom: 2.5rem;
+            font-size: 1.05rem;
         }}
-        .card {{
-            background-color: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1.25rem;
+        .stat-line span {{
+            padding: 0 1.1rem;
+            border-right: 1px solid var(--rule);
         }}
-        .metric-value {{
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--primary);
+        .stat-line span:first-child {{ padding-left: 0; }}
+        .stat-line span:last-child {{ border-right: none; }}
+        .stat-line strong {{
+            color: var(--rust);
+            font-size: 1.4rem;
+            font-weight: normal;
         }}
-        .metric-label {{
-            color: var(--muted);
-            font-size: 0.875rem;
+        .stat-line small {{
+            display: block;
+            color: var(--faint);
+            font-size: .7rem;
+            letter-spacing: .08em;
             text-transform: uppercase;
+            font-style: normal;
         }}
         table {{
             width: 100%;
@@ -163,19 +167,10 @@ def render_dashboard_html(store: SQLiteResultStore) -> str:
             Open Benchmark Platform for AI Incident Diagnosis
         </div>
 
-        <div class="metrics">
-            <div class="card">
-                <div class="metric-value">{total_runs}</div>
-                <div class="metric-label">Total Indexed Runs</div>
-            </div>
-            <div class="card">
-                <div class="metric-value">{len(scenario_ids)}</div>
-                <div class="metric-label">Scenarios Evaluated</div>
-            </div>
-            <div class="card">
-                <div class="metric-value">{avg_score_str}</div>
-                <div class="metric-label">Average Score</div>
-            </div>
+        <div class="stat-line">
+            <span><strong>{total_runs}</strong><small>Total Indexed Runs</small></span>
+            <span><strong>{len(scenario_ids)}</strong><small>Scenarios Evaluated</small></span>
+            <span><strong>{avg_score_str}</strong><small>Average Score</small></span>
         </div>
 
         <h2>Leaderboard Summaries</h2>
