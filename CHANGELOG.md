@@ -3,7 +3,7 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
-## [Unreleased]
+## v0.5.0 — 2026-08-31 — Phase 4: Operations (core)
 
 - Removed the experimental Three.js "DevOps factory" pipeline visualization
   (`/pipeline`) after it did not reach usable visual quality; the console
@@ -17,13 +17,15 @@ tag dates; versions follow the milestones described in `docs/roadmap.md`.
 - Wired `TraceTracer` OpenTelemetry-style spans through `execute_run` and
   `execute_suite`.
 - Added an `opsbench doctor` command to validate a scenario gallery and
-  result database.
+  result database, and an `opsbench --version` flag.
 - Hardened the Kubernetes Deployment, Helm chart, and Docker image/Compose
   service: non-root user, read-only root filesystem, dropped capabilities,
   a default-deny `NetworkPolicy`, and a `.dockerignore` that excludes local
   databases and secrets from the build context.
-- Added a CI-enforced public safety scan (`scripts/public_safety_scan.sh`)
-  and a deployment-manifest YAML validation step.
+- Added a CI-enforced public safety scan (`scripts/public_safety_scan.sh`),
+  a deployment-manifest YAML validation step, a tag-triggered release
+  workflow that verifies the pushed tag matches the package version, and
+  a Python 3.11/3.12 test matrix.
 
 ## v0.4.0 — Phase 3: Platform Services
 
