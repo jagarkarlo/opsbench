@@ -135,28 +135,26 @@ def render_dashboard_html(store: SQLiteResultStore) -> str:
         table {{
             width: 100%;
             border-collapse: collapse;
-            background-color: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 2rem;
+            margin-bottom: 2.75rem;
         }}
         th, td {{
-            padding: 0.75rem 1rem;
+            padding: .55rem .9rem;
             text-align: left;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--rule);
         }}
+        td:first-child, th:first-child {{ padding-left: 0; }}
+        tbody tr:nth-child(odd) {{ background-color: rgba(166, 73, 31, .05); }}
         th {{
-            background-color: #1e293b;
-            color: var(--muted);
-            font-size: 0.85rem;
+            font-size: .72rem;
+            letter-spacing: .09em;
             text-transform: uppercase;
+            color: var(--faint);
+            font-weight: normal;
+            border-bottom: 2px solid var(--ink);
         }}
         code {{
-            background-color: #0f172a;
-            padding: 0.2rem 0.4rem;
-            border-radius: 4px;
-            color: var(--primary);
+            font-family: ui-monospace, "SF Mono", Menlo, monospace;
+            color: var(--moss);
         }}
     </style>
 </head>
