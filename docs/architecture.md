@@ -50,3 +50,9 @@ Scenario packs are untrusted input. Loaders enforce path containment and size
 limits. Runners will use isolated containers without host mounts, credentials,
 or unrestricted networks. Provider secrets remain outside scenario packs and
 are passed only to the selected adapter at runtime.
+
+As of v0.5.0, the reference API server, Docker image, and Kubernetes/Helm
+deployment already enforce: optional bearer-token API authentication, a
+non-root/read-only container filesystem, dropped Linux capabilities, and a
+default-deny `NetworkPolicy` scoped to the server's own port plus DNS/HTTPS
+egress. See [SECURITY.md](../SECURITY.md) for the current, verifiable scope.
