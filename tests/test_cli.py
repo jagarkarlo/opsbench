@@ -11,6 +11,16 @@ from opsbench.scoring import Score, ScoreReport
 
 
 class CliParserTests(unittest.TestCase):
+    def test_prints_version_and_exits(self) -> None:
+        import opsbench
+
+        output = io.StringIO()
+        with redirect_stdout(output), self.assertRaises(SystemExit) as raised:
+            build_parser().parse_args(["--version"])
+
+        self.assertEqual(raised.exception.code, 0)
+        self.assertIn(opsbench.__version__, output.getvalue())
+
     def test_parses_scenario_validate_command(self) -> None:
         parsed = build_parser().parse_args(["scenario", "validate", "scenarios/example"])
 

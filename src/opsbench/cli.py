@@ -44,7 +44,10 @@ def parse_metadata(entries: list[str] | None) -> tuple[tuple[str, str], ...]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    from opsbench import __version__
+
     parser = argparse.ArgumentParser(prog="opsbench")
+    parser.add_argument("--version", action="version", version=f"opsbench {__version__}")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     scenario_parser = subparsers.add_parser("scenario", help="inspect local scenarios")
