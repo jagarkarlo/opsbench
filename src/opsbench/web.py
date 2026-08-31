@@ -73,33 +73,38 @@ def render_dashboard_html(store: SQLiteResultStore) -> str:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OpsBench Console</title>
     <style>
+        /* A printed operator's log, not another dark SaaS dashboard. */
         :root {{
-            --bg: #0f172a;
-            --card-bg: #1e293b;
-            --text: #f8fafc;
-            --muted: #94a3b8;
-            --primary: #38bdf8;
-            --border: #334155;
-            --accent: #22c55e;
+            --paper: #f3efe6;
+            --ink: #26221c;
+            --faint: #7a7364;
+            --rule: #c9c0ac;
+            --rust: #a6491f;
+            --moss: #4c6b47;
         }}
         body {{
-            font-family: system-ui, -apple-system, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
+            font-family: Georgia, "Iowan Old Style", serif;
+            background-color: var(--paper);
+            color: var(--ink);
             margin: 0;
-            padding: 2rem;
+            padding: 2.5rem 1.5rem;
         }}
         .container {{
             max-width: 1100px;
             margin: 0 auto;
         }}
         h1 {{
-            color: var(--primary);
-            margin-bottom: 0.5rem;
+            color: var(--ink);
+            margin: 0 0 .15rem;
+            font-weight: normal;
+            letter-spacing: .02em;
         }}
         .subtitle {{
-            color: var(--muted);
-            margin-bottom: 2rem;
+            color: var(--faint);
+            font-style: italic;
+            margin-bottom: 2.25rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 2px solid var(--ink);
         }}
         .metrics {{
             display: grid;
