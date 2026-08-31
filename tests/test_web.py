@@ -37,6 +37,16 @@ class WebDashboardTests(unittest.TestCase):
         self.assertIn("OpsBench Web Console", html_out)
         self.assertIn("No benchmark runs recorded yet.", html_out)
 
+    def test_console_avoids_the_generic_dark_saas_template_look(self) -> None:
+        """Locks in the hand-picked ledger theme instead of a templated AI dashboard."""
+        store = SQLiteResultStore(":memory:")
+        html_out = render_dashboard_html(store)
+        store.close()
+
+        for stale_token in ("#0f172a", "#38bdf8", "system-ui", 'class="card"', "metric-value"):
+            self.assertNotIn(stale_token, html_out)
+        self.assertIn("stat-line", html_out)
+
     def test_renders_dashboard_html_with_indexed_runs(self) -> None:
         store = SQLiteResultStore(":memory:")
         store.save(build_test_bundle("run-001"))
