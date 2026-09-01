@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+from pathlib import Path
+from typing import Any
 
 
 BACKUP_SCHEMA_VERSION = "1.0"
@@ -39,6 +41,95 @@ class BackupManifest:
         return json.dumps(self.to_dict(), ensure_ascii=True, separators=(",", ":"), sort_keys=True)
 
 
+@dataclass(frozen=True)
+class VerifiedArchive:
+    """Validated export archive with manifest integrity verified."""
+
+    manifest: BackupManifest
+    bundles: tuple[dict[str, Any], ...]
+
+    def bundle_count(self) -> int:
+        """Return the number of result bundles in this archive."""
+        return len(self.bundles)
+
+
 def sha256_bytes(content: bytes) -> str:
     """Return the canonical SHA-256 digest for local archive content."""
     return hashlib.sha256(content).hexdigest()
+
+
+def verify_archive(archive_path: Path | str) -> VerifiedArchive:
+    """Load and verify a backup archive, validating manifest digest and bundle count.
+    
+    The archive digest is computed on the archive bytes with the digest field set to a placeholder,
+    ensuring the digest is self-referential and stable across multiple verifications.
+    
+    Raises:
+        ValueError: If the archive is malformed, digest does not match, or bundle count is incorrect.
+    """
+    path = Path(archive_path) if isinstance(archive_path, str) else archive_path
+    
+    if not path.exists():
+        raise ValueError(f"archive file not found: {path}")
+    if not path.is_file():
+        raise ValueError(f"archive path is not a file: {path}")
+    
+    archive_bytes = path.read_bytes()
+    
+    try:
+        archive_data = json.loads(archive_bytes.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        raise ValueError(f"archive is not valid JSON: {error}") from error
+    
+    if not isinstance(archive_data, dict):
+        raise ValueError("archive root must be a JSON object")
+    
+    if "manifest" not in archive_data:
+        raise ValueError("archive is missing required 'manifest' field")
+    if "bundles" not in archive_data:
+        raise ValueError("archive is missing required 'bundles' field")
+    
+    manifest_data = archive_data["manifest"]
+    if not isinstance(manifest_data, dict):
+        raise ValueError("manifest must be a JSON object")
+    
+    declared_digest = manifest_data.get("archive_sha256", "")
+    
+    try:
+        manifest = BackupManifest(
+            archive_sha256=declared_digest,
+            bundle_count=manifest_data.get("bundle_count", 0),
+            schema_version=manifest_data.get("schema_version", BACKUP_SCHEMA_VERSION),
+        )
+    except ValueError as error:
+        raise ValueError(f"invalid manifest: {error}") from error
+    
+    bundles_data = archive_data["bundles"]
+    if not isinstance(bundles_data, list):
+        raise ValueError("bundles must be a JSON array")
+    
+    if len(bundles_data) != manifest.bundle_count:
+        raise ValueError(
+            f"bundle count mismatch: archive contains {len(bundles_data)} bundles but manifest declares {manifest.bundle_count}"
+        )
+    
+    # Compute digest on archive with digest field replaced by placeholder to make it self-referential
+    archive_for_digest = {
+        "bundles": bundles_data,
+        "manifest": {
+            "archive_sha256": "0" * 64,
+            "bundle_count": manifest.bundle_count,
+            "schema_version": manifest.schema_version,
+        },
+    }
+    archive_for_digest_bytes = json.dumps(
+        archive_for_digest, ensure_ascii=True, separators=(",", ":"), sort_keys=True
+    ).encode("utf-8")
+    computed_digest = sha256_bytes(archive_for_digest_bytes)
+    
+    if computed_digest != manifest.archive_sha256:
+        raise ValueError(
+            f"archive digest mismatch: computed {computed_digest} but manifest declares {manifest.archive_sha256}"
+        )
+    
+    return VerifiedArchive(manifest=manifest, bundles=tuple(bundles_data))
