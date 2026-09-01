@@ -187,3 +187,73 @@ def restore_archive(store: SQLiteResultStore, archive: VerifiedArchive) -> None:
     # Insert all bundles atomically
     for bundle in bundles_to_restore:
         store.save(bundle)
+
+
+def export_store(store: SQLiteResultStore, archive_path: Path | str) -> BackupManifest:
+    """Export all result bundles from a store into a backup archive with manifest.
+    
+    Creates a deterministic JSON archive file with a manifest containing the archive digest
+    and bundle count. The archive is self-referential: the manifest digest is computed on 
+    the archive with a placeholder digest field.
+    
+    Args:
+        store: The SQLiteResultStore to export from.
+        archive_path: Path where the archive file will be written.
+    
+    Returns:
+        The BackupManifest for the exported archive.
+    
+    Raises:
+        ValueError: If the archive path already exists.
+    """
+    path = Path(archive_path) if isinstance(archive_path, str) else archive_path
+    
+    if path.exists():
+        raise ValueError(f"archive file already exists: {path}")
+    
+    # Export all bundles from the store as dictionaries
+    from opsbench.store import RunQuery
+    
+    all_bundles = store.query(RunQuery(limit=2**31 - 1))
+    bundle_dicts = [bundle.to_dict() for bundle in all_bundles]
+    
+    # Create archive with placeholder digest
+    archive_for_digest = {
+        "bundles": bundle_dicts,
+        "manifest": {
+            "archive_sha256": "0" * 64,
+            "bundle_count": len(bundle_dicts),
+            "schema_version": BACKUP_SCHEMA_VERSION,
+        },
+    }
+    
+    # Compute digest on this structure
+    archive_bytes = json.dumps(
+        archive_for_digest, ensure_ascii=True, separators=(",", ":"), sort_keys=True
+    ).encode("utf-8")
+    computed_digest = sha256_bytes(archive_bytes)
+    
+    # Create final archive with computed digest
+    archive_final = {
+        "bundles": bundle_dicts,
+        "manifest": {
+            "archive_sha256": computed_digest,
+            "bundle_count": len(bundle_dicts),
+            "schema_version": BACKUP_SCHEMA_VERSION,
+        },
+    }
+    
+    # Write archive file
+    path.parent.mkdir(parents=True, exist_ok=True)
+    archive_json = json.dumps(
+        archive_final, ensure_ascii=True, separators=(",", ":"), sort_keys=True
+    )
+    path.write_text(archive_json, encoding="utf-8")
+    
+    manifest = BackupManifest(
+        archive_sha256=computed_digest,
+        bundle_count=len(bundle_dicts),
+        schema_version=BACKUP_SCHEMA_VERSION,
+    )
+    
+    return manifest

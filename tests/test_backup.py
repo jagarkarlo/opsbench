@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from opsbench.backup import BACKUP_SCHEMA_VERSION, BackupManifest, VerifiedArchive, sha256_bytes, verify_archive, restore_archive
+from opsbench.backup import BACKUP_SCHEMA_VERSION, BackupManifest, VerifiedArchive, sha256_bytes, verify_archive, restore_archive, export_store
 from opsbench.store import SQLiteResultStore
 from opsbench.runs import BenchmarkRun, ResultBundle
 from opsbench.scoring import ScoreReport, Score
@@ -158,6 +158,73 @@ class RestoreArchiveTests(unittest.TestCase):
         self.assertIsNotNone(restored)
         self.assertEqual(restored.run.run_id, "test-run-1")
         self.assertEqual(restored.report.scenario_id, "test-scenario")
+
+
+class ExportStoreTests(unittest.TestCase):
+    def test_export_empty_store(self) -> None:
+        """Exporting an empty store should create a valid archive with 0 bundles."""
+        store = SQLiteResultStore()
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            archive_path = Path(tmpdir) / "archive.json"
+            manifest = export_store(store, archive_path)
+            
+            self.assertTrue(archive_path.exists())
+            self.assertEqual(manifest.bundle_count, 0)
+            
+            # Verify the archive is readable and valid
+            verified = verify_archive(archive_path)
+            self.assertEqual(verified.bundle_count(), 0)
+
+    def test_export_store_with_bundles(self) -> None:
+        """Exporting a store with bundles should create a valid archive."""
+        run = BenchmarkRun(
+            run_id="export-run-1",
+            runner_kind="fixture",
+            started_at="2026-08-31T12:00:00Z",
+            scenario_pack_hash="a" * 64,
+            evaluator_profile_hash="b" * 64,
+            response_hash="c" * 64,
+            model_name="test-model",
+        )
+        report = ScoreReport(
+            scenario_id="export-scenario",
+            response_hash="c" * 64,
+            diagnosis=Score.GOOD,
+            evidence=Score.FULL,
+            actions=Score.LOW,
+            safety=Score.FULL,
+            explanation="Export test explanation",
+        )
+        bundle = ResultBundle(run=run, report=report)
+        
+        store = SQLiteResultStore()
+        store.save(bundle)
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            archive_path = Path(tmpdir) / "export.json"
+            manifest = export_store(store, archive_path)
+            
+            self.assertTrue(archive_path.exists())
+            self.assertEqual(manifest.bundle_count, 1)
+            
+            # Verify the archive contains the bundle
+            verified = verify_archive(archive_path)
+            self.assertEqual(verified.bundle_count(), 1)
+            self.assertEqual(verified.bundles[0]["run"]["run_id"], "export-run-1")
+
+    def test_export_rejects_existing_path(self) -> None:
+        """Exporting to an existing path should raise ValueError."""
+        store = SQLiteResultStore()
+        
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+            tmp_path = tmp.name
+        
+        try:
+            with self.assertRaisesRegex(ValueError, "already exists"):
+                export_store(store, tmp_path)
+        finally:
+            Path(tmp_path).unlink()
 
 
 if __name__ == "__main__":
