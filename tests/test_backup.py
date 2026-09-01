@@ -3,7 +3,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from opsbench.backup import BACKUP_SCHEMA_VERSION, BackupManifest, VerifiedArchive, sha256_bytes, verify_archive
+from opsbench.backup import BACKUP_SCHEMA_VERSION, BackupManifest, VerifiedArchive, sha256_bytes, verify_archive, restore_archive
+from opsbench.store import SQLiteResultStore
+from opsbench.runs import BenchmarkRun, ResultBundle
+from opsbench.scoring import ScoreReport, Score
 
 
 class BackupManifestTests(unittest.TestCase):
@@ -108,6 +111,53 @@ class ArchiveVerificationTests(unittest.TestCase):
     def test_verify_archive_rejects_missing_file(self) -> None:
         with self.assertRaisesRegex(ValueError, "archive file not found"):
             verify_archive("/nonexistent/path/archive.json")
+
+
+class RestoreArchiveTests(unittest.TestCase):
+    def test_restore_archive_with_empty_bundles(self) -> None:
+        """Restoring an empty archive should complete without error."""
+        manifest = BackupManifest(sha256_bytes(b"empty"), 0)
+        archive = VerifiedArchive(manifest=manifest, bundles=())
+        store = SQLiteResultStore()
+        
+        restore_archive(store, archive)
+        
+        self.assertEqual(store.count(), 0)
+
+    def test_restore_archive_with_valid_bundle(self) -> None:
+        """Restore a valid bundle from archive to the store."""
+        run = BenchmarkRun(
+            run_id="test-run-1",
+            runner_kind="fixture",
+            started_at="2026-08-31T12:00:00Z",
+            scenario_pack_hash="a" * 64,
+            evaluator_profile_hash="b" * 64,
+            response_hash="c" * 64,
+            model_name="test-model",
+        )
+        report = ScoreReport(
+            scenario_id="test-scenario",
+            response_hash="c" * 64,
+            diagnosis=Score.GOOD,
+            evidence=Score.FULL,
+            actions=Score.LOW,
+            safety=Score.FULL,
+            explanation="Test explanation",
+        )
+        bundle = ResultBundle(run=run, report=report)
+        bundle_dict = bundle.to_dict()
+        
+        manifest = BackupManifest(sha256_bytes(b"test"), 1)
+        archive = VerifiedArchive(manifest=manifest, bundles=(bundle_dict,))
+        store = SQLiteResultStore()
+        
+        restore_archive(store, archive)
+        
+        self.assertEqual(store.count(), 1)
+        restored = store.get("test-run-1")
+        self.assertIsNotNone(restored)
+        self.assertEqual(restored.run.run_id, "test-run-1")
+        self.assertEqual(restored.report.scenario_id, "test-scenario")
 
 
 if __name__ == "__main__":

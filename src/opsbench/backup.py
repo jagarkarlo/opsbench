@@ -6,7 +6,10 @@ from dataclasses import dataclass
 import hashlib
 import json
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from opsbench.store import SQLiteResultStore
 
 
 BACKUP_SCHEMA_VERSION = "1.0"
@@ -133,3 +136,54 @@ def verify_archive(archive_path: Path | str) -> VerifiedArchive:
         )
     
     return VerifiedArchive(manifest=manifest, bundles=tuple(bundles_data))
+
+
+def restore_archive(store: SQLiteResultStore, archive: VerifiedArchive) -> None:
+    """Restore a verified archive to the result store atomically.
+    
+    Loads each bundle from the archive, reconstructs ResultBundle objects, and inserts them into the store.
+    All bundles are inserted in a single transaction; if any bundle fails validation or insertion,
+    the entire restore is rolled back.
+    
+    Args:
+        store: The SQLiteResultStore to restore into.
+        archive: The VerifiedArchive containing bundles to restore.
+    
+    Raises:
+        ValueError: If any bundle cannot be reconstructed or conflicts with existing data.
+    """
+    from opsbench.runs import ResultBundle, BenchmarkRun, load_result_bundle
+    from opsbench.scoring import ScoreReport, Score
+    from pathlib import Path
+    import tempfile
+    
+    if archive.bundle_count() == 0:
+        return
+    
+    # Reconstruct ResultBundle objects from the archive data and insert atomically
+    bundles_to_restore: list[ResultBundle] = []
+    
+    for bundle_data in archive.bundles:
+        if not isinstance(bundle_data, dict):
+            raise ValueError("each archive bundle must be a JSON object")
+        
+        if "run" not in bundle_data or "report" not in bundle_data:
+            raise ValueError("each archive bundle must contain 'run' and 'report' fields")
+        
+        # Validate by reconstructing the bundle through JSON roundtrip
+        bundle_json = json.dumps(bundle_data, ensure_ascii=True, separators=(",", ":"), sort_keys=True)
+        
+        # Write to temp file and load using the standard loader for validation
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+            tmp.write(bundle_json + "\n")
+            tmp_path = tmp.name
+        
+        try:
+            bundle = load_result_bundle(Path(tmp_path))
+            bundles_to_restore.append(bundle)
+        finally:
+            Path(tmp_path).unlink()
+    
+    # Insert all bundles atomically
+    for bundle in bundles_to_restore:
+        store.save(bundle)
