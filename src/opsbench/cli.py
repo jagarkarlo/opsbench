@@ -193,6 +193,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     doctor_parser.add_argument("--gallery-path", default="scenarios", help="path to scenarios gallery directory")
     doctor_parser.add_argument("--db", default=None, help="optional path to a SQLite result database file to check")
+    doctor_parser.add_argument("--archive", default=None, help="optional path to a backup archive file to validate")
     return parser
 
 
@@ -531,6 +532,18 @@ def main(argv: list[str] | None = None) -> int:
                 healthy = False
                 report["database_ok"] = False
                 report["database_error"] = str(error)
+
+        if parsed.archive:
+            report["archive_path"] = parsed.archive
+            try:
+                verified_archive = verify_archive(Path(parsed.archive))
+                report["archive_ok"] = True
+                report["archive_bundle_count"] = verified_archive.bundle_count()
+                report["archive_schema_version"] = verified_archive.manifest.schema_version
+            except Exception as error:
+                healthy = False
+                report["archive_ok"] = False
+                report["archive_error"] = str(error)
 
         report["status"] = "ok" if healthy else "error"
         print(json.dumps(report, sort_keys=True))

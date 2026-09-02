@@ -745,6 +745,44 @@ class CliParserTests(unittest.TestCase):
         self.assertFalse(result["gallery_ok"])
         self.assertIn("gallery_error", result)
 
+    def test_doctor_validates_a_backup_archive(self) -> None:
+        from opsbench.backup import export_store
+        from opsbench.store import SQLiteResultStore
+
+        with TemporaryDirectory() as temporary_directory:
+            archive_path = Path(temporary_directory) / "backup.json"
+            store = SQLiteResultStore()
+            try:
+                export_store(store, archive_path)
+            finally:
+                store.close()
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                exit_code = main(["doctor", "--archive", str(archive_path)])
+
+        result = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(result["status"], "ok")
+        self.assertTrue(result["archive_ok"])
+        self.assertEqual(result["archive_bundle_count"], 0)
+        self.assertEqual(result["archive_schema_version"], "1.0")
+
+    def test_doctor_reports_an_invalid_backup_archive(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            archive_path = Path(temporary_directory) / "invalid-backup.json"
+            archive_path.write_text("not json", encoding="utf-8")
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                exit_code = main(["doctor", "--archive", str(archive_path)])
+
+        result = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(result["status"], "error")
+        self.assertFalse(result["archive_ok"])
+        self.assertIn("archive_error", result)
+
 
 if __name__ == "__main__":
     unittest.main()
