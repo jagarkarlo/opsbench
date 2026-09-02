@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
+## v0.5.1 — Unreleased — Phase 4: Operations follow-up
+
+- Added opt-in OTLP/HTTP trace export for `opsbench run` and `opsbench run
+  suite` through `--otlp-endpoint`.
+- Completed recorded run and suite spans with precise timestamps, preserving
+  parent-child trace relationships for suite execution.
+- Added portable archive backup/restore validation, integrity checks, and
+  conflict protection for local SQLite result stores.
+
 ## v0.5.0 — 2026-08-31 — Phase 4: Operations (core)
 
 - Removed the experimental Three.js "DevOps factory" pipeline visualization

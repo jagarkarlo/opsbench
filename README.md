@@ -183,6 +183,21 @@ Run a complete benchmark suite across every scenario in a gallery concurrently:
 opsbench run suite scenarios results --run-prefix full-suite --max-workers 4 --metadata seed=42
 ```
 
+Export completed run spans to an OTLP/HTTP collector only when an endpoint is
+explicitly configured:
+
+```bash
+opsbench run fixture \
+  scenarios/observability-latency-001 \
+  scenarios/observability-latency-001/responses/reference-response.json \
+  results/traced-latency-run.json \
+  --run-id traced-latency-run \
+  --otlp-endpoint http://localhost:4318/v1/traces
+```
+
+The endpoint receives completed `execute_run` and `execute_suite` spans as
+OTLP/HTTP JSON. OpsBench does not send trace data unless this option is set.
+
 Create another trial with a different run ID and output path, then compare the
 saved result bundles (add `--format markdown` for formatted tables):
 
