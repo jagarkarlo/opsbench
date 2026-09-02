@@ -2,6 +2,8 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
 import unittest
+from unittest.mock import patch
+from urllib.error import URLError
 
 from opsbench.tracing import TraceSpan, TraceTracer
 
@@ -97,6 +99,13 @@ class OpenTelemetryTracingTests(unittest.TestCase):
         unix_nanos = TraceTracer._unix_nanos("2026-09-02T12:34:56.123456+00:00")
 
         self.assertEqual(unix_nanos, "1788352496123456000")
+
+    def test_reports_a_failed_otlp_collector_connection(self) -> None:
+        tracer = TraceTracer()
+
+        with patch("opsbench.tracing.urlopen", side_effect=URLError("connection refused")):
+            with self.assertRaisesRegex(ValueError, "unable to export OTLP traces: connection refused"):
+                tracer.export_otlp("http://collector:4318/v1/traces")
 
 
 if __name__ == "__main__":
