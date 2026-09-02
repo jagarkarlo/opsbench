@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 from opsbench.cli import build_parser, main, parse_metadata
 from opsbench.runs import BenchmarkRun, ResultBundle, write_result_bundle
@@ -240,18 +241,25 @@ class CliParserTests(unittest.TestCase):
             output_path = directory / "results" / "fixture-run.json"
             output = io.StringIO()
 
-            with redirect_stdout(output):
-                exit_code = main(
-                    [
-                        "run",
-                        "fixture",
-                        str(scenario),
-                        str(response_path),
-                        str(output_path),
-                        "--run-id",
-                        "fixture-run-001",
-                    ]
-                )
+            with patch("opsbench.cli.TraceTracer") as tracer_class:
+                with redirect_stdout(output):
+                    exit_code = main(
+                        [
+                            "run",
+                            "fixture",
+                            str(scenario),
+                            str(response_path),
+                            str(output_path),
+                            "--run-id",
+                            "fixture-run-001",
+                            "--otlp-endpoint",
+                            "http://collector:4318/v1/traces",
+                        ]
+                    )
+
+            tracer_class.return_value.export_otlp.assert_called_once_with(
+                "http://collector:4318/v1/traces"
+            )
 
             command_result = json.loads(output.getvalue())
             bundle = json.loads(output_path.read_text(encoding="utf-8"))

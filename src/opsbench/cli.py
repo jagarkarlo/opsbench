@@ -28,6 +28,7 @@ from opsbench.scenarios import load_gallery, load_scenario_pack
 from opsbench.scoring import evaluate_response, load_evaluator_profile
 from opsbench.server import create_server
 from opsbench.store import RunQuery, SQLiteResultStore
+from opsbench.tracing import TraceTracer
 from opsbench.validator import lint_scenario
 
 
@@ -287,6 +288,7 @@ def main(argv: list[str] | None = None) -> int:
         scenario_path = Path(parsed.scenario_path)
         pack = load_scenario_pack(scenario_path)
         profile = load_evaluator_profile(scenario_path / "evaluator.json")
+        tracer = TraceTracer() if parsed.otlp_endpoint else None
         if parsed.run_command == "fixture":
             response = load_response(Path(parsed.response_path))
             adapter = FixtureResponseAdapter(response)
@@ -307,10 +309,13 @@ def main(argv: list[str] | None = None) -> int:
             profile=profile,
             adapter=adapter,
             metadata=parse_metadata(parsed.metadata),
+            tracer=tracer,
         )
         bundle = ResultBundle(result.run, result.report)
         output_path = Path(parsed.output_path)
         write_result_bundle(output_path, bundle)
+        if tracer is not None:
+            tracer.export_otlp(parsed.otlp_endpoint)
         print(
             json.dumps(
                 {
@@ -325,6 +330,7 @@ def main(argv: list[str] | None = None) -> int:
     if parsed.command == "run" and parsed.run_command == "suite":
         gallery_path = Path(parsed.gallery_path)
         output_dir = Path(parsed.output_dir)
+        tracer = TraceTracer() if parsed.otlp_endpoint else None
         responses: dict[str, BenchmarkResponse] = {}
         for candidate in sorted(gallery_path.iterdir(), key=lambda path: path.name):
             if candidate.is_dir() and (candidate / "scenario.json").is_file():
@@ -341,7 +347,10 @@ def main(argv: list[str] | None = None) -> int:
             run_prefix=parsed.run_prefix,
             max_workers=parsed.max_workers,
             metadata=parse_metadata(parsed.metadata),
+            tracer=tracer,
         )
+        if tracer is not None:
+            tracer.export_otlp(parsed.otlp_endpoint)
         print(
             json.dumps(
                 {
