@@ -206,6 +206,18 @@ opsbench store export bench.db archive.json
 opsbench store import imported.db archive.json
 ```
 
+Create a portable backup archive and restore it into a new result store:
+
+```bash
+opsbench store backup bench.db bench-backup.json
+opsbench doctor --archive bench-backup.json
+opsbench store restore bench-backup.json restored-bench.db
+```
+
+Backup archives are canonical JSON with an integrity digest. Restore refuses an
+archive that contains duplicate run IDs or would overwrite an existing result;
+restore into a new database when you need a complete copy.
+
 Start the OpsBench REST API server to expose scenarios and query indexed runs via HTTP:
 
 ```bash
@@ -222,9 +234,10 @@ docker compose up -d
 
 Phase 1 (Benchmark Core), Phase 2 (Execution), Phase 3 (Platform Services),
 and the core of Phase 4 (Operations) are complete as of v0.5.0. Remaining
-Phase 4 work is backup/restore, load, chaos, and disaster-recovery exercises,
-plus real OpenTelemetry trace export. See [the roadmap](docs/roadmap.md) for
-details, and Phase 5 (Ecosystem) for what follows.
+Phase 4 work is load, chaos, and disaster-recovery exercises, plus real
+OpenTelemetry trace export. A bounded local backup/restore archive preview is
+available; see [the roadmap](docs/roadmap.md) for its remaining scope and
+Phase 5 (Ecosystem) for what follows.
 
 ## License
 

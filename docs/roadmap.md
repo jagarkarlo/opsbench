@@ -38,9 +38,16 @@ Each milestone must remain runnable and independently verifiable.
 - Bearer-token API authentication and a CI-enforced public safety scan.
 - `opsbench doctor` environment/config validation command.
 
-Deferred to a later milestone (not yet implemented):
+The following portable archive foundation is available as a bounded follow-up:
 
-- Backup, restore, load, chaos, and disaster-recovery exercises.
+- Canonical JSON backup archives with SHA-256 integrity verification.
+- Explicit backup, restore, and archive validation commands.
+- Restore conflict checks that prevent duplicate or overwritten result run IDs.
+
+Deferred to a later milestone:
+
+- Load, chaos, and disaster-recovery exercises, including scheduled backup and
+  recovery drills beyond the local archive foundation.
 - Real OpenTelemetry exporters (the current tracer only records spans
   in-process; nothing is shipped to a collector yet).
 
