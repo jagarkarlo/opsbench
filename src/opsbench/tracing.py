@@ -158,7 +158,8 @@ class TraceTracer:
     def _unix_nanos(timestamp: str | None) -> str:
         if timestamp is None:
             raise ValueError("completed spans must have an end timestamp")
-        return str(int(datetime.fromisoformat(timestamp).timestamp() * 1_000_000_000))
+        value = datetime.fromisoformat(timestamp)
+        return str(int(value.timestamp()) * 1_000_000_000 + value.microsecond * 1_000)
 
     def clear(self) -> None:
         self._spans.clear()

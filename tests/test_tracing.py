@@ -93,6 +93,11 @@ class OpenTelemetryTracingTests(unittest.TestCase):
             span.trace_id,
         )
 
+    def test_converts_timestamps_to_exact_unix_nanoseconds(self) -> None:
+        unix_nanos = TraceTracer._unix_nanos("2026-09-02T12:34:56.123456+00:00")
+
+        self.assertEqual(unix_nanos, "1788352496123456000")
+
 
 if __name__ == "__main__":
     unittest.main()
