@@ -1,3 +1,6 @@
+import json
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from threading import Thread
 import unittest
 
 from opsbench.tracing import TraceSpan, TraceTracer
@@ -53,6 +56,42 @@ class OpenTelemetryTracingTests(unittest.TestCase):
             {"key": "scenario_id", "value": {"stringValue": "scenario-001"}}
         ])
         self.assertTrue(exported_span["endTimeUnixNano"].isdigit())
+
+    def test_exports_completed_spans_to_an_otlp_http_endpoint(self) -> None:
+        received: dict[str, str] = {}
+
+        class CollectorHandler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                received["content_type"] = self.headers["Content-Type"]
+                received["path"] = self.path
+                length = int(self.headers["Content-Length"])
+                received["body"] = self.rfile.read(length).decode("utf-8")
+                self.send_response(200)
+                self.end_headers()
+
+            def log_message(self, format: str, *args: object) -> None:
+                pass
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), CollectorHandler)
+        thread = Thread(target=server.handle_request)
+        thread.start()
+        try:
+            tracer = TraceTracer("opsbench-test")
+            span = tracer.start_span("execute_run")
+            tracer.end_span(span)
+
+            tracer.export_otlp(f"http://127.0.0.1:{server.server_port}/v1/traces")
+        finally:
+            thread.join()
+            server.server_close()
+
+        payload = json.loads(received["body"])
+        self.assertEqual(received["path"], "/v1/traces")
+        self.assertEqual(received["content_type"], "application/json")
+        self.assertEqual(
+            payload["resourceSpans"][0]["scopeSpans"][0]["spans"][0]["traceId"],
+            span.trace_id,
+        )
 
 
 if __name__ == "__main__":
