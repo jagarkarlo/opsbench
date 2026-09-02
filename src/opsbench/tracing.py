@@ -17,6 +17,7 @@ class TraceSpan:
     span_id: str
     parent_span_id: str | None = None
     started_at: str = ""
+    ended_at: str | None = None
     attributes: tuple[tuple[str, str], ...] = ()
 
     def __post_init__(self) -> None:
@@ -33,6 +34,7 @@ class TraceSpan:
     def to_dict(self) -> dict[str, str | None | dict[str, str]]:
         return {
             "attributes": dict(self.attributes),
+            "ended_at": self.ended_at,
             "name": self.name,
             "parent_span_id": self.parent_span_id,
             "span_id": self.span_id,
@@ -71,6 +73,25 @@ class TraceTracer:
 
     def recorded_spans(self) -> tuple[TraceSpan, ...]:
         return tuple(self._spans)
+
+    def end_span(self, span: TraceSpan) -> TraceSpan:
+        """Record the completion time for a previously started span."""
+        if span not in self._spans:
+            raise ValueError("span was not started by this tracer")
+        if span.ended_at is not None:
+            return span
+
+        completed = TraceSpan(
+            name=span.name,
+            trace_id=span.trace_id,
+            span_id=span.span_id,
+            parent_span_id=span.parent_span_id,
+            started_at=span.started_at,
+            ended_at=datetime.now(timezone.utc).isoformat(),
+            attributes=span.attributes,
+        )
+        self._spans[self._spans.index(span)] = completed
+        return completed
 
     def clear(self) -> None:
         self._spans.clear()

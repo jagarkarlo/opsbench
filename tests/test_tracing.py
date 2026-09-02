@@ -24,6 +24,16 @@ class OpenTelemetryTracingTests(unittest.TestCase):
         self.assertEqual(child.trace_id, parent.trace_id)
         self.assertEqual(child.parent_span_id, parent.span_id)
 
+    def test_completes_a_recorded_span(self) -> None:
+        tracer = TraceTracer()
+        span = tracer.start_span("execute_run")
+
+        completed = tracer.end_span(span)
+
+        self.assertIsNotNone(completed.ended_at)
+        self.assertEqual(tracer.recorded_spans(), (completed,))
+        self.assertEqual(tracer.end_span(completed), completed)
+
 
 if __name__ == "__main__":
     unittest.main()
