@@ -429,6 +429,63 @@ class CliParserTests(unittest.TestCase):
             self.assertEqual(import_exit, 0)
             self.assertEqual(import_res["imported_count"], 1)
 
+    def test_backs_up_and_restores_bundles_via_store_cli(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            run = BenchmarkRun(
+                run_id="backup-run-001",
+                runner_kind="fixture",
+                started_at="2026-08-27T12:00:00Z",
+                scenario_pack_hash="a" * 64,
+                evaluator_profile_hash="b" * 64,
+                response_hash="c" * 64,
+                model_name="reference-fixture",
+            )
+            report = ScoreReport(
+                scenario_id="scenario-001",
+                response_hash=run.response_hash,
+                diagnosis=Score.FULL,
+                evidence=Score.ZERO,
+                actions=Score.ZERO,
+                safety=Score.ZERO,
+                explanation="Synthetic result.",
+            )
+            bundle_path = directory / "result.json"
+            write_result_bundle(bundle_path, ResultBundle(run, report))
+            source_db_path = directory / "source.db"
+
+            with redirect_stdout(io.StringIO()):
+                main(["store", "index", str(source_db_path), str(bundle_path)])
+
+            archive_path = directory / "backup.json"
+            backup_output = io.StringIO()
+            with redirect_stdout(backup_output):
+                backup_exit = main(["store", "backup", str(source_db_path), str(archive_path)])
+
+            backup_result = json.loads(backup_output.getvalue())
+            self.assertEqual(backup_exit, 0)
+            self.assertEqual(backup_result["status"], "success")
+            self.assertEqual(backup_result["bundle_count"], 1)
+
+            restored_db_path = directory / "restored.db"
+            restore_output = io.StringIO()
+            with redirect_stdout(restore_output):
+                restore_exit = main(["store", "restore", str(archive_path), str(restored_db_path)])
+
+            restore_result = json.loads(restore_output.getvalue())
+            self.assertEqual(restore_exit, 0)
+            self.assertEqual(restore_result["status"], "success")
+            self.assertEqual(restore_result["bundle_count"], 1)
+
+            query_output = io.StringIO()
+            with redirect_stdout(query_output):
+                query_exit = main(["store", "query", str(restored_db_path)])
+
+        query_result = json.loads(query_output.getvalue())
+        self.assertEqual(query_exit, 0)
+        self.assertEqual(query_result["count"], 1)
+        self.assertEqual(query_result["results"][0]["run"]["run_id"], "backup-run-001")
+
     def test_compares_saved_result_bundles(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             directory = Path(temporary_directory)
