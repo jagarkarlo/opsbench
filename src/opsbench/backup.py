@@ -159,7 +159,11 @@ def restore_archive(store: SQLiteResultStore, archive: VerifiedArchive) -> None:
     
     if archive.bundle_count() == 0:
         return
-    
+
+    conflicts = check_restore_conflicts(store, archive)
+    if conflicts:
+        raise ValueError(f"restore would overwrite existing run_ids: {', '.join(conflicts)}")
+
     # Reconstruct ResultBundle objects from the archive data and insert atomically
     bundles_to_restore: list[ResultBundle] = []
     

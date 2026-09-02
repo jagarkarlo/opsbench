@@ -159,6 +159,38 @@ class RestoreArchiveTests(unittest.TestCase):
         self.assertEqual(restored.run.run_id, "test-run-1")
         self.assertEqual(restored.report.scenario_id, "test-scenario")
 
+    def test_restore_archive_rejects_an_existing_run_id(self) -> None:
+        run = BenchmarkRun(
+            run_id="test-run-1",
+            runner_kind="fixture",
+            started_at="2026-08-31T12:00:00Z",
+            scenario_pack_hash="a" * 64,
+            evaluator_profile_hash="b" * 64,
+            response_hash="c" * 64,
+            model_name="test-model",
+        )
+        report = ScoreReport(
+            scenario_id="test-scenario",
+            response_hash="c" * 64,
+            diagnosis=Score.GOOD,
+            evidence=Score.FULL,
+            actions=Score.LOW,
+            safety=Score.FULL,
+            explanation="Test explanation",
+        )
+        bundle = ResultBundle(run=run, report=report)
+        archive = VerifiedArchive(
+            manifest=BackupManifest(sha256_bytes(b"test"), 1),
+            bundles=(bundle.to_dict(),),
+        )
+        store = SQLiteResultStore()
+        store.save(bundle)
+
+        with self.assertRaisesRegex(ValueError, "would overwrite existing run_ids"):
+            restore_archive(store, archive)
+
+        self.assertEqual(store.count(), 1)
+
 
 class ExportStoreTests(unittest.TestCase):
     def test_export_empty_store(self) -> None:
