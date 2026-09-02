@@ -19,6 +19,7 @@ from opsbench.comparisons import (
     summarize_trials,
 )
 from opsbench.export import export_store_to_json, import_json_to_store
+from opsbench.backup import export_store, verify_archive, restore_archive
 from opsbench.prompts import render_prompt
 from opsbench.responses import load_response
 from opsbench.runner import execute_run, execute_suite
@@ -163,6 +164,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     import_parser.add_argument("database_path")
     import_parser.add_argument("import_path")
+
+    backup_parser = store_subparsers.add_parser(
+        "backup", help="create a portable JSON archive of all indexed result bundles"
+    )
+    backup_parser.add_argument("database_path")
+    backup_parser.add_argument("archive_path")
+
+    restore_parser = store_subparsers.add_parser(
+        "restore", help="restore result bundles from a portable JSON archive into a database"
+    )
+    restore_parser.add_argument("archive_path")
+    restore_parser.add_argument("database_path")
 
     serve_parser = subparsers.add_parser("serve", help="start the OpsBench HTTP REST API server")
     serve_parser.add_argument("--host", default="127.0.0.1", help="host address to bind (default: 127.0.0.1)")
@@ -440,6 +453,41 @@ def main(argv: list[str] | None = None) -> int:
                 sort_keys=True,
             )
         )
+    if parsed.command == "store" and parsed.store_command == "backup":
+        db_store = SQLiteResultStore(Path(parsed.database_path))
+        try:
+            manifest = export_store(db_store, Path(parsed.archive_path))
+            print(
+                json.dumps(
+                    {
+                        "archive_path": str(Path(parsed.archive_path)),
+                        "bundle_count": manifest.bundle_count,
+                        "database_path": str(Path(parsed.database_path)),
+                        "status": "success",
+                    },
+                    sort_keys=True,
+                )
+            )
+        finally:
+            db_store.close()
+    if parsed.command == "store" and parsed.store_command == "restore":
+        db_store = SQLiteResultStore(Path(parsed.database_path))
+        try:
+            verified = verify_archive(Path(parsed.archive_path))
+            restore_archive(db_store, verified)
+            print(
+                json.dumps(
+                    {
+                        "archive_path": str(Path(parsed.archive_path)),
+                        "bundle_count": verified.bundle_count(),
+                        "database_path": str(Path(parsed.database_path)),
+                        "status": "success",
+                    },
+                    sort_keys=True,
+                )
+            )
+        finally:
+            db_store.close()
     if parsed.command == "serve":
         server = create_server(
             host=parsed.host,
