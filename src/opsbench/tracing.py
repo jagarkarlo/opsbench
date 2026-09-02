@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import json
 import os
+from urllib.error import URLError
+from urllib.request import Request, urlopen
 import uuid
 
 
@@ -92,6 +95,70 @@ class TraceTracer:
         )
         self._spans[self._spans.index(span)] = completed
         return completed
+
+    def otlp_payload(self) -> dict[str, object]:
+        """Return completed spans encoded as an OTLP/HTTP JSON trace payload."""
+        spans = [span for span in self._spans if span.ended_at is not None]
+        return {
+            "resourceSpans": [
+                {
+                    "resource": {
+                        "attributes": [
+                            {
+                                "key": "service.name",
+                                "value": {"stringValue": self.service_name},
+                            }
+                        ]
+                    },
+                    "scopeSpans": [
+                        {
+                            "scope": {"name": "opsbench"},
+                            "spans": [self._otlp_span(span) for span in spans],
+                        }
+                    ],
+                }
+            ]
+        }
+
+    def export_otlp(self, endpoint: str, timeout: float = 10.0) -> None:
+        """Synchronously export completed spans to an OTLP/HTTP endpoint."""
+        if not isinstance(endpoint, str) or not endpoint.strip():
+            raise ValueError("endpoint must be a non-empty string")
+        if not isinstance(timeout, (int, float)) or timeout <= 0:
+            raise ValueError("timeout must be positive")
+
+        request = Request(
+            endpoint,
+            data=json.dumps(self.otlp_payload(), sort_keys=True).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=timeout):
+                pass
+        except URLError as error:
+            raise ValueError(f"unable to export OTLP traces: {error.reason}") from error
+
+    @staticmethod
+    def _otlp_span(span: TraceSpan) -> dict[str, object]:
+        return {
+            "attributes": [
+                {"key": key, "value": {"stringValue": value}}
+                for key, value in span.attributes
+            ],
+            "endTimeUnixNano": TraceTracer._unix_nanos(span.ended_at),
+            "name": span.name,
+            "parentSpanId": span.parent_span_id or "",
+            "spanId": span.span_id,
+            "startTimeUnixNano": TraceTracer._unix_nanos(span.started_at),
+            "traceId": span.trace_id,
+        }
+
+    @staticmethod
+    def _unix_nanos(timestamp: str | None) -> str:
+        if timestamp is None:
+            raise ValueError("completed spans must have an end timestamp")
+        return str(int(datetime.fromisoformat(timestamp).timestamp() * 1_000_000_000))
 
     def clear(self) -> None:
         self._spans.clear()
