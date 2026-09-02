@@ -137,6 +137,8 @@ class CliParserTests(unittest.TestCase):
                 "http://localhost:11434/v1",
                 "--run-id",
                 "openai-run-001",
+                "--otlp-endpoint",
+                "http://collector:4318/v1/traces",
             ]
         )
 
@@ -145,6 +147,7 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(parsed.model, "gpt-4o")
         self.assertEqual(parsed.api_base, "http://localhost:11434/v1")
         self.assertEqual(parsed.run_id, "openai-run-001")
+        self.assertEqual(parsed.otlp_endpoint, "http://collector:4318/v1/traces")
 
     def test_parses_serve_command(self) -> None:
         parsed = build_parser().parse_args(

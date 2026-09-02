@@ -92,6 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
     fixture_parser.add_argument("output_path")
     fixture_parser.add_argument("--run-id", required=True)
     fixture_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
+    fixture_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
     human_parser = run_subparsers.add_parser(
         "human", help="execute one locally supplied human response"
     )
@@ -100,6 +101,7 @@ def build_parser() -> argparse.ArgumentParser:
     human_parser.add_argument("output_path")
     human_parser.add_argument("--run-id", required=True)
     human_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
+    human_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
     openai_parser = run_subparsers.add_parser(
         "openai", help="execute a run against an OpenAI-compatible endpoint"
     )
@@ -114,6 +116,7 @@ def build_parser() -> argparse.ArgumentParser:
     openai_parser.add_argument("--timeout", type=float, default=60.0)
     openai_parser.add_argument("--run-id", required=True)
     openai_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
+    openai_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
     suite_parser = run_subparsers.add_parser(
         "suite", help="execute a response adapter across an entire scenario gallery"
     )
@@ -122,6 +125,7 @@ def build_parser() -> argparse.ArgumentParser:
     suite_parser.add_argument("--run-prefix", default="suite-run")
     suite_parser.add_argument("--max-workers", type=int, default=1, help="concurrency for gallery runs")
     suite_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
+    suite_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
 
     compare_parser = subparsers.add_parser("compare", help="compare local benchmark results")
     compare_subparsers = compare_parser.add_subparsers(dest="compare_command", required=True)
