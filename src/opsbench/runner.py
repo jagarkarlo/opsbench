@@ -41,30 +41,37 @@ def execute_run(
     if profile.scenario_id != pack.manifest.scenario_id:
         raise ValueError("profile scenario_id must match the scenario pack")
 
-    if tracer is not None:
+    run_span = (
         tracer.start_span(
             "execute_run",
             trace_id=parent_span.trace_id if parent_span else None,
             parent_span_id=parent_span.span_id if parent_span else None,
             attributes={"run_id": run_id, "scenario_id": pack.manifest.scenario_id},
         )
-
-    response = adapter.respond(pack)
-    timestamp = started_at or datetime.now(timezone.utc)
-    if timestamp.tzinfo is None:
-        raise ValueError("started_at must include a timezone")
-    run = BenchmarkRun(
-        run_id=run_id,
-        runner_kind=adapter.adapter_name,
-        started_at=timestamp.isoformat(),
-        scenario_pack_hash=pack.content_hash(),
-        evaluator_profile_hash=profile.content_hash(),
-        response_hash=response.content_hash(),
-        model_name=response.model_name,
-        metadata=metadata,
+        if tracer is not None
+        else None
     )
-    report = evaluate_response(pack, profile, response)
-    return RunResult(run=run, report=report)
+
+    try:
+        response = adapter.respond(pack)
+        timestamp = started_at or datetime.now(timezone.utc)
+        if timestamp.tzinfo is None:
+            raise ValueError("started_at must include a timezone")
+        run = BenchmarkRun(
+            run_id=run_id,
+            runner_kind=adapter.adapter_name,
+            started_at=timestamp.isoformat(),
+            scenario_pack_hash=pack.content_hash(),
+            evaluator_profile_hash=profile.content_hash(),
+            response_hash=response.content_hash(),
+            model_name=response.model_name,
+            metadata=metadata,
+        )
+        report = evaluate_response(pack, profile, response)
+        return RunResult(run=run, report=report)
+    finally:
+        if tracer is not None and run_span is not None:
+            tracer.end_span(run_span)
 
 
 def execute_suite(
@@ -123,14 +130,18 @@ def execute_suite(
         write_result_bundle(output_directory / f"{run_id}.json", bundle)
         return bundle
 
-    if max_workers == 1:
-        bundles = [_run_single(dir_path, profile_path) for dir_path, profile_path in scenarios_to_run]
-    else:
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [
-                executor.submit(_run_single, dir_path, profile_path)
-                for dir_path, profile_path in scenarios_to_run
-            ]
-            bundles = [future.result() for future in futures]
+    try:
+        if max_workers == 1:
+            bundles = [_run_single(dir_path, profile_path) for dir_path, profile_path in scenarios_to_run]
+        else:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = [
+                    executor.submit(_run_single, dir_path, profile_path)
+                    for dir_path, profile_path in scenarios_to_run
+                ]
+                bundles = [future.result() for future in futures]
 
-    return tuple(bundles)
+        return tuple(bundles)
+    finally:
+        if tracer is not None and suite_span is not None:
+            tracer.end_span(suite_span)

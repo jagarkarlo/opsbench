@@ -145,6 +145,7 @@ class BenchmarkRunnerTests(unittest.TestCase):
         self.assertEqual(len(spans), 1)
         self.assertEqual(spans[0].name, "execute_run")
         self.assertEqual(dict(spans[0].attributes)["run_id"], "fixture-run-001")
+        self.assertIsNotNone(spans[0].ended_at)
 
     def test_execute_suite_links_child_spans_to_a_shared_parent(self) -> None:
         tracer = TraceTracer()
@@ -182,6 +183,8 @@ class BenchmarkRunnerTests(unittest.TestCase):
         self.assertEqual(run_span.name, "execute_run")
         self.assertEqual(run_span.trace_id, suite_span.trace_id)
         self.assertEqual(run_span.parent_span_id, suite_span.span_id)
+        self.assertIsNotNone(suite_span.ended_at)
+        self.assertIsNotNone(run_span.ended_at)
 
 
 if __name__ == "__main__":
