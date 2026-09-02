@@ -229,3 +229,132 @@ class ExportStoreTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class RestoreConflictTests(unittest.TestCase):
+    def test_check_restore_conflicts_with_empty_archive(self) -> None:
+        """Restoring an empty archive should have no conflicts."""
+        manifest = BackupManifest(sha256_bytes(b"empty"), 0)
+        archive = VerifiedArchive(manifest=manifest, bundles=())
+        store = SQLiteResultStore()
+        
+        from opsbench.backup import check_restore_conflicts
+        conflicts = check_restore_conflicts(store, archive)
+        
+        self.assertEqual(conflicts, ())
+    
+    def test_check_restore_conflicts_with_no_existing_bundles(self) -> None:
+        """Restoring to an empty store should have no conflicts."""
+        run = BenchmarkRun(
+            run_id="new-run-1",
+            runner_kind="fixture",
+            started_at="2026-08-31T12:00:00Z",
+            scenario_pack_hash="a" * 64,
+            evaluator_profile_hash="b" * 64,
+            response_hash="c" * 64,
+            model_name="test-model",
+        )
+        report = ScoreReport(
+            scenario_id="test-scenario",
+            response_hash="c" * 64,
+            diagnosis=Score.GOOD,
+            evidence=Score.FULL,
+            actions=Score.LOW,
+            safety=Score.FULL,
+            explanation="Test explanation",
+        )
+        bundle = ResultBundle(run=run, report=report)
+        
+        manifest = BackupManifest(sha256_bytes(b"test"), 1)
+        archive = VerifiedArchive(manifest=manifest, bundles=(bundle.to_dict(),))
+        store = SQLiteResultStore()
+        
+        from opsbench.backup import check_restore_conflicts
+        conflicts = check_restore_conflicts(store, archive)
+        
+        self.assertEqual(conflicts, ())
+    
+    def test_check_restore_conflicts_detects_duplicate_run_id(self) -> None:
+        """Restoring an archive with duplicate run_ids should raise ValueError."""
+        run = BenchmarkRun(
+            run_id="dup-run-1",
+            runner_kind="fixture",
+            started_at="2026-08-31T12:00:00Z",
+            scenario_pack_hash="a" * 64,
+            evaluator_profile_hash="b" * 64,
+            response_hash="c" * 64,
+            model_name="test-model",
+        )
+        report = ScoreReport(
+            scenario_id="test-scenario",
+            response_hash="c" * 64,
+            diagnosis=Score.GOOD,
+            evidence=Score.FULL,
+            actions=Score.LOW,
+            safety=Score.FULL,
+            explanation="Test explanation",
+        )
+        bundle_dict = ResultBundle(run=run, report=report).to_dict()
+        
+        # Create archive with the same bundle twice
+        manifest = BackupManifest(sha256_bytes(b"dup"), 2)
+        archive = VerifiedArchive(manifest=manifest, bundles=(bundle_dict, bundle_dict))
+        store = SQLiteResultStore()
+        
+        from opsbench.backup import check_restore_conflicts
+        with self.assertRaisesRegex(ValueError, "duplicate run_ids"):
+            check_restore_conflicts(store, archive)
+    
+    def test_check_restore_conflicts_detects_existing_bundle(self) -> None:
+        """Restoring should detect when run_ids already exist in the store."""
+        run1 = BenchmarkRun(
+            run_id="existing-run-1",
+            runner_kind="fixture",
+            started_at="2026-08-31T12:00:00Z",
+            scenario_pack_hash="a" * 64,
+            evaluator_profile_hash="b" * 64,
+            response_hash="c" * 64,
+            model_name="test-model",
+        )
+        report1 = ScoreReport(
+            scenario_id="test-scenario",
+            response_hash="c" * 64,
+            diagnosis=Score.GOOD,
+            evidence=Score.FULL,
+            actions=Score.LOW,
+            safety=Score.FULL,
+            explanation="Test explanation",
+        )
+        bundle1 = ResultBundle(run=run1, report=report1)
+        
+        # Create store with existing bundle
+        store = SQLiteResultStore()
+        store.save(bundle1)
+        
+        # Create archive with the same run_id
+        run2 = BenchmarkRun(
+            run_id="existing-run-1",
+            runner_kind="fixture",
+            started_at="2026-09-01T12:00:00Z",
+            scenario_pack_hash="a" * 64,
+            evaluator_profile_hash="b" * 64,
+            response_hash="d" * 64,
+            model_name="test-model-2",
+        )
+        report2 = ScoreReport(
+            scenario_id="test-scenario",
+            response_hash="d" * 64,
+            diagnosis=Score.FULL,
+            evidence=Score.FULL,
+            actions=Score.LOW,
+            safety=Score.FULL,
+            explanation="Different explanation",
+        )
+        bundle2 = ResultBundle(run=run2, report=report2)
+        
+        manifest = BackupManifest(sha256_bytes(b"conflict"), 1)
+        archive = VerifiedArchive(manifest=manifest, bundles=(bundle2.to_dict(),))
+        
+        from opsbench.backup import check_restore_conflicts
+        conflicts = check_restore_conflicts(store, archive)
+        
+        self.assertEqual(conflicts, ("existing-run-1",))

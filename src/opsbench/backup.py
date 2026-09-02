@@ -257,3 +257,36 @@ def export_store(store: SQLiteResultStore, archive_path: Path | str) -> BackupMa
     )
     
     return manifest
+
+def check_restore_conflicts(store: SQLiteResultStore, archive: VerifiedArchive) -> tuple[str, ...]:
+    """Check if restoring an archive would overwrite existing bundles in the store.
+    
+    Returns:
+        A tuple of run_ids that would be overwritten. Empty tuple if no conflicts.
+    
+    Raises:
+        ValueError: If the archive contains duplicate run_ids internally.
+    """
+    # Extract run_ids from archive bundles
+    archive_run_ids = []
+    for bundle_dict in archive.bundles:
+        if not isinstance(bundle_dict, dict) or "run" not in bundle_dict:
+            raise ValueError("invalid bundle structure in archive: missing 'run' field")
+        run_dict = bundle_dict["run"]
+        if not isinstance(run_dict, dict) or "run_id" not in run_dict:
+            raise ValueError("invalid run structure in archive: missing 'run_id' field")
+        archive_run_ids.append(run_dict["run_id"])
+    
+    # Check for duplicates within the archive itself
+    if len(archive_run_ids) != len(set(archive_run_ids)):
+        duplicates = [rid for rid in set(archive_run_ids) if archive_run_ids.count(rid) > 1]
+        raise ValueError(f"archive contains duplicate run_ids: {duplicates}")
+    
+    # Check which run_ids already exist in the store
+    from opsbench.store import RunQuery
+    existing_bundles = store.query(RunQuery(limit=2**31 - 1))
+    existing_run_ids = {bundle.run.run_id for bundle in existing_bundles}
+    
+    # Return conflicting run_ids
+    conflicts = tuple(rid for rid in archive_run_ids if rid in existing_run_ids)
+    return conflicts
