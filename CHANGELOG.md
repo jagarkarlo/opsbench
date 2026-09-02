@@ -3,7 +3,7 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
-## v0.5.1 — Unreleased — Phase 4: Operations follow-up
+## v0.5.1 — 2026-09-02 — Phase 4: Operations follow-up
 
 - Added opt-in OTLP/HTTP trace export for `opsbench run` and `opsbench run
   suite` through `--otlp-endpoint`.
