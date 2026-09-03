@@ -6,6 +6,7 @@ from opsbench.adapters import (
     HumanResponseAdapter,
     OpenAIResponseAdapter,
 )
+from opsbench.chaos import ChaosCaseResult, ChaosMatrixResult, run_chaos_matrix
 from opsbench.export import export_store_to_json, import_json_to_store
 from opsbench.failure_injection import (
     FailureInjection,
@@ -47,6 +48,8 @@ from opsbench.web import render_dashboard_html
 
 __version__ = "0.5.8"
 __all__ = [
+    "ChaosCaseResult",
+    "ChaosMatrixResult",
     "FixtureResponseAdapter",
     "FailureInjection",
     "FailureInjectingAdapter",
@@ -86,6 +89,7 @@ __all__ = [
     "parse_response_text",
     "render_dashboard_html",
     "render_prompt",
+    "run_chaos_matrix",
     "run_recovery_drill",
     "run_recovery_drill_series",
     "run_recovery_schedule_tick",
