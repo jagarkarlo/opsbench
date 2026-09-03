@@ -44,6 +44,12 @@ The following portable archive foundation is available as a bounded follow-up:
 - Explicit backup, restore, and archive validation commands.
 - Restore conflict checks that prevent duplicate or overwritten result run IDs.
 
+The following performance foundation is available as a bounded follow-up:
+
+- Dependency-free per-run and suite wall-time/throughput measurements.
+- Portable JSON performance baselines and threshold-based regression detection
+  for local and CI workflows.
+
 Deferred to a later milestone:
 
 - Load, chaos, and disaster-recovery exercises, including scheduled backup and

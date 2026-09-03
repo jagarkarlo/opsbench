@@ -10,6 +10,12 @@ from opsbench.export import export_store_to_json, import_json_to_store
 from opsbench.logging import JSONLogger, format_json_log_entry
 from opsbench.metrics import generate_prometheus_metrics
 from opsbench.performance import PerformanceMetrics, PerformanceProfiler
+from opsbench.performance_baseline import (
+    PerformanceBaseline,
+    PerformanceComparison,
+    load_performance_baseline,
+    write_performance_baseline,
+)
 from opsbench.performance_runner import (
     ProfiledRunExecution,
     ProfiledSuiteExecution,
@@ -25,7 +31,7 @@ from opsbench.tracing import TraceSpan, TraceTracer
 from opsbench.validator import lint_scenario
 from opsbench.web import render_dashboard_html
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 __all__ = [
     "FixtureResponseAdapter",
     "GalleryFixtureResponseAdapter",
@@ -34,6 +40,8 @@ __all__ = [
     "OpenAIResponseAdapter",
     "PerformanceMetrics",
     "PerformanceProfiler",
+    "PerformanceBaseline",
+    "PerformanceComparison",
     "ProfiledRunExecution",
     "ProfiledSuiteExecution",
     "RunQuery",
@@ -50,7 +58,9 @@ __all__ = [
     "generate_prometheus_metrics",
     "import_json_to_store",
     "lint_scenario",
+    "load_performance_baseline",
     "parse_response_text",
     "render_dashboard_html",
     "render_prompt",
+    "write_performance_baseline",
 ]

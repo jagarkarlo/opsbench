@@ -21,6 +21,12 @@ from opsbench.comparisons import (
 from opsbench.export import export_store_to_json, import_json_to_store
 from opsbench.backup import export_store, verify_archive, restore_archive
 from opsbench.prompts import render_prompt
+from opsbench.performance_baseline import (
+    PerformanceBaseline,
+    PerformanceComparison,
+    load_performance_baseline,
+    write_performance_baseline,
+)
 from opsbench.performance_runner import execute_run_profiled, execute_suite_profiled
 from opsbench.responses import load_response
 from opsbench.runner import execute_run, execute_suite
@@ -53,6 +59,25 @@ def write_performance_report(path: str | None, payload: dict[str, object]) -> No
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def add_performance_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add opt-in performance reporting and baseline controls to a run command."""
+    parser.add_argument("--performance-output", help="optional performance report JSON path")
+    parser.add_argument(
+        "--write-performance-baseline",
+        help="write the current performance measurement as a new baseline JSON file",
+    )
+    parser.add_argument(
+        "--compare-performance-baseline",
+        help="compare the current performance measurement with a baseline JSON file",
+    )
+    parser.add_argument(
+        "--regression-threshold-percent",
+        type=float,
+        default=10.0,
+        help="maximum wall-time increase before returning exit code 2 (default: 10)",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -104,7 +129,7 @@ def build_parser() -> argparse.ArgumentParser:
     fixture_parser.add_argument("--run-id", required=True)
     fixture_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
     fixture_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
-    fixture_parser.add_argument("--performance-output", help="optional performance report JSON path")
+    add_performance_arguments(fixture_parser)
     human_parser = run_subparsers.add_parser(
         "human", help="execute one locally supplied human response"
     )
@@ -114,7 +139,7 @@ def build_parser() -> argparse.ArgumentParser:
     human_parser.add_argument("--run-id", required=True)
     human_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
     human_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
-    human_parser.add_argument("--performance-output", help="optional performance report JSON path")
+    add_performance_arguments(human_parser)
     openai_parser = run_subparsers.add_parser(
         "openai", help="execute a run against an OpenAI-compatible endpoint"
     )
@@ -130,7 +155,7 @@ def build_parser() -> argparse.ArgumentParser:
     openai_parser.add_argument("--run-id", required=True)
     openai_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
     openai_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
-    openai_parser.add_argument("--performance-output", help="optional performance report JSON path")
+    add_performance_arguments(openai_parser)
     suite_parser = run_subparsers.add_parser(
         "suite", help="execute a response adapter across an entire scenario gallery"
     )
@@ -140,7 +165,7 @@ def build_parser() -> argparse.ArgumentParser:
     suite_parser.add_argument("--max-workers", type=int, default=1, help="concurrency for gallery runs")
     suite_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
     suite_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
-    suite_parser.add_argument("--performance-output", help="optional performance report JSON path")
+    add_performance_arguments(suite_parser)
 
     compare_parser = subparsers.add_parser("compare", help="compare local benchmark results")
     compare_subparsers = compare_parser.add_subparsers(dest="compare_command", required=True)
@@ -317,7 +342,14 @@ def main(argv: list[str] | None = None) -> int:
                 temperature=parsed.temperature,
                 timeout=parsed.timeout,
             )
-        if parsed.performance_output:
+        performance_requested = any(
+            (
+                parsed.performance_output,
+                parsed.write_performance_baseline,
+                parsed.compare_performance_baseline,
+            )
+        )
+        if performance_requested:
             profiled = execute_run_profiled(
                 run_id=parsed.run_id,
                 pack=pack,
@@ -327,7 +359,8 @@ def main(argv: list[str] | None = None) -> int:
                 tracer=tracer,
             )
             result = profiled.run_result
-            performance_payload = {"metrics": profiled.metrics.to_dict()}
+            current_metrics = profiled.metrics
+            performance_payload = {"metrics": current_metrics.to_dict()}
         else:
             result = execute_run(
                 run_id=parsed.run_id,
@@ -337,12 +370,27 @@ def main(argv: list[str] | None = None) -> int:
                 metadata=parse_metadata(parsed.metadata),
                 tracer=tracer,
             )
+            current_metrics = None
             performance_payload = None
         bundle = ResultBundle(result.run, result.report)
         output_path = Path(parsed.output_path)
         write_result_bundle(output_path, bundle)
         if tracer is not None:
             tracer.export_otlp(parsed.otlp_endpoint)
+        regression_detected = False
+        if current_metrics is not None and parsed.write_performance_baseline:
+            write_performance_baseline(
+                Path(parsed.write_performance_baseline),
+                PerformanceBaseline.from_metrics(current_metrics),
+            )
+        if current_metrics is not None and parsed.compare_performance_baseline:
+            comparison = PerformanceComparison(
+                load_performance_baseline(Path(parsed.compare_performance_baseline)),
+                current_metrics,
+                parsed.regression_threshold_percent,
+            )
+            performance_payload["comparison"] = comparison.to_dict()
+            regression_detected = comparison.is_regression()
         if performance_payload is not None:
             write_performance_report(parsed.performance_output, performance_payload)
         print(
@@ -356,6 +404,8 @@ def main(argv: list[str] | None = None) -> int:
                 sort_keys=True,
             )
         )
+        if regression_detected:
+            return 2
     if parsed.command == "run" and parsed.run_command == "suite":
         gallery_path = Path(parsed.gallery_path)
         output_dir = Path(parsed.output_dir)
@@ -369,7 +419,14 @@ def main(argv: list[str] | None = None) -> int:
                 response = load_response(response_path)
                 responses[response.scenario_id] = response
         adapter = GalleryFixtureResponseAdapter(responses)
-        if parsed.performance_output:
+        performance_requested = any(
+            (
+                parsed.performance_output,
+                parsed.write_performance_baseline,
+                parsed.compare_performance_baseline,
+            )
+        )
+        if performance_requested:
             profiled_suite = execute_suite_profiled(
                 gallery_directory=gallery_path,
                 output_directory=output_dir,
@@ -380,13 +437,11 @@ def main(argv: list[str] | None = None) -> int:
                 tracer=tracer,
             )
             bundles = profiled_suite.bundles
-            write_performance_report(
-                parsed.performance_output,
-                {
-                    "aggregate": profiled_suite.aggregate_metrics().to_dict(),
-                    "metrics": [metric.to_dict() for metric in profiled_suite.individual_metrics],
-                },
-            )
+            current_metrics = profiled_suite.aggregate_metrics()
+            performance_payload = {
+                "aggregate": current_metrics.to_dict(),
+                "metrics": [metric.to_dict() for metric in profiled_suite.individual_metrics],
+            }
         else:
             bundles = execute_suite(
                 gallery_directory=gallery_path,
@@ -399,6 +454,22 @@ def main(argv: list[str] | None = None) -> int:
             )
         if tracer is not None:
             tracer.export_otlp(parsed.otlp_endpoint)
+        regression_detected = False
+        if performance_requested and parsed.write_performance_baseline:
+            write_performance_baseline(
+                Path(parsed.write_performance_baseline),
+                PerformanceBaseline.from_metrics(current_metrics),
+            )
+        if performance_requested and parsed.compare_performance_baseline:
+            comparison = PerformanceComparison(
+                load_performance_baseline(Path(parsed.compare_performance_baseline)),
+                current_metrics,
+                parsed.regression_threshold_percent,
+            )
+            performance_payload["comparison"] = comparison.to_dict()
+            regression_detected = comparison.is_regression()
+        if performance_requested:
+            write_performance_report(parsed.performance_output, performance_payload)
         print(
             json.dumps(
                 {
@@ -410,6 +481,8 @@ def main(argv: list[str] | None = None) -> int:
                 sort_keys=True,
             )
         )
+        if regression_detected:
+            return 2
     if parsed.command == "compare" and parsed.compare_command == "results":
         bundles = tuple(load_result_bundle(Path(path)) for path in parsed.bundle_paths)
         if parsed.format == "markdown":

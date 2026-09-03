@@ -3,6 +3,16 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
+## v0.5.2 — 2026-09-03 — Phase 4: Performance baselines
+
+- Added dependency-free execution metrics for individual benchmark runs and
+  gallery suites, including duration and throughput measurements.
+- Added opt-in JSON performance reports through `--performance-output`.
+- Added portable JSON baseline creation and comparison through
+  `--write-performance-baseline` and `--compare-performance-baseline`.
+- Added threshold-based regression detection that exits with status `2` for
+  CI-friendly failure signaling while preserving the result JSON output.
+
 ## v0.5.1 — 2026-09-02 — Phase 4: Operations follow-up
 
 - Added opt-in OTLP/HTTP trace export for `opsbench run` and `opsbench run

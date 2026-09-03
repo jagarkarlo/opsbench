@@ -336,6 +336,66 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(command_result["run"]["runner_kind"], "human")
         self.assertEqual(bundle["run"]["model_name"], "Karlo")
 
+    def test_writes_and_compares_performance_baselines(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            scenario = directory / "scenario"
+            scenario.mkdir()
+            (scenario / "scenario.json").write_text(
+                '''{"manifest":{"schema_version":"1.0","scenario_id":"scenario-001","title":"Fictional scenario","category":"kubernetes"},"evidence":[{"artifact_id":"logs.txt","media_type":"text/plain","relative_path":"logs.txt"}]}''',
+                encoding="utf-8",
+            )
+            (scenario / "logs.txt").write_text("synthetic logs\n", encoding="utf-8")
+            (scenario / "evaluator.json").write_text(
+                '''{"scenario_id":"scenario-001","diagnosis_rules":[{"rule_id":"synthetic","keyword":"synthetic","weight":2}],"permitted_actions":["inspect logs"]}''',
+                encoding="utf-8",
+            )
+            response_path = directory / "response.json"
+            response_path.write_text(
+                '''{"scenario_id":"scenario-001","analysis":"Synthetic analysis.","cited_artifact_ids":["logs.txt"],"proposed_actions":["inspect logs"],"model_name":"fixture-model"}''',
+                encoding="utf-8",
+            )
+            baseline_path = directory / "baseline.json"
+            first_exit_code = main(
+                [
+                    "run",
+                    "fixture",
+                    str(scenario),
+                    str(response_path),
+                    str(directory / "first.json"),
+                    "--run-id",
+                    "first-run",
+                    "--write-performance-baseline",
+                    str(baseline_path),
+                ]
+            )
+            self.assertEqual(first_exit_code, 0)
+            self.assertTrue(baseline_path.is_file())
+
+            regression_baseline_path = directory / "regression-baseline.json"
+            regression_baseline_path.write_text(
+                '''{"created_at_utc":"2026-09-03T12:00:00+00:00","items_processed":1,"name":"run-scenario-001","wall_time_seconds":0.000000000001}''',
+                encoding="utf-8",
+            )
+            output = io.StringIO()
+            with redirect_stdout(output):
+                second_exit_code = main(
+                    [
+                        "run",
+                        "fixture",
+                        str(scenario),
+                        str(response_path),
+                        str(directory / "second.json"),
+                        "--run-id",
+                        "second-run",
+                        "--compare-performance-baseline",
+                        str(regression_baseline_path),
+                    ]
+                )
+
+        self.assertEqual(second_exit_code, 2)
+        self.assertIn('"run_id": "second-run"', output.getvalue())
+
     def test_executes_suite_run_and_writes_result_bundles(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             directory = Path(temporary_directory)

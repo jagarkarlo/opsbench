@@ -45,7 +45,7 @@ OpsBench begins as a local, dependency-light Python package. Provider adapters,
 distributed execution, persistence, observability, and deployment are introduced
 behind stable interfaces in later milestones.
 
-## Current Capability (v0.5.0)
+## Current Capability (v0.5.2)
 
 OpsBench runs entirely locally; no model provider is required to explore it.
 It includes:
@@ -62,6 +62,8 @@ It includes:
   a `/metrics` Prometheus endpoint, and a web console dashboard.
 - Optional bearer-token API authentication and an `opsbench doctor` command
   for validating a scenario gallery and result database.
+- Opt-in local performance reports, portable baselines, and CI-friendly
+  wall-time regression detection for benchmark runs and suites.
 - Reference Docker/Compose, Kubernetes, Helm, Argo CD, and Terraform
   deployment assets, hardened to run as non-root with a default-deny
   `NetworkPolicy`.
@@ -136,6 +138,27 @@ opsbench run fixture \
   --run-id latency-run-001 \
   --metadata seed=42 \
   --metadata temperature=0
+```
+
+Write a performance baseline from a representative local run, then compare a
+later run against it. A wall-time regression above the default 10 percent
+threshold returns exit status `2` after printing the normal result JSON:
+
+```bash
+opsbench run fixture \
+  scenarios/observability-latency-001 \
+  scenarios/observability-latency-001/responses/reference-response.json \
+  results/latency-baseline-run.json \
+  --run-id latency-baseline-run \
+  --write-performance-baseline results/latency-baseline.json
+
+opsbench run fixture \
+  scenarios/observability-latency-001 \
+  scenarios/observability-latency-001/responses/reference-response.json \
+  results/latency-comparison-run.json \
+  --run-id latency-comparison-run \
+  --compare-performance-baseline results/latency-baseline.json \
+  --performance-output results/latency-performance.json
 ```
 
 Use repeatable `--metadata key=value` values to record non-secret experiment
