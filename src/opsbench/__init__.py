@@ -45,7 +45,7 @@ from opsbench.tracing import TraceSpan, TraceTracer
 from opsbench.validator import lint_scenario
 from opsbench.web import render_dashboard_html
 
-__version__ = "0.5.7"
+__version__ = "0.5.8"
 __all__ = [
     "FixtureResponseAdapter",
     "FailureInjection",

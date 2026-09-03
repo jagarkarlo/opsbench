@@ -5,7 +5,7 @@ import opsbench
 
 class PackageTests(unittest.TestCase):
     def test_exposes_version(self) -> None:
-        self.assertEqual(opsbench.__version__, "0.5.7")
+        self.assertEqual(opsbench.__version__, "0.5.8")
 
 
 if __name__ == "__main__":
