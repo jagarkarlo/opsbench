@@ -567,6 +567,79 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(result["retained_attempts"], 1)
         self.assertEqual(result["removed_attempts"], 1)
 
+    def test_runs_schedule_tick_via_store_cli(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            database_path = directory / "results.db"
+            bundle_path = directory / "bundle.json"
+            run = BenchmarkRun(
+                run_id="schedule-run-001",
+                runner_kind="fixture",
+                started_at="2026-09-03T12:00:00Z",
+                scenario_pack_hash="a" * 64,
+                evaluator_profile_hash="b" * 64,
+                response_hash="c" * 64,
+            )
+            report = ScoreReport(
+                scenario_id="scenario-001",
+                response_hash="c" * 64,
+                diagnosis=Score.GOOD,
+                evidence=Score.FULL,
+                actions=Score.LOW,
+                safety=Score.FULL,
+                explanation="synthetic scheduled recovery result",
+            )
+            write_result_bundle(bundle_path, ResultBundle(run, report))
+            with redirect_stdout(io.StringIO()):
+                main(["store", "index", str(database_path), str(bundle_path)])
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "store",
+                        "schedule-tick",
+                        str(database_path),
+                        str(directory / "drills"),
+                        str(directory / "history.jsonl"),
+                        "--run-id",
+                        "tick-001",
+                        "--alert-path",
+                        str(directory / "alert.json"),
+                    ]
+                )
+
+        result = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(result["status"], "verified")
+        self.assertEqual(result["run_id"], "tick-001")
+        self.assertFalse((directory / "alert.json").exists())
+
+    def test_schedule_tick_cli_returns_three_on_recorded_failure(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            output = io.StringIO()
+            with redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "store",
+                        "schedule-tick",
+                        str(directory / "missing.db"),
+                        str(directory / "drills"),
+                        str(directory / "history.jsonl"),
+                        "--run-id",
+                        "tick-failed",
+                        "--alert-path",
+                        str(directory / "alert.json"),
+                    ]
+                )
+
+            alert_exists = (directory / "alert.json").is_file()
+        result = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 3)
+        self.assertEqual(result["status"], "failed")
+        self.assertTrue(alert_exists)
+
     def test_executes_suite_run_and_writes_result_bundles(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             directory = Path(temporary_directory)
