@@ -3,6 +3,17 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
+## v0.5.9 — 2026-09-03 — Phase 4: Operations complete
+
+- Added bounded local load and synthetic chaos matrices through
+  `run_chaos_matrix` and `opsbench run chaos-matrix`.
+- Added deterministic iteration/mode ordering, isolated case outputs, and
+  explicit failure accounting with exit status `3`.
+- Completed the Phase 4 operations follow-ups without external infrastructure
+  actions or a resident scheduler daemon.
+
+Phase 5 begins at `0.6.0`.
+
 ## v0.5.8 — 2026-09-03 — Phase 4: Scheduled recovery verification
 
 - Added `run_recovery_schedule_tick` for one cron/systemd-friendly recovery

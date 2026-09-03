@@ -77,11 +77,13 @@ The first safe failure-injection slice is available as a bounded follow-up:
   expected injected failures in deterministic gallery order.
 - No destructive infrastructure actions and no execution of proposed actions.
 
-Deferred to a later milestone:
-
-- Load and broader chaos exercises beyond deterministic local injection.
+Phase 4 is complete through v0.5.9. Its bounded operational exercises remain
+local and synthetic: no benchmark command executes proposed infrastructure
+actions or requires a resident daemon.
 
 ## Phase 5: Ecosystem
+
+Phase 5 starts at v0.6.0.
 
 - Scenario authoring SDK and contribution checks.
 - Reliability Replay and ColdRoute scenario adapters.

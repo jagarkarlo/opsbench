@@ -200,6 +200,21 @@ opsbench store schedule-tick results/opsbench.db results/scheduled-drills \
 The scheduler integration is intentionally invocation-based; OpsBench does not
 run a background daemon or modify infrastructure.
 
+Run a bounded local load and synthetic chaos matrix across selected failure
+modes. Each case is isolated by iteration and mode; a matrix containing
+injected failures returns exit status `3`:
+
+```bash
+opsbench run chaos-matrix scenarios results/chaos-matrix \
+  --iterations 3 \
+  --mode timeout \
+  --mode adapter_exception \
+  --max-workers 2
+```
+
+This exercises fixture adapters only. It does not call external providers or
+execute proposed remediation actions.
+
 The first failure-injection foundation is available as a Python API for local
 tests. It can inject `timeout`, `malformed_response`, `missing_evidence`, or
 `adapter_exception` failures into selected scenarios without executing any
