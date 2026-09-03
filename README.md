@@ -170,6 +170,18 @@ archive and checks every restored bundle hash against the source database:
 opsbench store drill results/opsbench.db results/backup.json results/restored.db
 ```
 
+Run a repeated local recovery series and retain only the newest verified
+attempt artifacts:
+
+```bash
+opsbench store drill-series results/opsbench.db results/recovery-drills \
+  --attempts 5 \
+  --retention 3
+```
+
+Each attempt uses a fresh numbered directory such as `attempt-0005`. The JSON
+result reports all verified attempts and the number removed by retention.
+
 The first failure-injection foundation is available as a Python API for local
 tests. It can inject `timeout`, `malformed_response`, `missing_evidence`, or
 `adapter_exception` failures into selected scenarios without executing any

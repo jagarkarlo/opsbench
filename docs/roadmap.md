@@ -55,6 +55,12 @@ The following recovery exercise is available as a bounded follow-up:
 - `opsbench store drill` exports, verifies, restores, and hash-compares an
   indexed local result store against a fresh SQLite recovery target.
 
+The following repeated recovery exercise is available as a bounded follow-up:
+
+- Numbered local drill series with configurable attempt count.
+- Retention cleanup that keeps the newest verified attempt artifacts.
+- JSON reporting for verified, retained, and removed attempts.
+
 The first safe failure-injection slice is available as a bounded follow-up:
 
 - Deterministic synthetic `timeout`, `malformed_response`,
@@ -67,8 +73,8 @@ The first safe failure-injection slice is available as a bounded follow-up:
 Deferred to a later milestone:
 
 - Partial-suite performance aggregation and reporting for injected failures.
-- Load, chaos, and disaster-recovery exercises, including scheduled backup and
-  recovery drills beyond the local archive foundation.
+- Scheduled recovery execution, failure history, and alert integrations.
+- Load and broader chaos exercises beyond deterministic local injection.
 
 ## Phase 5: Ecosystem
 

@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
+## v0.5.6 — 2026-09-03 — Phase 4: Repeated recovery drills
+
+- Added `run_recovery_drill_series` for repeated verified local backup and
+  restore exercises with numbered attempt directories.
+- Added bounded retention cleanup that keeps only the newest requested number
+  of verified attempts and reports removed attempts.
+- Added `opsbench store drill-series` with configurable `--attempts` and
+  `--retention` controls.
+
 ## v0.5.5 — 2026-09-03 — Phase 4: Resilient suite failure reporting
 
 - Added `execute_suite_resilient`, which preserves successful immutable result
