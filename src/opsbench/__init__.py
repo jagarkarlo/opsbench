@@ -31,7 +31,7 @@ from opsbench.performance_runner import (
 from opsbench.prompts import render_prompt
 from opsbench.responses import parse_response_text
 from opsbench.recovery import RecoveryDrillResult, run_recovery_drill
-from opsbench.runner import execute_run, execute_suite
+from opsbench.runner import SuiteExecution, SuiteFailure, execute_run, execute_suite, execute_suite_resilient
 from opsbench.server import create_server
 from opsbench.store import RunQuery, SQLiteResultStore
 from opsbench.tracing import TraceSpan, TraceTracer
@@ -58,12 +58,15 @@ __all__ = [
     "RunQuery",
     "RecoveryDrillResult",
     "SQLiteResultStore",
+    "SuiteExecution",
+    "SuiteFailure",
     "TraceSpan",
     "TraceTracer",
     "create_server",
     "execute_run",
     "execute_run_profiled",
     "execute_suite",
+    "execute_suite_resilient",
     "execute_suite_profiled",
     "export_store_to_json",
     "format_json_log_entry",

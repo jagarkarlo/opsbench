@@ -4,10 +4,23 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from opsbench.adapters import FixtureResponseAdapter, GalleryFixtureResponseAdapter
+from opsbench.failure_injection import (
+    FailureInjection,
+    FailureInjectingAdapter,
+    FailureMode,
+    InjectedFailureError,
+)
 from opsbench.responses import BenchmarkResponse
-from opsbench.runner import execute_run, execute_suite
+from opsbench.runner import (
+    SuiteExecution,
+    SuiteFailure,
+    execute_run,
+    execute_suite,
+    execute_suite_resilient,
+)
+from opsbench.runs import BenchmarkRun, ResultBundle
 from opsbench.scenarios import EvidenceArtifact, ScenarioManifest, ScenarioPack
-from opsbench.scoring import EvaluatorProfile, KeywordRule
+from opsbench.scoring import EvaluatorProfile, KeywordRule, evaluate_response
 from opsbench.tracing import TraceTracer
 
 
@@ -61,6 +74,30 @@ class BenchmarkRunnerTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "profile scenario_id must match"):
             execute_run(run_id="fixture-run-001", pack=self.build_pack(), profile=profile, adapter=adapter)
+
+    def test_suite_execution_counts_completed_and_injected_failure_scenarios(self) -> None:
+        response = BenchmarkResponse("scenario-001", "Synthetic analysis.")
+        run = BenchmarkRun(
+            run_id="suite-scenario-001",
+            runner_kind="fixture",
+            started_at="2026-09-03T12:00:00+00:00",
+            scenario_pack_hash="a" * 64,
+            evaluator_profile_hash="b" * 64,
+            response_hash=response.content_hash(),
+        )
+        bundle = ResultBundle(
+            run,
+            evaluate_response(self.build_pack(), self.build_profile(), response),
+        )
+        failure = SuiteFailure(
+            "suite-scenario-002",
+            InjectedFailureError(FailureMode.TIMEOUT, "scenario-002"),
+        )
+
+        execution = SuiteExecution((bundle,), (failure,))
+
+        self.assertEqual(execution.scenario_count, 2)
+        self.assertEqual(execution.failures[0].to_dict()["failure"]["mode"], "timeout")
 
     def test_executes_suite_across_gallery_directory(self) -> None:
         with TemporaryDirectory() as temporary_directory:
@@ -128,6 +165,48 @@ class BenchmarkRunnerTests(unittest.TestCase):
             self.assertEqual(len(bundles), 2)
             self.assertEqual(bundles[0].run.run_id, "parallel-suite-scenario-001")
             self.assertEqual(bundles[1].run.run_id, "parallel-suite-scenario-002")
+
+    def test_resilient_suite_preserves_successes_and_records_injected_failures(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            gallery = Path(temporary_directory) / "scenarios"
+            output_dir = Path(temporary_directory) / "results"
+            for name, scenario_id in (("alpha", "scenario-001"), ("beta", "scenario-002")):
+                scenario = gallery / name
+                scenario.mkdir(parents=True)
+                (scenario / "scenario.json").write_text(
+                    f'''{{"manifest":{{"schema_version":"1.0","scenario_id":"{scenario_id}","title":"Fictional scenario","category":"kubernetes"}},"evidence":[{{"artifact_id":"logs.txt","media_type":"text/plain","relative_path":"logs.txt"}}]}}''',
+                    encoding="utf-8",
+                )
+                (scenario / "logs.txt").write_text("synthetic logs\n", encoding="utf-8")
+                (scenario / "evaluator.json").write_text(
+                    f'''{{"scenario_id":"{scenario_id}","diagnosis_rules":[{{"rule_id":"synthetic","keyword":"synthetic","weight":2}}]}}''',
+                    encoding="utf-8",
+                )
+            adapter = FailureInjectingAdapter(
+                GalleryFixtureResponseAdapter(
+                    {
+                        "scenario-001": BenchmarkResponse("scenario-001", "Synthetic analysis."),
+                        "scenario-002": BenchmarkResponse("scenario-002", "Synthetic analysis."),
+                    }
+                ),
+                FailureInjection(FailureMode.TIMEOUT, scenario_ids=("scenario-002",)),
+            )
+
+            execution = execute_suite_resilient(
+                gallery_directory=gallery,
+                output_directory=output_dir,
+                adapter=adapter,
+                run_prefix="resilient-suite",
+                started_at=datetime(2026, 9, 3, 12, 0, tzinfo=timezone.utc),
+                max_workers=2,
+            )
+
+            self.assertEqual(execution.scenario_count, 2)
+            self.assertEqual([bundle.report.scenario_id for bundle in execution.bundles], ["scenario-001"])
+            self.assertEqual(execution.failures[0].run_id, "resilient-suite-scenario-002")
+            self.assertEqual(execution.failures[0].failure.mode, FailureMode.TIMEOUT)
+            self.assertTrue((output_dir / "resilient-suite-scenario-001.json").is_file())
+            self.assertFalse((output_dir / "resilient-suite-scenario-002.json").exists())
 
     def test_execute_run_records_a_trace_span_when_tracer_is_provided(self) -> None:
         tracer = TraceTracer("opsbench-test")
