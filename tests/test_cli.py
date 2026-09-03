@@ -663,6 +663,54 @@ class CliParserTests(unittest.TestCase):
         self.assertTrue(successful_bundle_exists)
         self.assertFalse(failed_bundle_exists)
 
+    def test_reports_partial_suite_performance_with_injected_failure(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            gallery = directory / "scenarios"
+            for name, scenario_id in (("alpha", "scenario-001"), ("beta", "scenario-002")):
+                scenario = gallery / name
+                responses = scenario / "responses"
+                responses.mkdir(parents=True)
+                (scenario / "scenario.json").write_text(
+                    f'''{{"manifest":{{"schema_version":"1.0","scenario_id":"{scenario_id}","title":"Fictional scenario","category":"kubernetes"}},"evidence":[{{"artifact_id":"logs.txt","media_type":"text/plain","relative_path":"logs.txt"}}]}}''',
+                    encoding="utf-8",
+                )
+                (scenario / "logs.txt").write_text("synthetic logs\n", encoding="utf-8")
+                (scenario / "evaluator.json").write_text(
+                    f'''{{"scenario_id":"{scenario_id}","diagnosis_rules":[{{"rule_id":"synthetic","keyword":"synthetic","weight":1}}]}}''',
+                    encoding="utf-8",
+                )
+                (responses / "reference-response.json").write_text(
+                    f'''{{"scenario_id":"{scenario_id}","analysis":"Synthetic analysis."}}''',
+                    encoding="utf-8",
+                )
+            output = io.StringIO()
+            with redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "run",
+                        "suite",
+                        str(gallery),
+                        str(directory / "results"),
+                        "--inject-failure",
+                        "timeout",
+                        "--inject-failure-scenario",
+                        "scenario-002",
+                        "--performance-output",
+                        str(directory / "performance.json"),
+                    ]
+                )
+
+            result = json.loads(output.getvalue())
+            performance = json.loads((directory / "performance.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(exit_code, 3)
+        self.assertEqual(result["status"], "completed_with_injected_failures")
+        self.assertEqual(performance["completed_count"], 1)
+        self.assertEqual(performance["failed_count"], 1)
+        self.assertEqual(performance["scenario_count"], 2)
+        self.assertEqual(len(performance["metrics"]), 1)
+
     def test_lints_scenario_via_cli(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             scenario = Path(temporary_directory) / "kubernetes-image-reference-001"
