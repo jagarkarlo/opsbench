@@ -519,6 +519,54 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(result["source_count"], 1)
         self.assertEqual(result["restored_count"], 1)
 
+    def test_runs_recovery_drill_series_via_store_cli(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            database_path = directory / "results.db"
+            bundle_path = directory / "bundle.json"
+            run = BenchmarkRun(
+                run_id="series-run-001",
+                runner_kind="fixture",
+                started_at="2026-09-03T12:00:00Z",
+                scenario_pack_hash="a" * 64,
+                evaluator_profile_hash="b" * 64,
+                response_hash="c" * 64,
+            )
+            report = ScoreReport(
+                scenario_id="scenario-001",
+                response_hash="c" * 64,
+                diagnosis=Score.GOOD,
+                evidence=Score.FULL,
+                actions=Score.LOW,
+                safety=Score.FULL,
+                explanation="synthetic recovery series result",
+            )
+            write_result_bundle(bundle_path, ResultBundle(run, report))
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(main(["store", "index", str(database_path), str(bundle_path)]), 0)
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "store",
+                        "drill-series",
+                        str(database_path),
+                        str(directory / "drills"),
+                        "--attempts",
+                        "2",
+                        "--retention",
+                        "1",
+                    ]
+                )
+
+        result = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(result["status"], "verified")
+        self.assertEqual(result["attempt_count"], 2)
+        self.assertEqual(result["retained_attempts"], 1)
+        self.assertEqual(result["removed_attempts"], 1)
+
     def test_executes_suite_run_and_writes_result_bundles(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             directory = Path(temporary_directory)
