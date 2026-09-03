@@ -13,6 +13,7 @@ from opsbench.adapters import (
     HumanResponseAdapter,
     OpenAIResponseAdapter,
 )
+from opsbench.chaos import run_chaos_matrix
 from opsbench.comparisons import (
     compare_bundles,
     render_markdown_comparison,
@@ -192,6 +193,20 @@ def build_parser() -> argparse.ArgumentParser:
     suite_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
     add_performance_arguments(suite_parser)
     add_failure_injection_arguments(suite_parser)
+    chaos_parser = run_subparsers.add_parser(
+        "chaos-matrix", help="run a bounded local synthetic load and failure matrix"
+    )
+    chaos_parser.add_argument("gallery_path")
+    chaos_parser.add_argument("output_dir")
+    chaos_parser.add_argument("--iterations", type=int, default=1)
+    chaos_parser.add_argument(
+        "--mode",
+        action="append",
+        choices=[mode.value for mode in FailureMode],
+        help="synthetic failure mode to include; repeatable",
+    )
+    chaos_parser.add_argument("--scenario-id", action="append", default=[])
+    chaos_parser.add_argument("--max-workers", type=int, default=1)
 
     compare_parser = subparsers.add_parser("compare", help="compare local benchmark results")
     compare_subparsers = compare_parser.add_subparsers(dest="compare_command", required=True)
@@ -591,6 +606,19 @@ def main(argv: list[str] | None = None) -> int:
         if regression_detected:
             return 2
         if injected_failures:
+            return 3
+    if parsed.command == "run" and parsed.run_command == "chaos-matrix":
+        modes = tuple(FailureMode(mode) for mode in (parsed.mode or [mode.value for mode in FailureMode]))
+        result = run_chaos_matrix(
+            Path(parsed.gallery_path),
+            Path(parsed.output_dir),
+            iterations=parsed.iterations,
+            modes=modes,
+            scenario_ids=tuple(parsed.scenario_id),
+            max_workers=parsed.max_workers,
+        )
+        print(json.dumps(result.to_dict(), sort_keys=True))
+        if result.failure_count:
             return 3
     if parsed.command == "compare" and parsed.compare_command == "results":
         bundles = tuple(load_result_bundle(Path(path)) for path in parsed.bundle_paths)
