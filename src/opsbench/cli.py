@@ -36,7 +36,7 @@ from opsbench.performance_baseline import (
 from opsbench.performance_runner import execute_run_profiled, execute_suite_profiled
 from opsbench.responses import load_response
 from opsbench.recovery import run_recovery_drill
-from opsbench.runner import execute_run, execute_suite
+from opsbench.runner import execute_run, execute_suite, execute_suite_resilient
 from opsbench.runs import ResultBundle, load_result_bundle, write_result_bundle
 from opsbench.scenarios import load_gallery, load_scenario_pack
 from opsbench.scoring import evaluate_response, load_evaluator_profile
@@ -191,6 +191,7 @@ def build_parser() -> argparse.ArgumentParser:
     suite_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
     suite_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
     add_performance_arguments(suite_parser)
+    add_failure_injection_arguments(suite_parser)
 
     compare_parser = subparsers.add_parser("compare", help="compare local benchmark results")
     compare_subparsers = compare_parser.add_subparsers(dest="compare_command", required=True)
@@ -474,6 +475,14 @@ def main(argv: list[str] | None = None) -> int:
                 response = load_response(response_path)
                 responses[response.scenario_id] = response
         adapter = GalleryFixtureResponseAdapter(responses)
+        if parsed.inject_failure:
+            adapter = FailureInjectingAdapter(
+                adapter,
+                FailureInjection(
+                    FailureMode(parsed.inject_failure),
+                    scenario_ids=tuple(parsed.inject_failure_scenario or ()),
+                ),
+            )
         performance_requested = any(
             (
                 parsed.performance_output,
@@ -481,6 +490,9 @@ def main(argv: list[str] | None = None) -> int:
                 parsed.compare_performance_baseline,
             )
         )
+        if parsed.inject_failure and performance_requested:
+            raise ValueError("suite failure injection cannot be combined with performance reporting")
+        injected_failures = ()
         if performance_requested:
             profiled_suite = execute_suite_profiled(
                 gallery_directory=gallery_path,
@@ -497,6 +509,18 @@ def main(argv: list[str] | None = None) -> int:
                 "aggregate": current_metrics.to_dict(),
                 "metrics": [metric.to_dict() for metric in profiled_suite.individual_metrics],
             }
+        elif parsed.inject_failure:
+            resilient_suite = execute_suite_resilient(
+                gallery_directory=gallery_path,
+                output_directory=output_dir,
+                adapter=adapter,
+                run_prefix=parsed.run_prefix,
+                max_workers=parsed.max_workers,
+                metadata=parse_metadata(parsed.metadata),
+                tracer=tracer,
+            )
+            bundles = resilient_suite.bundles
+            injected_failures = resilient_suite.failures
         else:
             bundles = execute_suite(
                 gallery_directory=gallery_path,
@@ -530,14 +554,22 @@ def main(argv: list[str] | None = None) -> int:
                 {
                     "bundle_count": len(bundles),
                     "bundle_hashes": [bundle.content_hash() for bundle in bundles],
+                    "failures": [failure.to_dict() for failure in injected_failures],
                     "output_dir": str(output_dir),
                     "scenario_ids": [bundle.report.scenario_id for bundle in bundles],
+                    "status": (
+                        "completed_with_injected_failures"
+                        if injected_failures
+                        else "success"
+                    ),
                 },
                 sort_keys=True,
             )
         )
         if regression_detected:
             return 2
+        if injected_failures:
+            return 3
     if parsed.command == "compare" and parsed.compare_command == "results":
         bundles = tuple(load_result_bundle(Path(path)) for path in parsed.bundle_paths)
         if parsed.format == "markdown":
