@@ -87,6 +87,23 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(parsed.run_id, "fixture-run-001")
         self.assertEqual(parsed.output_path, "results/run.json")
 
+    def test_parses_performance_output_option(self) -> None:
+        parsed = build_parser().parse_args(
+            [
+                "run",
+                "fixture",
+                "scenarios/example",
+                "responses/example.json",
+                "results/run.json",
+                "--run-id",
+                "fixture-run-001",
+                "--performance-output",
+                "results/performance.json",
+            ]
+        )
+
+        self.assertEqual(parsed.performance_output, "results/performance.json")
+
     def test_parses_human_run_command(self) -> None:
         parsed = build_parser().parse_args(
             [
@@ -239,6 +256,7 @@ class CliParserTests(unittest.TestCase):
                 encoding="utf-8",
             )
             output_path = directory / "results" / "fixture-run.json"
+            performance_path = directory / "results" / "performance.json"
             output = io.StringIO()
 
             with patch("opsbench.cli.TraceTracer") as tracer_class:
@@ -254,6 +272,8 @@ class CliParserTests(unittest.TestCase):
                             "fixture-run-001",
                             "--otlp-endpoint",
                             "http://collector:4318/v1/traces",
+                            "--performance-output",
+                            str(performance_path),
                         ]
                     )
 
@@ -263,6 +283,7 @@ class CliParserTests(unittest.TestCase):
 
             command_result = json.loads(output.getvalue())
             bundle = json.loads(output_path.read_text(encoding="utf-8"))
+            performance = json.loads(performance_path.read_text(encoding="utf-8"))
 
         self.assertEqual(exit_code, 0)
         self.assertEqual(command_result["run"]["run_id"], "fixture-run-001")
@@ -270,6 +291,8 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(bundle["run"]["model_name"], "fixture-model")
         self.assertEqual(bundle["run"]["metadata"], {})
         self.assertEqual(len(command_result["bundle_hash"]), 64)
+        self.assertEqual(performance["metrics"]["items_processed"], 1)
+        self.assertGreater(performance["metrics"]["wall_time_seconds"], 0)
 
     def test_executes_human_run_and_writes_result_bundle(self) -> None:
         with TemporaryDirectory() as temporary_directory:

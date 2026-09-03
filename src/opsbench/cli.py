@@ -21,6 +21,7 @@ from opsbench.comparisons import (
 from opsbench.export import export_store_to_json, import_json_to_store
 from opsbench.backup import export_store, verify_archive, restore_archive
 from opsbench.prompts import render_prompt
+from opsbench.performance_runner import execute_run_profiled, execute_suite_profiled
 from opsbench.responses import load_response
 from opsbench.runner import execute_run, execute_suite
 from opsbench.runs import ResultBundle, load_result_bundle, write_result_bundle
@@ -43,6 +44,15 @@ def parse_metadata(entries: list[str] | None) -> tuple[tuple[str, str], ...]:
     if len({key for key, _ in metadata}) != len(metadata):
         raise ValueError("metadata keys must be unique")
     return tuple(sorted(metadata))
+
+
+def write_performance_report(path: str | None, payload: dict[str, object]) -> None:
+    """Write an optional performance report to a JSON file."""
+    if path is None:
+        return
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -94,6 +104,7 @@ def build_parser() -> argparse.ArgumentParser:
     fixture_parser.add_argument("--run-id", required=True)
     fixture_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
     fixture_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
+    fixture_parser.add_argument("--performance-output", help="optional performance report JSON path")
     human_parser = run_subparsers.add_parser(
         "human", help="execute one locally supplied human response"
     )
@@ -103,6 +114,7 @@ def build_parser() -> argparse.ArgumentParser:
     human_parser.add_argument("--run-id", required=True)
     human_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
     human_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
+    human_parser.add_argument("--performance-output", help="optional performance report JSON path")
     openai_parser = run_subparsers.add_parser(
         "openai", help="execute a run against an OpenAI-compatible endpoint"
     )
@@ -118,6 +130,7 @@ def build_parser() -> argparse.ArgumentParser:
     openai_parser.add_argument("--run-id", required=True)
     openai_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
     openai_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
+    openai_parser.add_argument("--performance-output", help="optional performance report JSON path")
     suite_parser = run_subparsers.add_parser(
         "suite", help="execute a response adapter across an entire scenario gallery"
     )
@@ -127,6 +140,7 @@ def build_parser() -> argparse.ArgumentParser:
     suite_parser.add_argument("--max-workers", type=int, default=1, help="concurrency for gallery runs")
     suite_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
     suite_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
+    suite_parser.add_argument("--performance-output", help="optional performance report JSON path")
 
     compare_parser = subparsers.add_parser("compare", help="compare local benchmark results")
     compare_subparsers = compare_parser.add_subparsers(dest="compare_command", required=True)
@@ -303,19 +317,34 @@ def main(argv: list[str] | None = None) -> int:
                 temperature=parsed.temperature,
                 timeout=parsed.timeout,
             )
-        result = execute_run(
-            run_id=parsed.run_id,
-            pack=pack,
-            profile=profile,
-            adapter=adapter,
-            metadata=parse_metadata(parsed.metadata),
-            tracer=tracer,
-        )
+        if parsed.performance_output:
+            profiled = execute_run_profiled(
+                run_id=parsed.run_id,
+                pack=pack,
+                profile=profile,
+                adapter=adapter,
+                metadata=parse_metadata(parsed.metadata),
+                tracer=tracer,
+            )
+            result = profiled.run_result
+            performance_payload = {"metrics": profiled.metrics.to_dict()}
+        else:
+            result = execute_run(
+                run_id=parsed.run_id,
+                pack=pack,
+                profile=profile,
+                adapter=adapter,
+                metadata=parse_metadata(parsed.metadata),
+                tracer=tracer,
+            )
+            performance_payload = None
         bundle = ResultBundle(result.run, result.report)
         output_path = Path(parsed.output_path)
         write_result_bundle(output_path, bundle)
         if tracer is not None:
             tracer.export_otlp(parsed.otlp_endpoint)
+        if performance_payload is not None:
+            write_performance_report(parsed.performance_output, performance_payload)
         print(
             json.dumps(
                 {
@@ -340,15 +369,34 @@ def main(argv: list[str] | None = None) -> int:
                 response = load_response(response_path)
                 responses[response.scenario_id] = response
         adapter = GalleryFixtureResponseAdapter(responses)
-        bundles = execute_suite(
-            gallery_directory=gallery_path,
-            output_directory=output_dir,
-            adapter=adapter,
-            run_prefix=parsed.run_prefix,
-            max_workers=parsed.max_workers,
-            metadata=parse_metadata(parsed.metadata),
-            tracer=tracer,
-        )
+        if parsed.performance_output:
+            profiled_suite = execute_suite_profiled(
+                gallery_directory=gallery_path,
+                output_directory=output_dir,
+                adapter=adapter,
+                run_prefix=parsed.run_prefix,
+                max_workers=parsed.max_workers,
+                metadata=parse_metadata(parsed.metadata),
+                tracer=tracer,
+            )
+            bundles = profiled_suite.bundles
+            write_performance_report(
+                parsed.performance_output,
+                {
+                    "aggregate": profiled_suite.aggregate_metrics().to_dict(),
+                    "metrics": [metric.to_dict() for metric in profiled_suite.individual_metrics],
+                },
+            )
+        else:
+            bundles = execute_suite(
+                gallery_directory=gallery_path,
+                output_directory=output_dir,
+                adapter=adapter,
+                run_prefix=parsed.run_prefix,
+                max_workers=parsed.max_workers,
+                metadata=parse_metadata(parsed.metadata),
+                tracer=tracer,
+            )
         if tracer is not None:
             tracer.export_otlp(parsed.otlp_endpoint)
         print(

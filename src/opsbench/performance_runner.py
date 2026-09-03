@@ -7,7 +7,7 @@ from pathlib import Path
 
 from opsbench.adapters import ResponseAdapter
 from opsbench.performance import PerformanceMetrics, PerformanceProfiler
-from opsbench.runner import RunResult, execute_run, execute_suite
+from opsbench.runner import RunResult, execute_run
 from opsbench.runs import ResultBundle
 from opsbench.scenarios import ScenarioPack, load_scenario_pack
 from opsbench.scoring import EvaluatorProfile, load_evaluator_profile
@@ -126,7 +126,9 @@ def execute_suite_profiled(
     metrics: list[PerformanceMetrics] = []
 
     # Execute suite and record individual run metrics
-    def _run_and_measure(dir_path: Path, profile_path: Path) -> tuple[Path, Path, PerformanceMetrics]:
+    def _run_and_measure(
+        dir_path: Path, profile_path: Path
+    ) -> tuple[ResultBundle, PerformanceMetrics]:
         pack = load_scenario_pack(dir_path)
         profile = load_evaluator_profile(profile_path)
         run_id = f"{run_prefix}-{pack.manifest.scenario_id}"
@@ -149,32 +151,17 @@ def execute_suite_profiled(
             items_processed=1,
         )
         recorded_metrics = profiler.recorded_metrics()[0]
-        return (dir_path, profile_path, recorded_metrics)
+        return ResultBundle(run_result.run, run_result.report), recorded_metrics
 
-    # Run scenarios and collect metrics
     from opsbench.runs import write_result_bundle
 
+    bundles: list[ResultBundle] = []
     if max_workers == 1:
         for dir_path, profile_path in scenarios_to_run:
-            dir_path, profile_path, metric = _run_and_measure(dir_path, profile_path)
+            bundle, metric = _run_and_measure(dir_path, profile_path)
             metrics.append(metric)
-
-            # Write result bundle
-            pack = load_scenario_pack(dir_path)
-            profile = load_evaluator_profile(profile_path)
-            run_id = f"{run_prefix}-{pack.manifest.scenario_id}"
-
-            run_result = execute_run(
-                run_id=run_id,
-                pack=pack,
-                profile=profile,
-                adapter=adapter,
-                started_at=started_at,
-                metadata=metadata,
-                tracer=tracer,
-            )
-            bundle = ResultBundle(run_result.run, run_result.report)
-            write_result_bundle(output_directory / f"{run_id}.json", bundle)
+            bundles.append(bundle)
+            write_result_bundle(output_directory / f"{bundle.run.run_id}.json", bundle)
     else:
         from concurrent.futures import ThreadPoolExecutor
 
@@ -184,31 +171,9 @@ def execute_suite_profiled(
                 for dir_path, profile_path in scenarios_to_run
             ]
             for future in futures:
-                dir_path, profile_path, metric = future.result()
+                bundle, metric = future.result()
                 metrics.append(metric)
-
-                # Write result bundle
-                pack = load_scenario_pack(dir_path)
-                profile = load_evaluator_profile(profile_path)
-                run_id = f"{run_prefix}-{pack.manifest.scenario_id}"
-
-                run_result = execute_run(
-                    run_id=run_id,
-                    pack=pack,
-                    profile=profile,
-                    adapter=adapter,
-                    started_at=started_at,
-                    metadata=metadata,
-                    tracer=tracer,
-                )
-                bundle = ResultBundle(run_result.run, run_result.report)
-                write_result_bundle(output_directory / f"{run_id}.json", bundle)
-
-    # Get all bundles from output directory
-    bundles: list[ResultBundle] = []
-    for bundle_file in sorted(output_directory.glob(f"{run_prefix}-*.json")):
-        from opsbench.runs import load_result_bundle
-
-        bundles.append(load_result_bundle(bundle_file))
+                bundles.append(bundle)
+                write_result_bundle(output_directory / f"{bundle.run.run_id}.json", bundle)
 
     return ProfiledSuiteExecution(tuple(bundles), metrics)
