@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
+import json
 from pathlib import Path
 import shutil
 
@@ -67,6 +69,42 @@ class RecoveryDrillSeriesResult:
             "retained_attempts": self.retained_attempts,
             "status": "verified",
         }
+
+
+@dataclass(frozen=True)
+class RecoveryScheduleResult:
+    """Outcome of one externally scheduled recovery-drill invocation."""
+
+    run_id: str
+    status: str
+    history_path: str
+    alert_path: str | None = None
+    series: RecoveryDrillSeriesResult | None = None
+    error: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.run_id, str) or not self.run_id.strip():
+            raise ValueError("run_id must be a non-empty string")
+        if self.status not in {"verified", "failed"}:
+            raise ValueError("status must be verified or failed")
+        if not isinstance(self.history_path, str) or not self.history_path.strip():
+            raise ValueError("history_path must be a non-empty string")
+        if self.status == "verified" and self.series is None:
+            raise ValueError("verified schedule results must include a series")
+        if self.status == "failed" and not self.error:
+            raise ValueError("failed schedule results must include an error")
+
+    def to_dict(self) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "alert_path": self.alert_path,
+            "error": self.error,
+            "history_path": self.history_path,
+            "run_id": self.run_id,
+            "status": self.status,
+        }
+        if self.series is not None:
+            payload["series"] = self.series.to_dict()
+        return payload
 
 
 def run_recovery_drill(
@@ -162,3 +200,63 @@ def run_recovery_drill_series(
         retained_attempts=retention,
         removed_attempts=removed_attempts,
     )
+
+
+def run_recovery_schedule_tick(
+    source_database_path: Path,
+    output_directory: Path,
+    history_path: Path,
+    *,
+    run_id: str | None = None,
+    attempts: int = 1,
+    retention: int | None = None,
+    alert_path: Path | None = None,
+) -> RecoveryScheduleResult:
+    """Run one cron-friendly recovery tick and append a durable outcome record."""
+    for field_name, path in (
+        ("source_database_path", source_database_path),
+        ("output_directory", output_directory),
+        ("history_path", history_path),
+    ):
+        if not isinstance(path, Path):
+            raise ValueError(f"{field_name} must be a Path")
+    if alert_path is not None and not isinstance(alert_path, Path):
+        raise ValueError("alert_path must be a Path or None")
+    if run_id is None:
+        run_id = datetime.now(timezone.utc).strftime("run-%Y%m%dT%H%M%S%fZ")
+    if not isinstance(run_id, str) or not run_id.strip() or Path(run_id).name != run_id:
+        raise ValueError("run_id must be a non-empty filename-safe value")
+
+    run_directory = output_directory / run_id
+    try:
+        series = run_recovery_drill_series(
+            source_database_path,
+            run_directory,
+            attempts=attempts,
+            retention=retention,
+        )
+        result = RecoveryScheduleResult(
+            run_id=run_id,
+            status="verified",
+            history_path=str(history_path),
+            alert_path=str(alert_path) if alert_path is not None else None,
+            series=series,
+        )
+        if alert_path is not None and alert_path.exists():
+            alert_path.unlink()
+    except Exception as error:
+        result = RecoveryScheduleResult(
+            run_id=run_id,
+            status="failed",
+            history_path=str(history_path),
+            alert_path=str(alert_path) if alert_path is not None else None,
+            error=str(error),
+        )
+        if alert_path is not None:
+            alert_path.parent.mkdir(parents=True, exist_ok=True)
+            alert_path.write_text(json.dumps(result.to_dict(), sort_keys=True) + "\n", encoding="utf-8")
+
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    with history_path.open("a", encoding="utf-8") as history_file:
+        history_file.write(json.dumps(result.to_dict(), sort_keys=True) + "\n")
+    return result

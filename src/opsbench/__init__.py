@@ -33,8 +33,10 @@ from opsbench.responses import parse_response_text
 from opsbench.recovery import (
     RecoveryDrillResult,
     RecoveryDrillSeriesResult,
+    RecoveryScheduleResult,
     run_recovery_drill,
     run_recovery_drill_series,
+    run_recovery_schedule_tick,
 )
 from opsbench.runner import SuiteExecution, SuiteFailure, execute_run, execute_suite, execute_suite_resilient
 from opsbench.server import create_server
@@ -63,6 +65,7 @@ __all__ = [
     "RunQuery",
     "RecoveryDrillResult",
     "RecoveryDrillSeriesResult",
+    "RecoveryScheduleResult",
     "SQLiteResultStore",
     "SuiteExecution",
     "SuiteFailure",
@@ -85,5 +88,6 @@ __all__ = [
     "render_prompt",
     "run_recovery_drill",
     "run_recovery_drill_series",
+    "run_recovery_schedule_tick",
     "write_performance_baseline",
 ]
