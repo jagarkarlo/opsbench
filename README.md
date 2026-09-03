@@ -161,6 +161,14 @@ opsbench run fixture \
   --performance-output results/latency-performance.json
 ```
 
+Run a local backup and recovery drill for an indexed result-store database.
+The restored database path must not already exist; the command verifies the
+archive and checks every restored bundle hash against the source database:
+
+```bash
+opsbench store drill results/opsbench.db results/backup.json results/restored.db
+```
+
 Use repeatable `--metadata key=value` values to record non-secret experiment
 configuration such as a seed, temperature, adapter version, or prompt revision.
 Metadata is canonicalized and included in the immutable run identity. Do not

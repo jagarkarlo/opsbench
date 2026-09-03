@@ -29,6 +29,7 @@ from opsbench.performance_baseline import (
 )
 from opsbench.performance_runner import execute_run_profiled, execute_suite_profiled
 from opsbench.responses import load_response
+from opsbench.recovery import run_recovery_drill
 from opsbench.runner import execute_run, execute_suite
 from opsbench.runs import ResultBundle, load_result_bundle, write_result_bundle
 from opsbench.scenarios import load_gallery, load_scenario_pack
@@ -220,6 +221,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     restore_parser.add_argument("archive_path")
     restore_parser.add_argument("database_path")
+
+    drill_parser = store_subparsers.add_parser(
+        "drill", help="verify a local backup and recovery exercise against a fresh database"
+    )
+    drill_parser.add_argument("database_path")
+    drill_parser.add_argument("archive_path")
+    drill_parser.add_argument("restored_database_path")
 
     serve_parser = subparsers.add_parser("serve", help="start the OpsBench HTTP REST API server")
     serve_parser.add_argument("--host", default="127.0.0.1", help="host address to bind (default: 127.0.0.1)")
@@ -588,6 +596,13 @@ def main(argv: list[str] | None = None) -> int:
                 sort_keys=True,
             )
         )
+    if parsed.command == "store" and parsed.store_command == "drill":
+        result = run_recovery_drill(
+            Path(parsed.database_path),
+            Path(parsed.archive_path),
+            Path(parsed.restored_database_path),
+        )
+        print(json.dumps(result.to_dict(), sort_keys=True))
     if parsed.command == "store" and parsed.store_command == "backup":
         db_store = SQLiteResultStore(Path(parsed.database_path))
         try:

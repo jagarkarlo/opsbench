@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
+## v0.5.3 — 2026-09-03 — Phase 4: Recovery drills
+
+- Added `opsbench store drill` to execute a local backup/recovery exercise
+  from a result-store database into a fresh SQLite database.
+- The drill verifies archive integrity, prevents target-database overwrites,
+  restores all bundles, and validates source/restored bundle hashes match.
+
 ## v0.5.2 — 2026-09-03 — Phase 4: Performance baselines
 
 - Added dependency-free execution metrics for individual benchmark runs and

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opsbench"
-version = "0.5.2"
+version = "0.5.3"
 description = "Reproducible safety and reliability benchmark for AI-assisted DevOps"
 readme = "README.md"
 requires-python = ">=3.11"

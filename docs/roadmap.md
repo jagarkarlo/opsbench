@@ -50,6 +50,11 @@ The following performance foundation is available as a bounded follow-up:
 - Portable JSON performance baselines and threshold-based regression detection
   for local and CI workflows.
 
+The following recovery exercise is available as a bounded follow-up:
+
+- `opsbench store drill` exports, verifies, restores, and hash-compares an
+  indexed local result store against a fresh SQLite recovery target.
+
 Deferred to a later milestone:
 
 - Load, chaos, and disaster-recovery exercises, including scheduled backup and

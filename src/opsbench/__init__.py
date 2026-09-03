@@ -24,6 +24,7 @@ from opsbench.performance_runner import (
 )
 from opsbench.prompts import render_prompt
 from opsbench.responses import parse_response_text
+from opsbench.recovery import RecoveryDrillResult, run_recovery_drill
 from opsbench.runner import execute_run, execute_suite
 from opsbench.server import create_server
 from opsbench.store import RunQuery, SQLiteResultStore
@@ -31,7 +32,7 @@ from opsbench.tracing import TraceSpan, TraceTracer
 from opsbench.validator import lint_scenario
 from opsbench.web import render_dashboard_html
 
-__version__ = "0.5.2"
+__version__ = "0.5.3"
 __all__ = [
     "FixtureResponseAdapter",
     "GalleryFixtureResponseAdapter",
@@ -45,6 +46,7 @@ __all__ = [
     "ProfiledRunExecution",
     "ProfiledSuiteExecution",
     "RunQuery",
+    "RecoveryDrillResult",
     "SQLiteResultStore",
     "TraceSpan",
     "TraceTracer",
@@ -62,5 +64,6 @@ __all__ = [
     "parse_response_text",
     "render_dashboard_html",
     "render_prompt",
+    "run_recovery_drill",
     "write_performance_baseline",
 ]
