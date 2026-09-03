@@ -2,7 +2,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from opsbench.recovery import run_recovery_drill, run_recovery_drill_series
+from opsbench.recovery import (
+    run_recovery_drill,
+    run_recovery_drill_series,
+    run_recovery_schedule_tick,
+)
 from opsbench.runs import BenchmarkRun, ResultBundle
 from opsbench.scoring import Score, ScoreReport
 from opsbench.store import SQLiteResultStore
@@ -101,6 +105,53 @@ class RecoveryDrillTests(unittest.TestCase):
                     attempts=1,
                     retention=2,
                 )
+
+    def test_schedule_tick_appends_verified_history(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            source_database = directory / "source.db"
+            source_store = SQLiteResultStore(source_database)
+            source_store.save(build_bundle("run-001"))
+            source_store.close()
+            history_path = directory / "history.jsonl"
+
+            first = run_recovery_schedule_tick(
+                source_database,
+                directory / "drills",
+                history_path,
+                run_id="tick-001",
+            )
+            second = run_recovery_schedule_tick(
+                source_database,
+                directory / "drills",
+                history_path,
+                run_id="tick-002",
+            )
+
+            self.assertEqual(first.status, "verified")
+            self.assertEqual(second.status, "verified")
+            self.assertEqual(len(history_path.read_text(encoding="utf-8").splitlines()), 2)
+            self.assertTrue((directory / "drills" / "tick-001").is_dir())
+            self.assertTrue((directory / "drills" / "tick-002").is_dir())
+
+    def test_schedule_tick_records_failure_and_alert(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            history_path = directory / "history.jsonl"
+            alert_path = directory / "alerts" / "latest.json"
+
+            result = run_recovery_schedule_tick(
+                directory / "missing.db",
+                directory / "drills",
+                history_path,
+                run_id="tick-failed",
+                alert_path=alert_path,
+            )
+
+            self.assertEqual(result.status, "failed")
+            self.assertIn("source database must be a file", result.error or "")
+            self.assertTrue(alert_path.is_file())
+            self.assertEqual(len(history_path.read_text(encoding="utf-8").splitlines()), 1)
 
 
 if __name__ == "__main__":
