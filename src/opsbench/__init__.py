@@ -7,6 +7,12 @@ from opsbench.adapters import (
     OpenAIResponseAdapter,
 )
 from opsbench.export import export_store_to_json, import_json_to_store
+from opsbench.failure_injection import (
+    FailureInjection,
+    FailureInjectingAdapter,
+    FailureMode,
+    InjectedFailureError,
+)
 from opsbench.logging import JSONLogger, format_json_log_entry
 from opsbench.metrics import generate_prometheus_metrics
 from opsbench.performance import PerformanceMetrics, PerformanceProfiler
@@ -35,8 +41,12 @@ from opsbench.web import render_dashboard_html
 __version__ = "0.5.3"
 __all__ = [
     "FixtureResponseAdapter",
+    "FailureInjection",
+    "FailureInjectingAdapter",
+    "FailureMode",
     "GalleryFixtureResponseAdapter",
     "HumanResponseAdapter",
+    "InjectedFailureError",
     "JSONLogger",
     "OpenAIResponseAdapter",
     "PerformanceMetrics",

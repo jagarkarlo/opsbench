@@ -64,6 +64,7 @@ It includes:
   for validating a scenario gallery and result database.
 - Opt-in local performance reports, portable baselines, and CI-friendly
   wall-time regression detection for benchmark runs and suites.
+- Deterministic synthetic failure injection for safe local reliability tests.
 - Reference Docker/Compose, Kubernetes, Helm, Argo CD, and Terraform
   deployment assets, hardened to run as non-root with a default-deny
   `NetworkPolicy`.
@@ -168,6 +169,11 @@ archive and checks every restored bundle hash against the source database:
 ```bash
 opsbench store drill results/opsbench.db results/backup.json results/restored.db
 ```
+
+The first failure-injection foundation is available as a Python API for local
+tests. It can inject `timeout`, `malformed_response`, `missing_evidence`, or
+`adapter_exception` failures into selected scenarios without executing any
+proposed action or touching external infrastructure.
 
 Use repeatable `--metadata key=value` values to record non-secret experiment
 configuration such as a seed, temperature, adapter version, or prompt revision.
@@ -280,9 +286,10 @@ docker compose up -d
 
 Phase 1 (Benchmark Core), Phase 2 (Execution), Phase 3 (Platform Services),
 and the core of Phase 4 (Operations) are complete as of v0.5.0. Remaining
-Phase 4 work is load, chaos, and disaster-recovery exercises, plus real
-OpenTelemetry trace export. A bounded local backup/restore archive preview is
-available; see [the roadmap](docs/roadmap.md) for its remaining scope and
+Phase 4 work includes load, chaos, and disaster-recovery exercises, plus richer
+failure outcome reporting. Bounded local backup/restore and failure-injection
+foundations are available; see [the roadmap](docs/roadmap.md) for remaining
+scope and
 Phase 5 (Ecosystem) for what follows.
 
 ## License

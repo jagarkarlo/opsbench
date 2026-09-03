@@ -55,12 +55,19 @@ The following recovery exercise is available as a bounded follow-up:
 - `opsbench store drill` exports, verifies, restores, and hash-compares an
   indexed local result store against a fresh SQLite recovery target.
 
+The first safe failure-injection slice is available as a bounded follow-up:
+
+- Deterministic synthetic `timeout`, `malformed_response`,
+  `missing_evidence`, and `adapter_exception` modes.
+- Adapter wrapper support with optional scenario targeting.
+- No destructive infrastructure actions and no execution of proposed actions.
+
 Deferred to a later milestone:
 
+- Failure outcome classification, CLI configuration, and suite-level reporting
+  for injected failures.
 - Load, chaos, and disaster-recovery exercises, including scheduled backup and
   recovery drills beyond the local archive foundation.
-- Real OpenTelemetry exporters (the current tracer only records spans
-  in-process; nothing is shipped to a collector yet).
 
 ## Phase 5: Ecosystem
 

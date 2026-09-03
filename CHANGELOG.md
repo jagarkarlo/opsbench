@@ -3,6 +3,14 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
+## Unreleased — Phase 4: Safe failure-injection foundation
+
+- Added deterministic synthetic `timeout`, `malformed_response`,
+  `missing_evidence`, and `adapter_exception` modes for local adapter tests.
+- Added optional scenario targeting through `FailureInjection` and
+  `FailureInjectingAdapter` without executing proposed actions or touching
+  external infrastructure.
+
 ## v0.5.3 — 2026-09-03 — Phase 4: Recovery drills
 
 - Added `opsbench store drill` to execute a local backup/recovery exercise
