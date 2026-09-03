@@ -72,7 +72,6 @@ The first safe failure-injection slice is available as a bounded follow-up:
 
 Deferred to a later milestone:
 
-- Partial-suite performance aggregation and reporting for injected failures.
 - Scheduled recovery execution, failure history, and alert integrations.
 - Load and broader chaos exercises beyond deterministic local injection.
 

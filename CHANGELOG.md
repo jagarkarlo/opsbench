@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
+## v0.5.7 — 2026-09-03 — Phase 4: Partial-suite performance
+
+- Added resilient performance profiling for suites with expected injected
+  failures.
+- Added explicit completed, failed, and total scenario counts to performance
+  reports.
+- Kept failed scenarios out of measured timing aggregates while preserving
+  their structured failure records and exit status `3`.
+
 ## v0.5.6 — 2026-09-03 — Phase 4: Repeated recovery drills
 
 - Added `run_recovery_drill_series` for repeated verified local backup and
