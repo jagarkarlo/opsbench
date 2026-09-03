@@ -184,6 +184,22 @@ opsbench store drill-series results/opsbench.db results/recovery-drills \
 Each attempt uses a fresh numbered directory such as `attempt-0005`. The JSON
 result reports all verified attempts and the number removed by retention.
 
+Run one recovery verification tick from cron or systemd. The command appends
+one JSON record to history on success or failure and returns exit status `3` if
+verification fails:
+
+```bash
+opsbench store schedule-tick results/opsbench.db results/scheduled-drills \
+  results/recovery-history.jsonl \
+  --run-id tick-001 \
+  --attempts 1 \
+  --retention 1 \
+  --alert-path results/recovery-alert.json
+```
+
+The scheduler integration is intentionally invocation-based; OpsBench does not
+run a background daemon or modify infrastructure.
+
 The first failure-injection foundation is available as a Python API for local
 tests. It can inject `timeout`, `malformed_response`, `missing_evidence`, or
 `adapter_exception` failures into selected scenarios without executing any

@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
+## v0.5.8 — 2026-09-03 — Phase 4: Scheduled recovery verification
+
+- Added `run_recovery_schedule_tick` for one cron/systemd-friendly recovery
+  invocation without a resident daemon.
+- Added append-only JSONL history for verified and failed ticks.
+- Added optional local alert artifacts and exit status `3` for failed ticks.
+- Added `opsbench store schedule-tick` with explicit attempt and retention
+  controls.
+
 ## v0.5.7 — 2026-09-03 — Phase 4: Partial-suite performance
 
 - Added resilient performance profiling for suites with expected injected

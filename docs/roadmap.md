@@ -61,6 +61,13 @@ The following repeated recovery exercise is available as a bounded follow-up:
 - Retention cleanup that keeps the newest verified attempt artifacts.
 - JSON reporting for verified, retained, and removed attempts.
 
+Scheduled recovery verification is now available as a bounded local
+invocation primitive:
+
+- One `store schedule-tick` execution can be called by cron or systemd.
+- Verified and failed outcomes append to JSONL history.
+- Failed verification can write a local alert artifact and returns exit code 3.
+
 The first safe failure-injection slice is available as a bounded follow-up:
 
 - Deterministic synthetic `timeout`, `malformed_response`,
@@ -72,7 +79,6 @@ The first safe failure-injection slice is available as a bounded follow-up:
 
 Deferred to a later milestone:
 
-- Scheduled recovery execution, failure history, and alert integrations.
 - Load and broader chaos exercises beyond deterministic local injection.
 
 ## Phase 5: Ecosystem
