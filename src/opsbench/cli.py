@@ -35,7 +35,7 @@ from opsbench.performance_baseline import (
 )
 from opsbench.performance_runner import execute_run_profiled, execute_suite_profiled
 from opsbench.responses import load_response
-from opsbench.recovery import run_recovery_drill, run_recovery_drill_series
+from opsbench.recovery import run_recovery_drill, run_recovery_drill_series, run_recovery_schedule_tick
 from opsbench.runner import execute_run, execute_suite, execute_suite_resilient
 from opsbench.runs import ResultBundle, load_result_bundle, write_result_bundle
 from opsbench.scenarios import load_gallery, load_scenario_pack
@@ -261,6 +261,17 @@ def build_parser() -> argparse.ArgumentParser:
     drill_series_parser.add_argument("output_directory")
     drill_series_parser.add_argument("--attempts", type=int, default=1)
     drill_series_parser.add_argument("--retention", type=int)
+
+    schedule_parser = store_subparsers.add_parser(
+        "schedule-tick", help="run one recovery verification tick and append JSONL history"
+    )
+    schedule_parser.add_argument("database_path")
+    schedule_parser.add_argument("output_directory")
+    schedule_parser.add_argument("history_path")
+    schedule_parser.add_argument("--run-id")
+    schedule_parser.add_argument("--attempts", type=int, default=1)
+    schedule_parser.add_argument("--retention", type=int)
+    schedule_parser.add_argument("--alert-path")
 
     serve_parser = subparsers.add_parser("serve", help="start the OpsBench HTTP REST API server")
     serve_parser.add_argument("--host", default="127.0.0.1", help="host address to bind (default: 127.0.0.1)")
@@ -701,6 +712,19 @@ def main(argv: list[str] | None = None) -> int:
             retention=parsed.retention,
         )
         print(json.dumps(result.to_dict(), sort_keys=True))
+    if parsed.command == "store" and parsed.store_command == "schedule-tick":
+        result = run_recovery_schedule_tick(
+            Path(parsed.database_path),
+            Path(parsed.output_directory),
+            Path(parsed.history_path),
+            run_id=parsed.run_id,
+            attempts=parsed.attempts,
+            retention=parsed.retention,
+            alert_path=Path(parsed.alert_path) if parsed.alert_path else None,
+        )
+        print(json.dumps(result.to_dict(), sort_keys=True))
+        if result.status == "failed":
+            return 3
     if parsed.command == "store" and parsed.store_command == "backup":
         db_store = SQLiteResultStore(Path(parsed.database_path))
         try:
