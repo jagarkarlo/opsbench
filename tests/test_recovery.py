@@ -2,7 +2,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from opsbench.recovery import run_recovery_drill
+from opsbench.recovery import run_recovery_drill, run_recovery_drill_series
 from opsbench.runs import BenchmarkRun, ResultBundle
 from opsbench.scoring import Score, ScoreReport
 from opsbench.store import SQLiteResultStore
@@ -68,6 +68,39 @@ class RecoveryDrillTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "must not already exist"):
                 run_recovery_drill(source_database, directory / "backup.json", restored_database)
+
+    def test_runs_recovery_series_with_bounded_retention(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            source_database = directory / "source.db"
+            source_store = SQLiteResultStore(source_database)
+            source_store.save(build_bundle("run-001"))
+            source_store.close()
+
+            result = run_recovery_drill_series(
+                source_database,
+                directory / "drills",
+                attempts=3,
+                retention=2,
+            )
+
+            self.assertEqual(result.to_dict()["status"], "verified")
+            self.assertEqual(result.retained_attempts, 2)
+            self.assertEqual(result.removed_attempts, 1)
+            self.assertEqual(result.attempts[2].archive_path.split("/")[-2], "attempt-0003")
+            self.assertFalse((directory / "drills" / "attempt-0001").exists())
+            self.assertTrue((directory / "drills" / "attempt-0002" / "backup.json").is_file())
+            self.assertTrue((directory / "drills" / "attempt-0003" / "restored.db").is_file())
+
+    def test_rejects_retention_greater_than_attempts(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            with self.assertRaisesRegex(ValueError, "must not exceed"):
+                run_recovery_drill_series(
+                    Path(temporary_directory) / "source.db",
+                    Path(temporary_directory) / "drills",
+                    attempts=1,
+                    retention=2,
+                )
 
 
 if __name__ == "__main__":

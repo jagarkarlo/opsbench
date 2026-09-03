@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import shutil
 
 from opsbench.backup import export_store, restore_archive, verify_archive
 from opsbench.store import RunQuery, SQLiteResultStore
@@ -34,6 +35,36 @@ class RecoveryDrillResult:
             "restored_bundle_hashes": list(self.restored_bundle_hashes),
             "restored_count": self.restored_count,
             "source_count": self.source_count,
+            "status": "verified",
+        }
+
+
+@dataclass(frozen=True)
+class RecoveryDrillSeriesResult:
+    """Verified outcomes and retention summary for repeated local recovery drills."""
+
+    attempts: tuple[RecoveryDrillResult, ...]
+    retained_attempts: int
+    removed_attempts: int
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.attempts, tuple) or not all(
+            isinstance(attempt, RecoveryDrillResult) for attempt in self.attempts
+        ):
+            raise ValueError("attempts must be a tuple of RecoveryDrillResult values")
+        if not isinstance(self.retained_attempts, int) or self.retained_attempts < 0:
+            raise ValueError("retained_attempts must be a non-negative integer")
+        if not isinstance(self.removed_attempts, int) or self.removed_attempts < 0:
+            raise ValueError("removed_attempts must be a non-negative integer")
+        if self.retained_attempts + self.removed_attempts != len(self.attempts):
+            raise ValueError("retention counts must match attempt count")
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "attempts": [attempt.to_dict() for attempt in self.attempts],
+            "attempt_count": len(self.attempts),
+            "removed_attempts": self.removed_attempts,
+            "retained_attempts": self.retained_attempts,
             "status": "verified",
         }
 
@@ -80,4 +111,54 @@ def run_recovery_drill(
         restored_bundle_hashes=restored_hashes,
         restored_count=len(restored_bundles),
         source_count=len(source_bundles),
+    )
+
+
+def run_recovery_drill_series(
+    source_database_path: Path,
+    output_directory: Path,
+    *,
+    attempts: int = 1,
+    retention: int | None = None,
+) -> RecoveryDrillSeriesResult:
+    """Run numbered recovery drills and retain only the newest verified attempts."""
+    if not isinstance(source_database_path, Path):
+        raise ValueError("source_database_path must be a Path")
+    if not isinstance(output_directory, Path):
+        raise ValueError("output_directory must be a Path")
+    if not isinstance(attempts, int) or isinstance(attempts, bool) or attempts <= 0:
+        raise ValueError("attempts must be a positive integer")
+    if retention is None:
+        retention = attempts
+    if not isinstance(retention, int) or isinstance(retention, bool) or retention <= 0:
+        raise ValueError("retention must be a positive integer")
+    if retention > attempts:
+        raise ValueError("retention must not exceed attempts")
+
+    output_directory.mkdir(parents=True, exist_ok=True)
+    results: list[RecoveryDrillResult] = []
+    for attempt_number in range(1, attempts + 1):
+        attempt_directory = output_directory / f"attempt-{attempt_number:04d}"
+        if attempt_directory.exists():
+            raise ValueError(f"recovery attempt directory already exists: {attempt_directory}")
+        attempt_directory.mkdir()
+        try:
+            result = run_recovery_drill(
+                source_database_path,
+                attempt_directory / "backup.json",
+                attempt_directory / "restored.db",
+            )
+        except Exception:
+            shutil.rmtree(attempt_directory)
+            raise
+        results.append(result)
+
+    removed_attempts = attempts - retention
+    for result in results[:removed_attempts]:
+        shutil.rmtree(Path(result.archive_path).parent)
+
+    return RecoveryDrillSeriesResult(
+        attempts=tuple(results),
+        retained_attempts=retention,
+        removed_attempts=removed_attempts,
     )
