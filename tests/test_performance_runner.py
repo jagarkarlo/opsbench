@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from opsbench.adapters import FixtureResponseAdapter, GalleryFixtureResponseAdapter
+from opsbench.failure_injection import FailureInjection, FailureInjectingAdapter, FailureMode
 from opsbench.performance_runner import (
     ProfiledRunExecution,
     ProfiledSuiteExecution,
@@ -121,6 +122,43 @@ class ProfiledSuiteExecutionTests(unittest.TestCase):
 
             self.assertAlmostEqual(aggregate.wall_time_seconds, total_individual, places=2)
             self.assertEqual(aggregate.items_processed, len(profiled.individual_metrics))
+
+    def test_profiles_resilient_suite_and_excludes_failed_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            gallery_dir = Path(tmpdir) / "gallery"
+            output_dir = Path(tmpdir) / "output"
+            for scenario_id in ("scenario-001", "scenario-002"):
+                scenario_dir = gallery_dir / scenario_id
+                scenario_dir.mkdir(parents=True)
+                (scenario_dir / "scenario.json").write_text(
+                    __import__("json").dumps(
+                        {"manifest": {"schema_version": "1.0", "scenario_id": scenario_id, "title": "Test", "category": "kubernetes"}, "evidence": [{"artifact_id": "logs.txt", "media_type": "text/plain", "relative_path": "logs.txt"}]}
+                    ),
+                    encoding="utf-8",
+                )
+                (scenario_dir / "logs.txt").write_text("test logs\n", encoding="utf-8")
+                (scenario_dir / "evaluator.json").write_text(
+                    __import__("json").dumps({"scenario_id": scenario_id, "diagnosis_rules": [{"rule_id": "test", "keyword": "test", "weight": 1}]}),
+                    encoding="utf-8",
+                )
+
+            adapter = FailureInjectingAdapter(
+                GalleryFixtureResponseAdapter(
+                    {scenario_id: BenchmarkResponse(scenario_id, "Response") for scenario_id in ("scenario-001", "scenario-002")}
+                ),
+                FailureInjection(FailureMode.TIMEOUT, scenario_ids=("scenario-002",)),
+            )
+            profiled = execute_suite_profiled(
+                gallery_directory=gallery_dir,
+                output_directory=output_dir,
+                adapter=adapter,
+                resilient=True,
+            )
+
+            self.assertEqual(len(profiled.bundles), 1)
+            self.assertEqual(len(profiled.failures), 1)
+            self.assertEqual(profiled.scenario_count, 2)
+            self.assertEqual(len(profiled.individual_metrics), 1)
 
 
 if __name__ == "__main__":
