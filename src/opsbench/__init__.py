@@ -10,6 +10,12 @@ from opsbench.export import export_store_to_json, import_json_to_store
 from opsbench.logging import JSONLogger, format_json_log_entry
 from opsbench.metrics import generate_prometheus_metrics
 from opsbench.performance import PerformanceMetrics, PerformanceProfiler
+from opsbench.performance_runner import (
+    ProfiledRunExecution,
+    ProfiledSuiteExecution,
+    execute_run_profiled,
+    execute_suite_profiled,
+)
 from opsbench.prompts import render_prompt
 from opsbench.responses import parse_response_text
 from opsbench.runner import execute_run, execute_suite
@@ -28,13 +34,17 @@ __all__ = [
     "OpenAIResponseAdapter",
     "PerformanceMetrics",
     "PerformanceProfiler",
+    "ProfiledRunExecution",
+    "ProfiledSuiteExecution",
     "RunQuery",
     "SQLiteResultStore",
     "TraceSpan",
     "TraceTracer",
     "create_server",
     "execute_run",
+    "execute_run_profiled",
     "execute_suite",
+    "execute_suite_profiled",
     "export_store_to_json",
     "format_json_log_entry",
     "generate_prometheus_metrics",
