@@ -7,7 +7,8 @@ from pathlib import Path
 
 from opsbench.adapters import ResponseAdapter
 from opsbench.performance import PerformanceMetrics, PerformanceProfiler
-from opsbench.runner import RunResult, execute_run
+from opsbench.failure_injection import InjectedFailureError
+from opsbench.runner import RunResult, SuiteFailure, execute_run
 from opsbench.runs import ResultBundle
 from opsbench.scenarios import ScenarioPack, load_scenario_pack
 from opsbench.scoring import EvaluatorProfile, load_evaluator_profile
@@ -33,9 +34,15 @@ class ProfiledRunExecution:
 class ProfiledSuiteExecution:
     """Execution of a scenario suite with per-run and aggregate performance metrics."""
 
-    def __init__(self, bundles: tuple[ResultBundle, ...], metrics: list[PerformanceMetrics]) -> None:
+    def __init__(
+        self,
+        bundles: tuple[ResultBundle, ...],
+        metrics: list[PerformanceMetrics],
+        failures: tuple[SuiteFailure, ...] = (),
+    ) -> None:
         self._bundles = bundles
         self._metrics = metrics
+        self._failures = failures
 
     @property
     def bundles(self) -> tuple[ResultBundle, ...]:
@@ -44,6 +51,14 @@ class ProfiledSuiteExecution:
     @property
     def individual_metrics(self) -> list[PerformanceMetrics]:
         return self._metrics
+
+    @property
+    def failures(self) -> tuple[SuiteFailure, ...]:
+        return self._failures
+
+    @property
+    def scenario_count(self) -> int:
+        return len(self._bundles) + len(self._failures)
 
     def aggregate_metrics(self) -> PerformanceMetrics:
         """Aggregate metrics across all runs in the suite."""
@@ -106,8 +121,9 @@ def execute_suite_profiled(
     metadata: tuple[tuple[str, str], ...] = (),
     max_workers: int = 1,
     tracer: TraceTracer | None = None,
+    resilient: bool = False,
 ) -> ProfiledSuiteExecution:
-    """Execute a scenario suite with per-run performance profiling."""
+    """Execute a scenario suite with per-run profiling and optional failure capture."""
     if not isinstance(gallery_directory, Path) or not gallery_directory.is_dir():
         raise ValueError(f"gallery_directory must be a directory: {gallery_directory}")
 
@@ -128,7 +144,7 @@ def execute_suite_profiled(
     # Execute suite and record individual run metrics
     def _run_and_measure(
         dir_path: Path, profile_path: Path
-    ) -> tuple[ResultBundle, PerformanceMetrics]:
+    ) -> tuple[ResultBundle | SuiteFailure, PerformanceMetrics | None]:
         pack = load_scenario_pack(dir_path)
         profile = load_evaluator_profile(profile_path)
         run_id = f"{run_prefix}-{pack.manifest.scenario_id}"
@@ -145,23 +161,32 @@ def execute_suite_profiled(
             )
 
         profiler = PerformanceProfiler()
-        run_result = profiler.measure(
-            name=f"run-{pack.manifest.scenario_id}",
-            func=_execute_single,
-            items_processed=1,
-        )
+        try:
+            run_result = profiler.measure(
+                name=f"run-{pack.manifest.scenario_id}",
+                func=_execute_single,
+                items_processed=1,
+            )
+        except InjectedFailureError as error:
+            if not resilient:
+                raise
+            return SuiteFailure(run_id, error), None
         recorded_metrics = profiler.recorded_metrics()[0]
         return ResultBundle(run_result.run, run_result.report), recorded_metrics
 
     from opsbench.runs import write_result_bundle
 
     bundles: list[ResultBundle] = []
+    failures: list[SuiteFailure] = []
     if max_workers == 1:
         for dir_path, profile_path in scenarios_to_run:
-            bundle, metric = _run_and_measure(dir_path, profile_path)
-            metrics.append(metric)
-            bundles.append(bundle)
-            write_result_bundle(output_directory / f"{bundle.run.run_id}.json", bundle)
+            outcome, metric = _run_and_measure(dir_path, profile_path)
+            if isinstance(outcome, SuiteFailure):
+                failures.append(outcome)
+            else:
+                metrics.append(metric)
+                bundles.append(outcome)
+                write_result_bundle(output_directory / f"{outcome.run.run_id}.json", outcome)
     else:
         from concurrent.futures import ThreadPoolExecutor
 
@@ -171,9 +196,12 @@ def execute_suite_profiled(
                 for dir_path, profile_path in scenarios_to_run
             ]
             for future in futures:
-                bundle, metric = future.result()
-                metrics.append(metric)
-                bundles.append(bundle)
-                write_result_bundle(output_directory / f"{bundle.run.run_id}.json", bundle)
+                outcome, metric = future.result()
+                if isinstance(outcome, SuiteFailure):
+                    failures.append(outcome)
+                else:
+                    metrics.append(metric)
+                    bundles.append(outcome)
+                    write_result_bundle(output_directory / f"{outcome.run.run_id}.json", outcome)
 
-    return ProfiledSuiteExecution(tuple(bundles), metrics)
+    return ProfiledSuiteExecution(tuple(bundles), metrics, tuple(failures))

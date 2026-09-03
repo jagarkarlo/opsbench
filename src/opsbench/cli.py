@@ -498,8 +498,6 @@ def main(argv: list[str] | None = None) -> int:
                 parsed.compare_performance_baseline,
             )
         )
-        if parsed.inject_failure and performance_requested:
-            raise ValueError("suite failure injection cannot be combined with performance reporting")
         injected_failures = ()
         if performance_requested:
             profiled_suite = execute_suite_profiled(
@@ -510,12 +508,17 @@ def main(argv: list[str] | None = None) -> int:
                 max_workers=parsed.max_workers,
                 metadata=parse_metadata(parsed.metadata),
                 tracer=tracer,
+                resilient=bool(parsed.inject_failure),
             )
             bundles = profiled_suite.bundles
+            injected_failures = profiled_suite.failures
             current_metrics = profiled_suite.aggregate_metrics()
             performance_payload = {
                 "aggregate": current_metrics.to_dict(),
                 "metrics": [metric.to_dict() for metric in profiled_suite.individual_metrics],
+                "completed_count": len(bundles),
+                "failed_count": len(injected_failures),
+                "scenario_count": profiled_suite.scenario_count,
             }
         elif parsed.inject_failure:
             resilient_suite = execute_suite_resilient(
