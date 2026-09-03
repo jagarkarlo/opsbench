@@ -19,6 +19,12 @@ from opsbench.comparisons import (
     summarize_trials,
 )
 from opsbench.export import export_store_to_json, import_json_to_store
+from opsbench.failure_injection import (
+    FailureInjection,
+    FailureInjectingAdapter,
+    FailureMode,
+    InjectedFailureError,
+)
 from opsbench.backup import export_store, verify_archive, restore_archive
 from opsbench.prompts import render_prompt
 from opsbench.performance_baseline import (
@@ -81,6 +87,21 @@ def add_performance_arguments(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def add_failure_injection_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add safe, deterministic local failure-injection controls to a run command."""
+    parser.add_argument(
+        "--inject-failure",
+        choices=[mode.value for mode in FailureMode],
+        help="inject one deterministic synthetic failure without external side effects",
+    )
+    parser.add_argument(
+        "--inject-failure-scenario",
+        action="append",
+        metavar="SCENARIO_ID",
+        help="apply the injected failure only to this scenario ID; repeatable",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     from opsbench import __version__
 
@@ -131,6 +152,7 @@ def build_parser() -> argparse.ArgumentParser:
     fixture_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
     fixture_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
     add_performance_arguments(fixture_parser)
+    add_failure_injection_arguments(fixture_parser)
     human_parser = run_subparsers.add_parser(
         "human", help="execute one locally supplied human response"
     )
@@ -141,6 +163,7 @@ def build_parser() -> argparse.ArgumentParser:
     human_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
     human_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
     add_performance_arguments(human_parser)
+    add_failure_injection_arguments(human_parser)
     openai_parser = run_subparsers.add_parser(
         "openai", help="execute a run against an OpenAI-compatible endpoint"
     )
@@ -157,6 +180,7 @@ def build_parser() -> argparse.ArgumentParser:
     openai_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
     openai_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
     add_performance_arguments(openai_parser)
+    add_failure_injection_arguments(openai_parser)
     suite_parser = run_subparsers.add_parser(
         "suite", help="execute a response adapter across an entire scenario gallery"
     )
@@ -350,6 +374,14 @@ def main(argv: list[str] | None = None) -> int:
                 temperature=parsed.temperature,
                 timeout=parsed.timeout,
             )
+        if parsed.inject_failure:
+            adapter = FailureInjectingAdapter(
+                adapter,
+                FailureInjection(
+                    FailureMode(parsed.inject_failure),
+                    scenario_ids=tuple(parsed.inject_failure_scenario or ()),
+                ),
+            )
         performance_requested = any(
             (
                 parsed.performance_output,
@@ -357,29 +389,44 @@ def main(argv: list[str] | None = None) -> int:
                 parsed.compare_performance_baseline,
             )
         )
-        if performance_requested:
-            profiled = execute_run_profiled(
-                run_id=parsed.run_id,
-                pack=pack,
-                profile=profile,
-                adapter=adapter,
-                metadata=parse_metadata(parsed.metadata),
-                tracer=tracer,
+        try:
+            if performance_requested:
+                profiled = execute_run_profiled(
+                    run_id=parsed.run_id,
+                    pack=pack,
+                    profile=profile,
+                    adapter=adapter,
+                    metadata=parse_metadata(parsed.metadata),
+                    tracer=tracer,
+                )
+                result = profiled.run_result
+                current_metrics = profiled.metrics
+                performance_payload = {"metrics": current_metrics.to_dict()}
+            else:
+                result = execute_run(
+                    run_id=parsed.run_id,
+                    pack=pack,
+                    profile=profile,
+                    adapter=adapter,
+                    metadata=parse_metadata(parsed.metadata),
+                    tracer=tracer,
+                )
+                current_metrics = None
+                performance_payload = None
+        except InjectedFailureError as error:
+            if tracer is not None:
+                tracer.export_otlp(parsed.otlp_endpoint)
+            print(
+                json.dumps(
+                    {
+                        "failure": error.to_dict(),
+                        "run_id": parsed.run_id,
+                        "status": "injected_failure",
+                    },
+                    sort_keys=True,
+                )
             )
-            result = profiled.run_result
-            current_metrics = profiled.metrics
-            performance_payload = {"metrics": current_metrics.to_dict()}
-        else:
-            result = execute_run(
-                run_id=parsed.run_id,
-                pack=pack,
-                profile=profile,
-                adapter=adapter,
-                metadata=parse_metadata(parsed.metadata),
-                tracer=tracer,
-            )
-            current_metrics = None
-            performance_payload = None
+            return 3
         bundle = ResultBundle(result.run, result.report)
         output_path = Path(parsed.output_path)
         write_result_bundle(output_path, bundle)

@@ -3,13 +3,17 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
-## Unreleased — Phase 4: Safe failure-injection foundation
+## v0.5.4 — 2026-09-03 — Phase 4: Safe failure injection
 
 - Added deterministic synthetic `timeout`, `malformed_response`,
   `missing_evidence`, and `adapter_exception` modes for local adapter tests.
 - Added optional scenario targeting through `FailureInjection` and
   `FailureInjectingAdapter` without executing proposed actions or touching
   external infrastructure.
+- Added `--inject-failure` and repeatable `--inject-failure-scenario` controls
+  for single fixture, human, and OpenAI-compatible runs. Expected injected
+  exceptions return structured JSON and exit status `3` without writing a
+  result bundle.
 
 ## v0.5.3 — 2026-09-03 — Phase 4: Recovery drills
 

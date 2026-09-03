@@ -45,7 +45,7 @@ OpsBench begins as a local, dependency-light Python package. Provider adapters,
 distributed execution, persistence, observability, and deployment are introduced
 behind stable interfaces in later milestones.
 
-## Current Capability (v0.5.2)
+## Current Capability (v0.5.4)
 
 OpsBench runs entirely locally; no model provider is required to explore it.
 It includes:
@@ -174,6 +174,19 @@ The first failure-injection foundation is available as a Python API for local
 tests. It can inject `timeout`, `malformed_response`, `missing_evidence`, or
 `adapter_exception` failures into selected scenarios without executing any
 proposed action or touching external infrastructure.
+
+Run a safe, deterministic failure test through a local fixture command. An
+injected exception prints structured JSON, exits with status `3`, and does not
+write a result bundle:
+
+```bash
+opsbench run fixture \
+  scenarios/observability-latency-001 \
+  scenarios/observability-latency-001/responses/reference-response.json \
+  results/injected-timeout.json \
+  --run-id injected-timeout \
+  --inject-failure timeout
+```
 
 Use repeatable `--metadata key=value` values to record non-secret experiment
 configuration such as a seed, temperature, adapter version, or prompt revision.

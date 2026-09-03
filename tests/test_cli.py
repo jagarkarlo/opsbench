@@ -104,6 +104,26 @@ class CliParserTests(unittest.TestCase):
 
         self.assertEqual(parsed.performance_output, "results/performance.json")
 
+    def test_parses_failure_injection_options_for_single_runs(self) -> None:
+        parsed = build_parser().parse_args(
+            [
+                "run",
+                "fixture",
+                "scenarios/example",
+                "responses/example.json",
+                "results/run.json",
+                "--run-id",
+                "fixture-run-001",
+                "--inject-failure",
+                "timeout",
+                "--inject-failure-scenario",
+                "scenario-001",
+            ]
+        )
+
+        self.assertEqual(parsed.inject_failure, "timeout")
+        self.assertEqual(parsed.inject_failure_scenario, ["scenario-001"])
+
     def test_parses_human_run_command(self) -> None:
         parsed = build_parser().parse_args(
             [
@@ -335,6 +355,49 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertEqual(command_result["run"]["runner_kind"], "human")
         self.assertEqual(bundle["run"]["model_name"], "Karlo")
+
+    def test_reports_injected_failure_without_writing_a_result_bundle(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            scenario = directory / "scenario"
+            scenario.mkdir()
+            (scenario / "scenario.json").write_text(
+                '''{"manifest":{"schema_version":"1.0","scenario_id":"scenario-001","title":"Fictional scenario","category":"kubernetes"},"evidence":[{"artifact_id":"logs.txt","media_type":"text/plain","relative_path":"logs.txt"}]}''',
+                encoding="utf-8",
+            )
+            (scenario / "logs.txt").write_text("synthetic logs\n", encoding="utf-8")
+            (scenario / "evaluator.json").write_text(
+                '''{"scenario_id":"scenario-001","diagnosis_rules":[{"rule_id":"synthetic","keyword":"synthetic","weight":2}]}''',
+                encoding="utf-8",
+            )
+            response_path = directory / "response.json"
+            response_path.write_text(
+                '''{"scenario_id":"scenario-001","analysis":"Synthetic analysis."}''',
+                encoding="utf-8",
+            )
+            output_path = directory / "results" / "failure.json"
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "run",
+                        "fixture",
+                        str(scenario),
+                        str(response_path),
+                        str(output_path),
+                        "--run-id",
+                        "failure-run-001",
+                        "--inject-failure",
+                        "timeout",
+                    ]
+                )
+
+        result = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 3)
+        self.assertEqual(result["status"], "injected_failure")
+        self.assertEqual(result["failure"], {"mode": "timeout", "scenario_id": "scenario-001"})
+        self.assertFalse(output_path.exists())
 
     def test_writes_and_compares_performance_baselines(self) -> None:
         with TemporaryDirectory() as temporary_directory:
