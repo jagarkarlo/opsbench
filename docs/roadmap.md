@@ -60,12 +60,13 @@ The first safe failure-injection slice is available as a bounded follow-up:
 - Deterministic synthetic `timeout`, `malformed_response`,
   `missing_evidence`, and `adapter_exception` modes.
 - Adapter wrapper support with optional scenario targeting.
+- Resilient suite execution that preserves successful bundles and reports
+  expected injected failures in deterministic gallery order.
 - No destructive infrastructure actions and no execution of proposed actions.
 
 Deferred to a later milestone:
 
-- Failure outcome classification, CLI configuration, and suite-level reporting
-  for injected failures.
+- Partial-suite performance aggregation and reporting for injected failures.
 - Load, chaos, and disaster-recovery exercises, including scheduled backup and
   recovery drills beyond the local archive foundation.
 

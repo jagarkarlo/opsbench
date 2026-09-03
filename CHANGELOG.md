@@ -3,6 +3,17 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
+## v0.5.5 — 2026-09-03 — Phase 4: Resilient suite failure reporting
+
+- Added `execute_suite_resilient`, which preserves successful immutable result
+  bundles while recording expected injected failures in deterministic gallery
+  order.
+- Added suite `--inject-failure` and repeatable `--inject-failure-scenario`
+  options. Partial suites emit `completed_with_injected_failures`, include
+  structured failure records, and exit with status `3`.
+- Prevented combining injected suite failures with performance reporting until
+  partial-suite performance semantics are defined.
+
 ## v0.5.4 — 2026-09-03 — Phase 4: Safe failure injection
 
 - Added deterministic synthetic `timeout`, `malformed_response`,

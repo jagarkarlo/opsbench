@@ -188,6 +188,20 @@ opsbench run fixture \
   --inject-failure timeout
 ```
 
+Failure injection also works for a fixture suite. Targeted expected failures
+are reported in the output JSON while the remaining scenarios still write
+their normal immutable bundles. A partial suite exits with status `3`:
+
+```bash
+opsbench run suite scenarios results/injected-suite \
+  --run-prefix injected-suite \
+  --inject-failure timeout \
+  --inject-failure-scenario observability-latency-001
+```
+
+Suite failure injection cannot be combined with performance reporting until
+partial-suite performance aggregation semantics are defined.
+
 Use repeatable `--metadata key=value` values to record non-secret experiment
 configuration such as a seed, temperature, adapter version, or prompt revision.
 Metadata is canonicalized and included in the immutable run identity. Do not
