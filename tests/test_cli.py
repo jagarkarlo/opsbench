@@ -640,6 +640,49 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(result["status"], "failed")
         self.assertTrue(alert_exists)
 
+    def test_runs_bounded_chaos_matrix_via_cli(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            gallery = directory / "scenarios"
+            scenario = gallery / "alpha"
+            responses = scenario / "responses"
+            responses.mkdir(parents=True)
+            (scenario / "scenario.json").write_text(
+                '{"manifest":{"schema_version":"1.0","scenario_id":"scenario-001","title":"Test","category":"kubernetes"},"evidence":[{"artifact_id":"logs.txt","media_type":"text/plain","relative_path":"logs.txt"}]}',
+                encoding="utf-8",
+            )
+            (scenario / "logs.txt").write_text("synthetic logs\n", encoding="utf-8")
+            (scenario / "evaluator.json").write_text(
+                '{"scenario_id":"scenario-001","diagnosis_rules":[{"rule_id":"synthetic","keyword":"synthetic","weight":1}]}',
+                encoding="utf-8",
+            )
+            (responses / "reference-response.json").write_text(
+                '{"scenario_id":"scenario-001","analysis":"Synthetic analysis."}',
+                encoding="utf-8",
+            )
+            output = io.StringIO()
+            with redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "run",
+                        "chaos-matrix",
+                        str(gallery),
+                        str(directory / "matrix"),
+                        "--iterations",
+                        "2",
+                        "--mode",
+                        "timeout",
+                        "--mode",
+                        "missing_evidence",
+                    ]
+                )
+
+        result = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 3)
+        self.assertEqual(result["case_count"], 4)
+        self.assertEqual(result["failure_count"], 2)
+        self.assertEqual(result["status"], "completed_with_injected_failures")
+
     def test_executes_suite_run_and_writes_result_bundles(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             directory = Path(temporary_directory)
