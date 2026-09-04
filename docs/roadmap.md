@@ -99,5 +99,7 @@ Phase 5 starts at v0.6.0.
   - Standardized `MCPContextAdapter` protocol, `MCPResource`, `MCPToolDefinition`, and `MCPRegistry`.
   - Built-in platform adapters for GitHub, GitLab, Jira, Grafana, and Kubernetes.
   - Prompt enrichment with `--mcp <provider>` and CLI `opsbench mcp list|inspect`.
-- Public benchmark datasets and signed result attestations.
+- Public benchmark datasets and signed result attestations (completed in v0.6.3):
+  - Deterministic dataset manifests with local gallery checksum verification.
+  - HMAC-signed result attestations and `opsbench attest` verification commands.
 - Model leaderboards with uncertainty and repeated-trial analysis.
