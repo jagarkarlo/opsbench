@@ -48,8 +48,8 @@ class ScenarioBuilder:
 
         self._artifacts: list[_ArtifactSpec] = []
         self._diagnosis_rules: list[dict[str, str | int]] = []
-        self._blocked_phrases: list[str] = []
-        self._expected_actions: list[str] = []
+        self._blocked_action_phrases: list[str] = []
+        self._permitted_actions: list[str] = []
         self._reference_response: dict[str, object] | None = None
 
     def add_evidence(
@@ -74,8 +74,11 @@ class ScenarioBuilder:
             raise ValueError(f"evidence content exceeds size limit of {MAX_EVIDENCE_BYTES} bytes")
 
         rel_path = relative_path or artifact_id
-        if Path(rel_path).is_absolute() or ".." in rel_path:
+        path = Path(rel_path)
+        if path.is_absolute() or ".." in path.parts:
             raise ValueError(f"relative_path must be a clean relative path: {rel_path!r}")
+        if len(path.parts) != 1:
+            raise ValueError("relative_path must name a single evidence file in the scenario directory")
 
         # Check for duplicate artifact_id or relative_path
         for existing in self._artifacts:
@@ -120,23 +123,31 @@ class ScenarioBuilder:
         )
         return self
 
-    def add_blocked_phrase(self, phrase: str) -> ScenarioBuilder:
+    def add_blocked_action_phrase(self, phrase: str) -> ScenarioBuilder:
         """Add a phrase that violates safety bounds if present in model actions/analysis."""
         if not isinstance(phrase, str) or not phrase.strip():
             raise ValueError("phrase must be a non-empty string")
         normalized = phrase.strip()
-        if normalized not in self._blocked_phrases:
-            self._blocked_phrases.append(normalized)
+        if normalized not in self._blocked_action_phrases:
+            self._blocked_action_phrases.append(normalized)
         return self
 
-    def add_expected_action(self, action: str) -> ScenarioBuilder:
-        """Add an expected remediation action."""
+    def add_blocked_phrase(self, phrase: str) -> ScenarioBuilder:
+        """Alias for add_blocked_action_phrase."""
+        return self.add_blocked_action_phrase(phrase)
+
+    def add_permitted_action(self, action: str) -> ScenarioBuilder:
+        """Add a permitted remediation action."""
         if not isinstance(action, str) or not action.strip():
             raise ValueError("action must be a non-empty string")
         normalized = action.strip()
-        if normalized not in self._expected_actions:
-            self._expected_actions.append(normalized)
+        if normalized not in self._permitted_actions:
+            self._permitted_actions.append(normalized)
         return self
+
+    def add_expected_action(self, action: str) -> ScenarioBuilder:
+        """Alias for add_permitted_action."""
+        return self.add_permitted_action(action)
 
     def set_reference_response(
         self,
@@ -162,15 +173,15 @@ class ScenarioBuilder:
 
     def build(self, destination: Path | str, *, overwrite: bool = False) -> Path:
         """Serialize and write the entire scenario pack to destination directory."""
-        dest_path = Path(destination)
-        if dest_path.exists() and not overwrite:
-            raise FileExistsError(f"destination directory already exists: {dest_path}")
-        dest_path.mkdir(parents=True, exist_ok=overwrite)
-
         if not self._artifacts:
             raise ValueError("scenario must have at least one evidence artifact")
         if not self._diagnosis_rules:
             raise ValueError("scenario must have at least one diagnosis rule")
+
+        dest_path = Path(destination)
+        if dest_path.exists() and not overwrite:
+            raise FileExistsError(f"destination directory already exists: {dest_path}")
+        dest_path.mkdir(parents=True, exist_ok=overwrite)
 
         # 1. Write scenario.json
         manifest_dict = {
@@ -207,10 +218,10 @@ class ScenarioBuilder:
             "scenario_id": self.scenario_id,
             "diagnosis_rules": self._diagnosis_rules,
         }
-        if self._blocked_phrases:
-            evaluator_data["blocked_phrases"] = self._blocked_phrases
-        if self._expected_actions:
-            evaluator_data["expected_actions"] = self._expected_actions
+        if self._blocked_action_phrases:
+            evaluator_data["blocked_action_phrases"] = self._blocked_action_phrases
+        if self._permitted_actions:
+            evaluator_data["permitted_actions"] = self._permitted_actions
 
         (dest_path / "evaluator.json").write_text(
             json.dumps(evaluator_data, indent=2, sort_keys=True) + "\n",

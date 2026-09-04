@@ -429,7 +429,7 @@ def main(argv: list[str] | None = None) -> int:
             result = check_contribution(target_path)
             print(json.dumps(result.to_dict(), sort_keys=True))
             return 0 if result.passed else 1
-        elif target_path.is_dir():
+        elif target_path.is_dir() and any((child / "scenario.json").is_file() for child in target_path.iterdir() if child.is_dir()):
             gallery_results = check_gallery_contributions(target_path)
             all_passed = all(r.passed for r in gallery_results)
             print(
@@ -444,16 +444,9 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 0 if (gallery_results and all_passed) else 1
         else:
-            print(
-                json.dumps(
-                    {
-                        "error": f"path does not exist: {parsed.path}",
-                        "passed": False,
-                    },
-                    sort_keys=True,
-                )
-            )
-            return 1
+            result = check_contribution(target_path)
+            print(json.dumps(result.to_dict(), sort_keys=True))
+            return 0 if result.passed else 1
     if parsed.command == "response" and parsed.response_command == "evaluate":
         scenario_path = Path(parsed.scenario_path)
         pack = load_scenario_pack(scenario_path)

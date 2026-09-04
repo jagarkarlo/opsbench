@@ -1322,6 +1322,52 @@ class CliParserTests(unittest.TestCase):
         self.assertFalse(result["archive_ok"])
         self.assertIn("archive_error", result)
 
+    def test_scaffolds_and_checks_scenario_via_cli(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            scenario_path = Path(temporary_directory) / "kubernetes-test-001"
+            init_output = io.StringIO()
+            with redirect_stdout(init_output):
+                init_exit = main(
+                    [
+                        "scenario",
+                        "init",
+                        str(scenario_path),
+                        "--id",
+                        "kubernetes-test-001",
+                        "--title",
+                        "Test scenario",
+                        "--category",
+                        "kubernetes",
+                    ]
+                )
+
+            self.assertEqual(init_exit, 0)
+            init_res = json.loads(init_output.getvalue())
+            self.assertEqual(init_res["status"], "scaffolded")
+            self.assertEqual(init_res["scenario_id"], "kubernetes-test-001")
+
+            check_output = io.StringIO()
+            with redirect_stdout(check_output):
+                check_exit = main(["scenario", "check", str(scenario_path)])
+
+            self.assertEqual(check_exit, 0)
+            check_res = json.loads(check_output.getvalue())
+            self.assertTrue(check_res["passed"])
+            self.assertEqual(check_res["issues"], [])
+
+    def test_check_scenario_cli_reports_failure_on_invalid_scenario(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            empty_path = Path(temporary_directory) / "empty"
+            empty_path.mkdir()
+            output = io.StringIO()
+            with redirect_stdout(output):
+                exit_code = main(["scenario", "check", str(empty_path)])
+
+            self.assertEqual(exit_code, 1)
+            result = json.loads(output.getvalue())
+            self.assertFalse(result["passed"])
+            self.assertTrue(len(result["issues"]) > 0)
+
 
 if __name__ == "__main__":
     unittest.main()
