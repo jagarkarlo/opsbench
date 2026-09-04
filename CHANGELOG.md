@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
+## v0.6.4 — 2026-09-04 — Phase 5: Cross-scenario portfolio leaderboards
+
+- Added normalized portfolio statistics across multiple scenario IDs.
+- Added scenario coverage, repeated-trial uncertainty, and conservative
+  lower-bound ranking for portfolio results.
+- Added `opsbench leaderboard portfolio` with JSON and Markdown output.
+
 ## v0.6.3 — 2026-09-04 — Phase 5: Public datasets and signed attestations
 
 - Added public benchmark dataset manifests with deterministic scenario metadata

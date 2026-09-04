@@ -45,7 +45,7 @@ OpsBench begins as a local, dependency-light Python package. Provider adapters,
 distributed execution, persistence, observability, and deployment are introduced
 behind stable interfaces in later milestones.
 
-## Current Capability (v0.6.3)
+## Current Capability (v0.6.4)
 
 OpsBench runs entirely locally; no model provider is required to explore it.
 It includes:
@@ -363,6 +363,14 @@ opsbench compare results \
 Comparison output includes only the scenario ID, runner totals, trial counts,
 and average scores. Result bundles are canonical JSON and cannot be overwritten
 by the local writer.
+
+Rank results across multiple scenarios using normalized scores and explicit
+scenario coverage:
+
+```bash
+opsbench leaderboard portfolio results/*.json
+opsbench leaderboard portfolio results/*.json --format markdown
+```
 
 Index result bundles into a SQLite benchmark store and query runs by scenario or model:
 

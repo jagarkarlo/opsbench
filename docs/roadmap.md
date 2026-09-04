@@ -107,3 +107,7 @@ Phase 5 starts at v0.6.0.
   - Normal-approximation 95% confidence intervals for runner means.
   - Conservative lower-bound ranking with deterministic tie-breakers.
   - JSON and Markdown output through `opsbench leaderboard results`.
+- Cross-scenario portfolio leaderboards (completed in v0.6.4):
+  - Normalized score aggregation across scenario IDs with explicit coverage.
+  - Repeated-trial uncertainty and conservative lower-bound ranking.
+  - JSON and Markdown output through `opsbench leaderboard portfolio`.
