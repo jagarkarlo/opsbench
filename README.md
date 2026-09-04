@@ -59,7 +59,7 @@ It includes:
 - Fixture, human, and OpenAI-compatible response adapters, plus a concurrent
   scenario-suite runner and reproducible result comparisons.
 - A zero-dependency HTTP REST API (`opsbench serve`), a SQLite result store,
-  a `/metrics` Prometheus endpoint, and a web console dashboard.
+  a `/metrics` Prometheus endpoint, and a React/TypeScript control room.
 - Optional bearer-token API authentication and an `opsbench doctor` command
   for validating a scenario gallery and result database.
 - Opt-in local performance reports, portable baselines, and CI-friendly
@@ -393,30 +393,38 @@ Backup archives are canonical JSON with an integrity digest. Restore refuses an
 archive that contains duplicate run IDs or would overwrite an existing result;
 restore into a new database when you need a complete copy.
 
-Start the OpsBench REST API server to open the read-only web console and expose
-scenarios, indexed runs, and portfolio leaderboard data via HTTP:
+Start the OpsBench REST API server and expose scenarios, indexed runs, and
+portfolio leaderboard data via HTTP:
 
 ```bash
-opsbench serve --host 127.0.0.1 --port 8080 --db bench.db
+opsbench serve --host 127.0.0.1 --port 8080 --db bench.db \
+  --frontend-path frontend/dist
 ```
 
-Then open <http://127.0.0.1:8080/dashboard>. The console currently provides:
+Then open <http://127.0.0.1:8080/app/>. Build the frontend first with the
+commands in [frontend/README.md](frontend/README.md). The control room
+provides:
 
-- indexed-run totals, scenario summaries, and recent runs;
-- same-scenario leaderboard summaries; and
-- a normalized cross-scenario portfolio leaderboard with coverage, uncertainty,
-  and conservative ranking.
+- responsive overview topology and health status;
+- scenario gallery and indexed-run inspection;
+- cross-scenario portfolio leaderboard with coverage and uncertainty; and
+- an Operations capability matrix that separates live UI inspection from
+  explicit CLI-only execution, evaluation, storage, integrity, MCP, and
+  diagnostics workflows.
 
 The portfolio data is also available as JSON at
-`/api/v1/leaderboard/portfolio`. Running benchmarks, evaluating responses,
-authoring scenarios, and importing result bundles remain CLI workflows; the
-console is currently the observation and comparison surface for indexed results.
+`/api/v1/leaderboard/portfolio`. The browser never executes proposed model
+actions or mutates benchmark artifacts.
 
 Run containerized OpsBench server with Docker Compose:
 
 ```bash
-docker compose up -d
+docker compose up --build -d
 ```
+
+Open <http://127.0.0.1:8080/app/>. The multi-stage image builds the frontend,
+copies its production assets into the Python image, and starts the API with the
+frontend mounted at `/app`.
 
 ## What Comes Next
 
