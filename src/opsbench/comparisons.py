@@ -120,11 +120,14 @@ def render_markdown_comparison(bundles: tuple[ResultBundle, ...]) -> str:
         "",
         f"**Scenario**: `{summary.scenario_id}`",
         "",
-        "| Runner | Trials | Total Score | Average Score |",
-        "|---|---|---|---|",
+        "| Runner | Trials | Total Score | Average Score | Std. Dev. | 95% CI |",
+        "|---|---:|---:|---:|---:|---|",
     ]
     for statistic in trials:
+        interval = statistic.confidence_interval_95
         lines.append(
-            f"| {statistic.runner_name} | {statistic.trial_count} | {statistic.total_score} | {statistic.average_score:.2f} |"
+            f"| {statistic.runner_name} | {statistic.trial_count} | {statistic.total_score} | "
+            f"{statistic.average_score:.2f} | {statistic.standard_deviation:.2f} | "
+            f"[{interval[0]:.2f}, {interval[1]:.2f}] |"
         )
     return "\n".join(lines) + "\n"

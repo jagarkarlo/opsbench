@@ -845,7 +845,9 @@ def main(argv: list[str] | None = None) -> int:
                         "trials": [
                             {
                                 "average_score": statistic.average_score,
+                                "confidence_interval_95": list(statistic.confidence_interval_95),
                                 "runner_name": statistic.runner_name,
+                                "standard_deviation": statistic.standard_deviation,
                                 "total_score": statistic.total_score,
                                 "trial_count": statistic.trial_count,
                             }

@@ -1005,6 +1005,8 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(result["scenario_id"], "scenario-001")
         self.assertEqual(result["trials"][0]["trial_count"], 2)
         self.assertEqual(result["trials"][0]["average_score"], 3.5)
+        self.assertEqual(result["trials"][0]["standard_deviation"], 0.7071067811865476)
+        self.assertEqual(len(result["trials"][0]["confidence_interval_95"]), 2)
 
     def test_compares_saved_result_bundles_in_markdown_format(self) -> None:
         with TemporaryDirectory() as temporary_directory:
@@ -1042,7 +1044,7 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertIn("# OpsBench Comparison Report", markdown_report)
         self.assertIn("**Scenario**: `scenario-001`", markdown_report)
-        self.assertIn("| fixture-model | 2 | 7 | 3.50 |", markdown_report)
+        self.assertIn("| fixture-model | 2 | 7 | 3.50 | 0.71 | [2.52, 4.48] |", markdown_report)
 
     def test_validates_scenario_directory_and_prints_pack_identity(self) -> None:
         with TemporaryDirectory() as temporary_directory:

@@ -101,8 +101,8 @@ class ComparisonTests(unittest.TestCase):
 
         self.assertIn("# OpsBench Comparison Report", report)
         self.assertIn("**Scenario**: `scenario-001`", report)
-        self.assertIn("| Runner | Trials | Total Score | Average Score |", report)
-        self.assertIn("| fixture-alpha | 2 | 7 | 3.50 |", report)
+        self.assertIn("| Runner | Trials | Total Score | Average Score | Std. Dev. | 95% CI |", report)
+        self.assertIn("| fixture-alpha | 2 | 7 | 3.50 | 0.71 | [2.52, 4.48] |", report)
 
 
 if __name__ == "__main__":
