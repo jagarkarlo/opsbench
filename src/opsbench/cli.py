@@ -31,6 +31,7 @@ from opsbench.failure_injection import (
 )
 from opsbench.backup import export_store, verify_archive, restore_archive
 from opsbench.prompts import render_prompt
+from opsbench.mcp_adapters import MCPRegistry
 from opsbench.performance_baseline import (
     PerformanceBaseline,
     PerformanceComparison,
@@ -133,6 +134,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     prompt_parser.add_argument("path")
     prompt_parser.add_argument("--instruction", help="custom system instruction")
+    prompt_parser.add_argument(
+        "--mcp",
+        action="append",
+        help="include contextual resources from an MCP provider (e.g. jira, kubernetes, github, gitlab, grafana); repeatable",
+    )
     lint_parser = scenario_subparsers.add_parser(
         "lint", help="statically lint a scenario directory for potential issues"
     )
@@ -332,6 +338,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="require this bearer token on all endpoints except /api/v1/health (default: $OPSBENCH_API_TOKEN)",
     )
 
+    mcp_parser = subparsers.add_parser("mcp", help="inspect MCP platform context adapters")
+    mcp_subparsers = mcp_parser.add_subparsers(dest="mcp_command", required=True)
+    mcp_subparsers.add_parser("list", help="list registered MCP context adapters")
+    mcp_inspect_parser = mcp_subparsers.add_parser("inspect", help="inspect tools and resources for an MCP adapter")
+    mcp_inspect_parser.add_argument("provider", help="provider identifier (e.g. jira, github, gitlab, grafana, kubernetes)")
+
     doctor_parser = subparsers.add_parser(
         "doctor", help="validate a scenario gallery and result database for common misconfigurations"
     )
@@ -398,9 +410,14 @@ def main(argv: list[str] | None = None) -> int:
         )
     if parsed.command == "scenario" and parsed.scenario_command == "prompt":
         pack = load_scenario_pack(Path(parsed.path))
+        mcp_contexts = None
+        if parsed.mcp:
+            registry = MCPRegistry.create_default()
+            mcp_contexts = registry.collect_context(pack, parsed.mcp)
         prompt_text = render_prompt(
             pack,
             system_instruction=parsed.instruction,
+            mcp_contexts=mcp_contexts,
         )
         print(prompt_text, end="")
     if parsed.command == "scenario" and parsed.scenario_command == "lint":
@@ -885,6 +902,29 @@ def main(argv: list[str] | None = None) -> int:
             pass
         finally:
             server.server_close()
+    if parsed.command == "mcp" and parsed.mcp_command == "list":
+        registry = MCPRegistry.create_default()
+        print(json.dumps({"providers": registry.list_providers()}, sort_keys=True))
+        return 0
+    if parsed.command == "mcp" and parsed.mcp_command == "inspect":
+        registry = MCPRegistry.create_default()
+        try:
+            adapter = registry.get(parsed.provider)
+            tools_data = [t.to_dict() for t in adapter.get_tool_definitions()]
+            print(
+                json.dumps(
+                    {
+                        "provider": adapter.provider_name,
+                        "tool_count": len(tools_data),
+                        "tools": tools_data,
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+        except KeyError as error:
+            print(json.dumps({"error": str(error), "status": "not_found"}, sort_keys=True))
+            return 1
     if parsed.command == "doctor":
         report: dict[str, object] = {"gallery_path": parsed.gallery_path}
         healthy = True

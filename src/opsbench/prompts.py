@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Sequence
+
 from opsbench.scenarios import ScenarioPack
+
+if TYPE_CHECKING:
+    from opsbench.mcp_adapters import MCPContextPayload
 
 DEFAULT_SYSTEM_INSTRUCTION = (
     "You are an expert site reliability engineer investigating an operational incident."
@@ -13,6 +18,7 @@ def render_prompt(
     pack: ScenarioPack,
     *,
     system_instruction: str | None = None,
+    mcp_contexts: Sequence[MCPContextPayload] | None = None,
 ) -> str:
     """Render a scenario pack into a deterministic, structured prompt string."""
     if not isinstance(pack, ScenarioPack):
@@ -43,6 +49,22 @@ def render_prompt(
         sections.append(content_text.rstrip())
         sections.append("```")
         sections.append("")
+
+    if mcp_contexts:
+        sections.append("## MCP Platform Context")
+        for ctx in mcp_contexts:
+            sections.append(f"### Provider: {ctx.provider}")
+            for res in ctx.resources:
+                sections.append(f"#### Resource: {res.name} (`{res.uri}`)")
+                sections.append("```json" if "json" in res.media_type else "```")
+                sections.append(res.content.rstrip())
+                sections.append("```")
+                sections.append("")
+            if ctx.tools:
+                sections.append("#### Available MCP Tools:")
+                for tool in ctx.tools:
+                    sections.append(f"- `{tool.name}`: {tool.description}")
+                sections.append("")
 
     sections.extend(
         [
