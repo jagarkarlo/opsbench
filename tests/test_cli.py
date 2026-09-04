@@ -1417,6 +1417,47 @@ class CliParserTests(unittest.TestCase):
         self.assertIn("matched_rules=synthetic", bundle["report"]["explanation"])
         self.assertIn("missing_citations=none", bundle["report"]["explanation"])
 
+    def test_mcp_cli_commands(self) -> None:
+        list_output = io.StringIO()
+        with redirect_stdout(list_output):
+            list_exit = main(["mcp", "list"])
+        self.assertEqual(list_exit, 0)
+        list_res = json.loads(list_output.getvalue())
+        self.assertEqual(list_res["providers"], ["github", "gitlab", "grafana", "jira", "kubernetes"])
+
+        inspect_output = io.StringIO()
+        with redirect_stdout(inspect_output):
+            inspect_exit = main(["mcp", "inspect", "jira"])
+        self.assertEqual(inspect_exit, 0)
+        inspect_res = json.loads(inspect_output.getvalue())
+        self.assertEqual(inspect_res["provider"], "jira")
+        self.assertGreater(inspect_res["tool_count"], 0)
+
+        missing_output = io.StringIO()
+        with redirect_stdout(missing_output):
+            missing_exit = main(["mcp", "inspect", "unknown-provider"])
+        self.assertEqual(missing_exit, 1)
+
+    def test_scenario_prompt_with_mcp_cli(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            scenario = Path(temporary_directory) / "scenario"
+            scenario.mkdir()
+            (scenario / "scenario.json").write_text(
+                '{"manifest":{"schema_version":"1.0","scenario_id":"scenario-001","title":"Fictional scenario","category":"kubernetes"},'
+                '"evidence":[{"artifact_id":"logs.txt","media_type":"text/plain","relative_path":"logs.txt"}]}',
+                encoding="utf-8",
+            )
+            (scenario / "logs.txt").write_text("synthetic logs\n", encoding="utf-8")
+            output = io.StringIO()
+            with redirect_stdout(output):
+                exit_code = main(["scenario", "prompt", str(scenario), "--mcp", "jira", "--mcp", "kubernetes"])
+
+            self.assertEqual(exit_code, 0)
+            rendered = output.getvalue()
+            self.assertIn("## MCP Platform Context", rendered)
+            self.assertIn("### Provider: jira", rendered)
+            self.assertIn("### Provider: kubernetes", rendered)
+
 
 if __name__ == "__main__":
     unittest.main()
