@@ -6,12 +6,25 @@ from opsbench.adapters import (
     HumanResponseAdapter,
     OpenAIResponseAdapter,
 )
+from opsbench.attestation import (
+    ResultAttestation,
+    load_attestation,
+    sign_result_bundle,
+    verify_result_attestation,
+    write_attestation,
+)
 from opsbench.authoring import ScenarioBuilder, scaffold_scenario
 from opsbench.chaos import ChaosCaseResult, ChaosMatrixResult, run_chaos_matrix
 from opsbench.contribution import (
     ContributionCheckResult,
     check_contribution,
     check_gallery_contributions,
+)
+from opsbench.datasets import (
+    PublicDatasetManifest,
+    export_public_dataset,
+    load_public_dataset,
+    verify_public_dataset,
 )
 from opsbench.export import export_store_to_json, import_json_to_store
 from opsbench.failure_injection import (
@@ -107,6 +120,8 @@ __all__ = [
     "PerformanceComparison",
     "ProfiledRunExecution",
     "ProfiledSuiteExecution",
+    "PublicDatasetManifest",
+    "ResultAttestation",
     "RunQuery",
     "RecoveryDrillResult",
     "RecoveryDrillSeriesResult",
@@ -128,13 +143,16 @@ __all__ = [
     "execute_suite",
     "execute_suite_resilient",
     "execute_suite_profiled",
+    "export_public_dataset",
     "export_store_to_json",
     "format_json_log_entry",
     "generate_prometheus_metrics",
     "import_json_to_store",
     "lint_scenario",
+    "load_attestation",
     "load_cold_routes",
     "load_performance_baseline",
+    "load_public_dataset",
     "load_replay_timeline",
     "parse_response_text",
     "render_dashboard_html",
@@ -144,6 +162,10 @@ __all__ = [
     "run_recovery_drill_series",
     "run_recovery_schedule_tick",
     "scaffold_scenario",
+    "sign_result_bundle",
+    "verify_public_dataset",
+    "verify_result_attestation",
+    "write_attestation",
     "write_cold_routes",
     "write_performance_baseline",
     "write_replay_timeline",

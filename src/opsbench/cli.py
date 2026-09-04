@@ -13,6 +13,12 @@ from opsbench.adapters import (
     HumanResponseAdapter,
     OpenAIResponseAdapter,
 )
+from opsbench.attestation import (
+    load_attestation,
+    sign_result_bundle,
+    verify_result_attestation,
+    write_attestation,
+)
 from opsbench.authoring import scaffold_scenario
 from opsbench.backup import export_store, verify_archive, restore_archive
 from opsbench.chaos import run_chaos_matrix
@@ -22,6 +28,7 @@ from opsbench.comparisons import (
     summarize_trials,
 )
 from opsbench.contribution import check_contribution, check_gallery_contributions
+from opsbench.datasets import export_public_dataset, verify_public_dataset
 from opsbench.export import export_store_to_json, import_json_to_store
 from opsbench.failure_injection import (
     FailureInjection,
@@ -344,6 +351,32 @@ def build_parser() -> argparse.ArgumentParser:
     mcp_inspect_parser = mcp_subparsers.add_parser("inspect", help="inspect tools and resources for an MCP adapter")
     mcp_inspect_parser.add_argument("provider", help="provider identifier (e.g. jira, github, gitlab, grafana, kubernetes)")
 
+    attest_parser = subparsers.add_parser("attest", help="cryptographic signing and verification for result bundles")
+    attest_subparsers = attest_parser.add_subparsers(dest="attest_command", required=True)
+    sign_parser = attest_subparsers.add_parser("sign", help="sign a result bundle and emit an attestation")
+    sign_parser.add_argument("bundle_path")
+    sign_parser.add_argument("attestation_path")
+    sign_parser.add_argument("--key", required=True, help="signing key string or secret")
+    sign_parser.add_argument("--signer", required=True, help="signer identity identifier")
+    sign_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
+
+    verify_attest_parser = attest_subparsers.add_parser("verify", help="verify a signed result attestation")
+    verify_attest_parser.add_argument("bundle_path")
+    verify_attest_parser.add_argument("attestation_path")
+    verify_attest_parser.add_argument("--key", required=True, help="verification key string or secret")
+
+    dataset_parser = subparsers.add_parser("dataset", help="public benchmark dataset packaging and verification")
+    dataset_subparsers = dataset_parser.add_subparsers(dest="dataset_command", required=True)
+    dataset_export_parser = dataset_subparsers.add_parser("export", help="export a verified public dataset bundle")
+    dataset_export_parser.add_argument("gallery_path")
+    dataset_export_parser.add_argument("output_path")
+    dataset_export_parser.add_argument("--name", default="opsbench-standard", help="dataset name identifier")
+    dataset_export_parser.add_argument("--version", default="1.0", help="dataset semantic version")
+
+    dataset_verify_parser = dataset_subparsers.add_parser("verify", help="verify public dataset checksum and gallery agreement")
+    dataset_verify_parser.add_argument("dataset_path")
+    dataset_verify_parser.add_argument("--gallery-path", default=None, help="optional path to local gallery for content match")
+
     doctor_parser = subparsers.add_parser(
         "doctor", help="validate a scenario gallery and result database for common misconfigurations"
     )
@@ -477,6 +510,83 @@ def main(argv: list[str] | None = None) -> int:
             result = check_contribution(target_path)
             print(json.dumps(result.to_dict(), sort_keys=True))
             return 0 if result.passed else 1
+    if parsed.command == "attest" and parsed.attest_command == "sign":
+        metadata = parse_metadata(parsed.metadata)
+        attestation = sign_result_bundle(
+            Path(parsed.bundle_path),
+            parsed.key,
+            parsed.signer,
+            metadata=metadata,
+        )
+        write_attestation(Path(parsed.attestation_path), attestation)
+        print(
+            json.dumps(
+                {
+                    "attestation_path": parsed.attestation_path,
+                    "bundle_hash": attestation.bundle_hash,
+                    "signer_identity": attestation.signer_identity,
+                    "status": "signed",
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
+    if parsed.command == "attest" and parsed.attest_command == "verify":
+        attestation = load_attestation(Path(parsed.attestation_path))
+        verified = verify_result_attestation(
+            Path(parsed.bundle_path),
+            attestation,
+            parsed.key,
+        )
+        print(
+            json.dumps(
+                {
+                    "attestation_path": parsed.attestation_path,
+                    "bundle_hash": attestation.bundle_hash,
+                    "status": "verified" if verified else "invalid",
+                    "verified": verified,
+                },
+                sort_keys=True,
+            )
+        )
+        return 0 if verified else 1
+    if parsed.command == "dataset" and parsed.dataset_command == "export":
+        manifest = export_public_dataset(
+            Path(parsed.gallery_path),
+            Path(parsed.output_path),
+            dataset_name=parsed.name,
+            version=parsed.version,
+        )
+        print(
+            json.dumps(
+                {
+                    "dataset_name": manifest.dataset_name,
+                    "output_path": parsed.output_path,
+                    "scenario_count": manifest.scenario_count,
+                    "status": "exported",
+                    "version": manifest.version,
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
+    if parsed.command == "dataset" and parsed.dataset_command == "verify":
+        verified, issues = verify_public_dataset(
+            Path(parsed.dataset_path),
+            Path(parsed.gallery_path) if parsed.gallery_path else None,
+        )
+        print(
+            json.dumps(
+                {
+                    "dataset_path": parsed.dataset_path,
+                    "issues": issues,
+                    "status": "verified" if verified else "invalid",
+                    "verified": verified,
+                },
+                sort_keys=True,
+            )
+        )
+        return 0 if verified else 1
     if parsed.command == "response" and parsed.response_command == "evaluate":
         scenario_path = Path(parsed.scenario_path)
         pack = load_scenario_pack(scenario_path)
