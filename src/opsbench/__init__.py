@@ -21,6 +21,18 @@ from opsbench.failure_injection import (
     InjectedFailureError,
 )
 from opsbench.logging import JSONLogger, format_json_log_entry
+from opsbench.mcp_adapters import (
+    GitHubMCPAdapter,
+    GitLabMCPAdapter,
+    GrafanaMCPAdapter,
+    JiraMCPAdapter,
+    KubernetesMCPAdapter,
+    MCPContextAdapter,
+    MCPContextPayload,
+    MCPRegistry,
+    MCPResource,
+    MCPToolDefinition,
+)
 from opsbench.metrics import generate_prometheus_metrics
 from opsbench.performance import PerformanceMetrics, PerformanceProfiler
 from opsbench.performance_baseline import (
@@ -75,9 +87,19 @@ __all__ = [
     "FailureInjectingAdapter",
     "FailureMode",
     "GalleryFixtureResponseAdapter",
+    "GitHubMCPAdapter",
+    "GitLabMCPAdapter",
+    "GrafanaMCPAdapter",
     "HumanResponseAdapter",
     "InjectedFailureError",
     "JSONLogger",
+    "JiraMCPAdapter",
+    "KubernetesMCPAdapter",
+    "MCPContextAdapter",
+    "MCPContextPayload",
+    "MCPRegistry",
+    "MCPResource",
+    "MCPToolDefinition",
     "OpenAIResponseAdapter",
     "PerformanceMetrics",
     "PerformanceProfiler",
