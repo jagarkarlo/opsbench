@@ -85,7 +85,12 @@ actions or requires a resident daemon.
 
 Phase 5 starts at v0.6.0.
 
-- Scenario authoring SDK and contribution checks.
+- Scenario authoring SDK and contribution checks (completed in v0.6.0):
+  - `ScenarioBuilder` fluent programmatic authoring SDK.
+  - Turnkey scaffolding with `opsbench scenario init`.
+  - Strict contribution verification with `opsbench scenario check`, validating
+    linting, naming conventions, evidence depth, evaluator rules, reference
+    response viability, and secret/credential hygiene.
 - Reliability Replay and ColdRoute scenario adapters.
 - GitHub, GitLab, Jira, Grafana, and Kubernetes MCP context adapters.
 - Public benchmark datasets and signed result attestations.

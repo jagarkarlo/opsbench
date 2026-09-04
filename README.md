@@ -113,6 +113,23 @@ Statically lint a scenario directory for schema errors and duplicate rules:
 opsbench scenario lint scenarios/kubernetes-image-reference-001
 ```
 
+Scaffold a turnkey starter scenario pack using the authoring SDK:
+
+```bash
+opsbench scenario init scenarios/kubernetes-dns-timeout-001 \
+  --id kubernetes-dns-timeout-001 \
+  --title "Diagnose CoreDNS upstream timeout" \
+  --category kubernetes
+```
+
+Run strict contribution readiness checks on a scenario pack or gallery:
+
+```bash
+opsbench scenario check scenarios/kubernetes-dns-timeout-001
+# Or across the entire gallery:
+opsbench scenario check scenarios
+```
+
 Render a structured, reproducible LLM prompt from a scenario pack:
 
 ```bash

@@ -6,7 +6,13 @@ from opsbench.adapters import (
     HumanResponseAdapter,
     OpenAIResponseAdapter,
 )
+from opsbench.authoring import ScenarioBuilder, scaffold_scenario
 from opsbench.chaos import ChaosCaseResult, ChaosMatrixResult, run_chaos_matrix
+from opsbench.contribution import (
+    ContributionCheckResult,
+    check_contribution,
+    check_gallery_contributions,
+)
 from opsbench.export import export_store_to_json, import_json_to_store
 from opsbench.failure_injection import (
     FailureInjection,
@@ -46,10 +52,11 @@ from opsbench.tracing import TraceSpan, TraceTracer
 from opsbench.validator import lint_scenario
 from opsbench.web import render_dashboard_html
 
-__version__ = "0.5.9"
+__version__ = "0.6.0"
 __all__ = [
     "ChaosCaseResult",
     "ChaosMatrixResult",
+    "ContributionCheckResult",
     "FixtureResponseAdapter",
     "FailureInjection",
     "FailureInjectingAdapter",
@@ -70,10 +77,13 @@ __all__ = [
     "RecoveryDrillSeriesResult",
     "RecoveryScheduleResult",
     "SQLiteResultStore",
+    "ScenarioBuilder",
     "SuiteExecution",
     "SuiteFailure",
     "TraceSpan",
     "TraceTracer",
+    "check_contribution",
+    "check_gallery_contributions",
     "create_server",
     "execute_run",
     "execute_run_profiled",
@@ -93,5 +103,6 @@ __all__ = [
     "run_recovery_drill",
     "run_recovery_drill_series",
     "run_recovery_schedule_tick",
+    "scaffold_scenario",
     "write_performance_baseline",
 ]

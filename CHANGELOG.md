@@ -3,6 +3,19 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
+## v0.6.0 — 2026-09-04 — Phase 5: Scenario authoring SDK and contribution checks
+
+- Added `ScenarioBuilder` fluent SDK and `scaffold_scenario` factory for
+  programmatic and automated creation of valid OpsBench scenario packs.
+- Added strict contribution readiness checks via `check_contribution` and
+  `check_gallery_contributions`, verifying lint status, naming conventions,
+  evidence content depth, evaluator rule validity, reference response
+  viability, and secret/credential hygiene.
+- Added `opsbench scenario init` to scaffold turnkey scenario packs ready for
+  contribution.
+- Added `opsbench scenario check` to validate single scenario packs or full
+  galleries against contribution standards.
+
 ## v0.5.9 — 2026-09-03 — Phase 4: Operations complete
 
 - Added bounded local load and synthetic chaos matrices through
