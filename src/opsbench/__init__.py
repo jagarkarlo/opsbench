@@ -15,6 +15,13 @@ from opsbench.attestation import (
 )
 from opsbench.authoring import ScenarioBuilder, scaffold_scenario
 from opsbench.chaos import ChaosCaseResult, ChaosMatrixResult, run_chaos_matrix
+from opsbench.comparisons import (
+    ComparisonSummary,
+    RunnerStatistics,
+    compare_bundles,
+    rank_trials,
+    summarize_trials,
+)
 from opsbench.contribution import (
     ContributionCheckResult,
     check_contribution,
@@ -92,6 +99,7 @@ __version__ = "0.6.3"
 __all__ = [
     "ChaosCaseResult",
     "ChaosMatrixResult",
+    "ComparisonSummary",
     "ColdRouteAdapter",
     "ColdRouteProfile",
     "ContributionCheckResult",
@@ -122,6 +130,7 @@ __all__ = [
     "ProfiledSuiteExecution",
     "PublicDatasetManifest",
     "ResultAttestation",
+    "RunnerStatistics",
     "RunQuery",
     "RecoveryDrillResult",
     "RecoveryDrillSeriesResult",
@@ -137,6 +146,7 @@ __all__ = [
     "TraceTracer",
     "check_contribution",
     "check_gallery_contributions",
+    "compare_bundles",
     "create_server",
     "execute_run",
     "execute_run_profiled",
@@ -156,6 +166,7 @@ __all__ = [
     "load_replay_timeline",
     "parse_response_text",
     "render_dashboard_html",
+    "rank_trials",
     "render_prompt",
     "run_chaos_matrix",
     "run_recovery_drill",
@@ -163,6 +174,7 @@ __all__ = [
     "run_recovery_schedule_tick",
     "scaffold_scenario",
     "sign_result_bundle",
+    "summarize_trials",
     "verify_public_dataset",
     "verify_result_attestation",
     "write_attestation",

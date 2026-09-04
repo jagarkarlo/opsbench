@@ -151,3 +151,24 @@ def render_markdown_comparison(bundles: tuple[ResultBundle, ...]) -> str:
             f"[{interval[0]:.2f}, {interval[1]:.2f}] |"
         )
     return "\n".join(lines) + "\n"
+
+
+def render_markdown_leaderboard(bundles: tuple[ResultBundle, ...]) -> str:
+    """Render a ranked leaderboard with uncertainty-aware scores."""
+    summary = compare_bundles(bundles)
+    lines = [
+        "# OpsBench Leaderboard",
+        "",
+        f"**Scenario**: `{summary.scenario_id}`",
+        "",
+        "| Rank | Runner | Trials | Average Score | Conservative Score | 95% CI |",
+        "|---:|---|---:|---:|---:|---|",
+    ]
+    for rank, statistic in enumerate(rank_trials(bundles), start=1):
+        interval = statistic.confidence_interval_95
+        lines.append(
+            f"| {rank} | {statistic.runner_name} | {statistic.trial_count} | "
+            f"{statistic.average_score:.2f} | {statistic.conservative_score:.2f} | "
+            f"[{interval[0]:.2f}, {interval[1]:.2f}] |"
+        )
+    return "\n".join(lines) + "\n"
