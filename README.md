@@ -45,7 +45,7 @@ OpsBench begins as a local, dependency-light Python package. Provider adapters,
 distributed execution, persistence, observability, and deployment are introduced
 behind stable interfaces in later milestones.
 
-## Current Capability (v0.5.7)
+## Current Capability (v0.6.3)
 
 OpsBench runs entirely locally; no model provider is required to explore it.
 It includes:
@@ -65,6 +65,9 @@ It includes:
 - Opt-in local performance reports, portable baselines, and CI-friendly
   wall-time regression detection for benchmark runs and suites.
 - Deterministic synthetic failure injection for safe local reliability tests.
+- Public benchmark dataset manifests with checksum verification and signed
+  result attestations.
+- Uncertainty-aware repeated-trial comparisons and conservative leaderboards.
 - Partial-suite performance reports that count completed and expected-failure
   scenarios separately while aggregating measured runs only.
 - Reference Docker/Compose, Kubernetes, Helm, Argo CD, and Terraform

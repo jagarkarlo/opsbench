@@ -102,4 +102,8 @@ Phase 5 starts at v0.6.0.
 - Public benchmark datasets and signed result attestations (completed in v0.6.3):
   - Deterministic dataset manifests with local gallery checksum verification.
   - HMAC-signed result attestations and `opsbench attest` verification commands.
-- Model leaderboards with uncertainty and repeated-trial analysis.
+- Model leaderboards with uncertainty and repeated-trial analysis (completed):
+  - Repeated-trial sample variance and standard deviation.
+  - Normal-approximation 95% confidence intervals for runner means.
+  - Conservative lower-bound ranking with deterministic tie-breakers.
+  - JSON and Markdown output through `opsbench leaderboard results`.

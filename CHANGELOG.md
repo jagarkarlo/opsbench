@@ -9,6 +9,9 @@ tag dates; versions follow the milestones described in `docs/roadmap.md`.
   and checksum verification.
 - Added HMAC-signed result attestations with bundle integrity verification.
 - Added `opsbench dataset export|verify` and `opsbench attest sign|verify`.
+- Added repeated-trial leaderboard statistics with sample standard deviation
+  and 95% confidence intervals.
+- Added conservative leaderboard ranking and `opsbench leaderboard results`.
 
 ## v0.6.2 — 2026-09-04 — Phase 5: MCP ecosystem context adapters
 
