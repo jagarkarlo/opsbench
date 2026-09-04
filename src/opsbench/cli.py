@@ -13,12 +13,15 @@ from opsbench.adapters import (
     HumanResponseAdapter,
     OpenAIResponseAdapter,
 )
+from opsbench.authoring import scaffold_scenario
+from opsbench.backup import export_store, verify_archive, restore_archive
 from opsbench.chaos import run_chaos_matrix
 from opsbench.comparisons import (
     compare_bundles,
     render_markdown_comparison,
     summarize_trials,
 )
+from opsbench.contribution import check_contribution, check_gallery_contributions
 from opsbench.export import export_store_to_json, import_json_to_store
 from opsbench.failure_injection import (
     FailureInjection,
@@ -39,7 +42,7 @@ from opsbench.responses import load_response
 from opsbench.recovery import run_recovery_drill, run_recovery_drill_series, run_recovery_schedule_tick
 from opsbench.runner import execute_run, execute_suite, execute_suite_resilient
 from opsbench.runs import ResultBundle, load_result_bundle, write_result_bundle
-from opsbench.scenarios import load_gallery, load_scenario_pack
+from opsbench.scenarios import SUPPORTED_CATEGORIES, load_gallery, load_scenario_pack
 from opsbench.scoring import evaluate_response, load_evaluator_profile
 from opsbench.server import create_server
 from opsbench.store import RunQuery, SQLiteResultStore
@@ -133,6 +136,23 @@ def build_parser() -> argparse.ArgumentParser:
         "lint", help="statically lint a scenario directory for potential issues"
     )
     lint_parser.add_argument("path")
+    init_parser = scenario_subparsers.add_parser(
+        "init", help="scaffold a new scenario pack with authoring SDK"
+    )
+    init_parser.add_argument("path", help="destination directory for new scenario")
+    init_parser.add_argument("--id", required=True, help="unique scenario ID (e.g. 'kubernetes-crashloop-001')")
+    init_parser.add_argument("--title", default="Diagnosed scenario", help="human-readable title")
+    init_parser.add_argument(
+        "--category",
+        choices=sorted(SUPPORTED_CATEGORIES),
+        default="kubernetes",
+        help="scenario category",
+    )
+    init_parser.add_argument("--overwrite", action="store_true", help="overwrite existing destination directory")
+    check_parser = scenario_subparsers.add_parser(
+        "check", help="run strict contribution readiness checks on scenario(s)"
+    )
+    check_parser.add_argument("path", help="scenario pack directory or gallery directory")
     response_parser = subparsers.add_parser("response", help="evaluate local benchmark responses")
     response_subparsers = response_parser.add_subparsers(dest="response_command", required=True)
     evaluate_parser = response_subparsers.add_parser(
@@ -383,6 +403,57 @@ def main(argv: list[str] | None = None) -> int:
                 sort_keys=True,
             )
         )
+    if parsed.command == "scenario" and parsed.scenario_command == "init":
+        scaffold_scenario(
+            scenario_id=parsed.id,
+            title=parsed.title,
+            category=parsed.category,
+            destination=Path(parsed.path),
+            overwrite=parsed.overwrite,
+        )
+        print(
+            json.dumps(
+                {
+                    "category": parsed.category,
+                    "destination": parsed.path,
+                    "scenario_id": parsed.id,
+                    "status": "scaffolded",
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
+    if parsed.command == "scenario" and parsed.scenario_command == "check":
+        target_path = Path(parsed.path)
+        if (target_path / "scenario.json").is_file():
+            result = check_contribution(target_path)
+            print(json.dumps(result.to_dict(), sort_keys=True))
+            return 0 if result.passed else 1
+        elif target_path.is_dir():
+            gallery_results = check_gallery_contributions(target_path)
+            all_passed = all(r.passed for r in gallery_results)
+            print(
+                json.dumps(
+                    {
+                        "all_passed": all_passed,
+                        "results": [r.to_dict() for r in gallery_results],
+                        "scenario_count": len(gallery_results),
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0 if (gallery_results and all_passed) else 1
+        else:
+            print(
+                json.dumps(
+                    {
+                        "error": f"path does not exist: {parsed.path}",
+                        "passed": False,
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 1
     if parsed.command == "response" and parsed.response_command == "evaluate":
         scenario_path = Path(parsed.scenario_path)
         pack = load_scenario_pack(scenario_path)
