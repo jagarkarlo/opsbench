@@ -69,6 +69,11 @@ class RunnerStatistics:
         margin = 1.96 * self.standard_deviation / math.sqrt(self.trial_count)
         return self.average_score - margin, self.average_score + margin
 
+    @property
+    def conservative_score(self) -> float:
+        """Return the lower 95% confidence bound used for ranking."""
+        return self.confidence_interval_95[0]
+
 
 def compare_bundles(bundles: tuple[ResultBundle, ...]) -> ComparisonSummary:
     """Summarize same-scenario bundles by runner identity in stable order."""
@@ -108,6 +113,21 @@ def summarize_trials(bundles: tuple[ResultBundle, ...]) -> tuple[RunnerStatistic
             total_squared_score=squared_totals[runner_name],
         )
         for runner_name, total_score in comparison.runner_totals
+    )
+
+
+def rank_trials(bundles: tuple[ResultBundle, ...]) -> tuple[RunnerStatistics, ...]:
+    """Rank runners by conservative score, then mean and sample size."""
+    return tuple(
+        sorted(
+            summarize_trials(bundles),
+            key=lambda statistic: (
+                -statistic.conservative_score,
+                -statistic.average_score,
+                -statistic.trial_count,
+                statistic.runner_name,
+            ),
+        )
     )
 
 

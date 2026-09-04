@@ -3,6 +3,7 @@ import unittest
 from opsbench.comparisons import (
     compare_bundles,
     render_markdown_comparison,
+    rank_trials,
     summarize_trials,
 )
 from opsbench.runs import BenchmarkRun, ResultBundle
@@ -90,6 +91,17 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(statistics[0].variance, 0.0)
         self.assertEqual(statistics[0].standard_deviation, 0.0)
         self.assertEqual(statistics[0].confidence_interval_95, (4.0, 4.0))
+
+    def test_ranks_by_conservative_score_before_mean(self) -> None:
+        bundles = (
+            build_bundle(run_id="run-001", model_name="steady", total_score=Score.GOOD),
+            build_bundle(run_id="run-002", model_name="uncertain", total_score=Score.FULL),
+        )
+
+        ranked = rank_trials(bundles)
+
+        self.assertEqual([statistic.runner_name for statistic in ranked], ["uncertain", "steady"])
+        self.assertEqual(ranked[0].conservative_score, 4.0)
 
     def test_renders_markdown_comparison_report(self) -> None:
         report = render_markdown_comparison(
