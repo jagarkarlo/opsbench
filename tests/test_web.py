@@ -59,6 +59,8 @@ class WebDashboardTests(unittest.TestCase):
         self.assertIn("scenario-001", html_out)
         self.assertIn("gpt-4o", html_out)
         self.assertIn("run-001", html_out)
+        self.assertIn("Portfolio Leaderboard", html_out)
+        self.assertIn("Conservative Score", html_out)
 
 
 if __name__ == "__main__":

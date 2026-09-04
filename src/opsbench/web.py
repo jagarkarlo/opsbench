@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import html
-from opsbench.comparisons import summarize_trials
+from opsbench.comparisons import rank_portfolio, summarize_trials
 from opsbench.store import SQLiteResultStore, RunQuery
 
 
@@ -42,6 +42,22 @@ def render_dashboard_html(store: SQLiteResultStore) -> str:
                 f"</tr>"
             )
 
+    portfolio_rows: list[str] = []
+    if bundles:
+        for rank, statistic in enumerate(rank_portfolio(tuple(bundles)), start=1):
+            interval = statistic.confidence_interval_95
+            portfolio_rows.append(
+                f"<tr>"
+                f"<td>{rank}</td>"
+                f"<td><strong>{html.escape(statistic.runner_name)}</strong></td>"
+                f"<td>{statistic.scenario_count}</td>"
+                f"<td>{statistic.trial_count}</td>"
+                f"<td>{statistic.average_score:.3f}</td>"
+                f"<td>{statistic.conservative_score:.3f}</td>"
+                f"<td>[{interval[0]:.3f}, {interval[1]:.3f}]</td>"
+                f"</tr>"
+            )
+
     recent_runs_rows: list[str] = []
     for bundle in bundles[:20]:
         runner_label = bundle.run.model_name or bundle.run.runner_kind
@@ -59,6 +75,11 @@ def render_dashboard_html(store: SQLiteResultStore) -> str:
         "\n".join(leaderboard_rows)
         if leaderboard_rows
         else "<tr><td colspan='5'>No benchmark runs recorded yet.</td></tr>"
+    )
+    portfolio_html = (
+        "\n".join(portfolio_rows)
+        if portfolio_rows
+        else "<tr><td colspan='7'>No portfolio results recorded yet.</td></tr>"
     )
     recent_html = (
         "\n".join(recent_runs_rows)
@@ -184,6 +205,25 @@ def render_dashboard_html(store: SQLiteResultStore) -> str:
             </thead>
             <tbody>
                 {leaderboard_html}
+            </tbody>
+        </table>
+
+        <h2>Portfolio Leaderboard</h2>
+        <p>Normalized across scenarios so different scoring scales can be compared.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Runner / Model</th>
+                    <th>Scenarios</th>
+                    <th>Trials</th>
+                    <th>Average</th>
+                    <th>Conservative Score</th>
+                    <th>95% CI</th>
+                </tr>
+            </thead>
+            <tbody>
+                {portfolio_html}
             </tbody>
         </table>
 

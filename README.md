@@ -393,11 +393,24 @@ Backup archives are canonical JSON with an integrity digest. Restore refuses an
 archive that contains duplicate run IDs or would overwrite an existing result;
 restore into a new database when you need a complete copy.
 
-Start the OpsBench REST API server to expose scenarios and query indexed runs via HTTP:
+Start the OpsBench REST API server to open the read-only web console and expose
+scenarios, indexed runs, and portfolio leaderboard data via HTTP:
 
 ```bash
 opsbench serve --host 127.0.0.1 --port 8080 --db bench.db
 ```
+
+Then open <http://127.0.0.1:8080/dashboard>. The console currently provides:
+
+- indexed-run totals, scenario summaries, and recent runs;
+- same-scenario leaderboard summaries; and
+- a normalized cross-scenario portfolio leaderboard with coverage, uncertainty,
+  and conservative ranking.
+
+The portfolio data is also available as JSON at
+`/api/v1/leaderboard/portfolio`. Running benchmarks, evaluating responses,
+authoring scenarios, and importing result bundles remain CLI workflows; the
+console is currently the observation and comparison surface for indexed results.
 
 Run containerized OpsBench server with Docker Compose:
 

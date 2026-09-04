@@ -10,6 +10,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from opsbench.metrics import generate_prometheus_metrics
+from opsbench.comparisons import rank_portfolio
 from opsbench.scenarios import load_gallery
 from opsbench.store import RunQuery, SQLiteResultStore
 from opsbench.web import render_dashboard_html
@@ -115,6 +116,37 @@ class BenchmarkRequestHandler(BaseHTTPRequestHandler):
                 data = {
                     "count": len(bundles),
                     "runs": [bundle.to_dict() for bundle in bundles],
+                }
+                self._send_json(HTTPStatus.OK, data)
+            except Exception as error:
+                self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(error)})
+            finally:
+                store.close()
+            return
+
+        if path == "/api/v1/leaderboard/portfolio":
+            limit_str = query_params.get("limit", ["500"])[0]
+            try:
+                limit = int(limit_str)
+            except ValueError:
+                limit = 500
+            store = SQLiteResultStore(self.db_path)
+            try:
+                rankings = rank_portfolio(store.query(RunQuery(limit=limit)))
+                data = {
+                    "count": len(rankings),
+                    "leaderboard": [
+                        {
+                            "average_score": statistic.average_score,
+                            "confidence_interval_95": list(statistic.confidence_interval_95),
+                            "conservative_score": statistic.conservative_score,
+                            "runner_name": statistic.runner_name,
+                            "scenario_count": statistic.scenario_count,
+                            "standard_deviation": statistic.standard_deviation,
+                            "trial_count": statistic.trial_count,
+                        }
+                        for statistic in rankings
+                    ],
                 }
                 self._send_json(HTTPStatus.OK, data)
             except Exception as error:
