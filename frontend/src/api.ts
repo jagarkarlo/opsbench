@@ -19,6 +19,8 @@ export type Run = {
   report: { scenario_id: string; total: number; maximum: number; explanation: string }
 }
 
+export type Capability = { id: string; label: string; mode: 'ui' | 'cli' }
+
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(path)
   if (!response.ok) throw new Error(`API request failed: ${response.status}`)
@@ -43,4 +45,8 @@ export function loadRun(runId: string): Promise<Run> {
 
 export function loadHealth(): Promise<{ status: string; version: string }> {
   return getJson('/api/v1/health')
+}
+
+export function loadCapabilities(): Promise<{ frontend: boolean; operations: Capability[] }> {
+  return getJson('/api/v1/capabilities')
 }

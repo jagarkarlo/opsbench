@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import './App.css'
-import { loadHealth, loadPortfolio, loadRuns, loadScenarios, type Ranking, type Run, type Scenario } from './api'
+import { loadCapabilities, loadHealth, loadPortfolio, loadRuns, loadScenarios, type Capability, type Ranking, type Run, type Scenario } from './api'
 
 const demoScenarios: Scenario[] = [
   { scenario_id: 'k8s-image-pull', title: 'Kubernetes image pull failure', category: 'kubernetes' },
@@ -20,13 +20,14 @@ function NetworkCanvas({ active }: { active: string }) {
 
   useEffect(() => {
     if (!mount.current) return
+    const mountElement = mount.current
     const scene = new THREE.Scene()
     const camera = new THREE.OrthographicCamera(-6, 6, 3.5, -3.5, 0.1, 100)
     camera.position.set(0, 0, 10)
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setSize(mount.current.clientWidth, mount.current.clientHeight)
-    mount.current.appendChild(renderer.domElement)
+    mountElement.appendChild(renderer.domElement)
 
     const points = [-4.4, -1.5, 1.5, 4.4]
     const nodes = points.map((x, index) => {
@@ -54,13 +55,13 @@ function NetworkCanvas({ active }: { active: string }) {
       renderer.render(scene, camera)
     }
     animate()
-    const resize = () => renderer.setSize(mount.current?.clientWidth ?? 600, mount.current?.clientHeight ?? 240)
+    const resize = () => renderer.setSize(mountElement.clientWidth, mountElement.clientHeight)
     window.addEventListener('resize', resize)
     return () => {
       cancelAnimationFrame(frame)
       window.removeEventListener('resize', resize)
       renderer.dispose()
-      mount.current?.removeChild(renderer.domElement)
+      mountElement.removeChild(renderer.domElement)
     }
   }, [active])
 
@@ -72,25 +73,28 @@ function App() {
   const [rankings, setRankings] = useState<Ranking[]>(demoRankings)
   const [selected, setSelected] = useState(demoScenarios[0].scenario_id)
   const [connected, setConnected] = useState(false)
-  const [view, setView] = useState<'overview' | 'runs' | 'scenarios'>('overview')
+  const [view, setView] = useState<'overview' | 'runs' | 'scenarios' | 'operations'>('overview')
   const [runs, setRuns] = useState<Run[]>([])
   const [version, setVersion] = useState('0.6.4')
+  const [capabilities, setCapabilities] = useState<Capability[]>([])
 
   useEffect(() => {
-    Promise.all([loadHealth(), loadScenarios(), loadPortfolio(), loadRuns()]).then(([healthData, scenarioData, leaderboardData, runData]) => {
+    Promise.all([loadHealth(), loadScenarios(), loadPortfolio(), loadRuns(), loadCapabilities()]).then(([healthData, scenarioData, leaderboardData, runData, capabilityData]) => {
       setVersion(healthData.version)
       if (scenarioData.scenarios?.length) setScenarios(scenarioData.scenarios)
       if (leaderboardData.leaderboard?.length) setRankings(leaderboardData.leaderboard)
       setRuns(runData.runs ?? [])
+      setCapabilities(capabilityData.operations ?? [])
       setConnected(true)
     }).catch(() => setConnected(false))
   }, [])
 
   return (
     <main className="shell">
-      <header className="topbar"><div className="brand"><span className="brand-mark">O</span><span>OPSBENCH <small>/ CONTROL ROOM</small></span></div><nav><button className={view === 'overview' ? 'nav-active' : ''} onClick={() => setView('overview')}>OVERVIEW</button><button className={view === 'runs' ? 'nav-active' : ''} onClick={() => setView('runs')}>RUNS</button><button className={view === 'scenarios' ? 'nav-active' : ''} onClick={() => setView('scenarios')}>SCENARIOS</button></nav><span className={connected ? 'status live' : 'status'}><i />{connected ? 'API CONNECTED' : 'DEMO DATA'}</span></header>
+      <header className="topbar"><div className="brand"><span className="brand-mark">O</span><span>OPSBENCH <small>/ CONTROL ROOM</small></span></div><nav><button className={view === 'overview' ? 'nav-active' : ''} onClick={() => setView('overview')}>OVERVIEW</button><button className={view === 'runs' ? 'nav-active' : ''} onClick={() => setView('runs')}>RUNS</button><button className={view === 'scenarios' ? 'nav-active' : ''} onClick={() => setView('scenarios')}>SCENARIOS</button><button className={view === 'operations' ? 'nav-active' : ''} onClick={() => setView('operations')}>OPERATIONS</button></nav><span className={connected ? 'status live' : 'status'}><i />{connected ? 'API CONNECTED' : 'DEMO DATA'}</span></header>
       {view === 'runs' && <section className="full-view"><p className="eyebrow">EXECUTION LEDGER</p><h1>Indexed runs</h1><div className="run-grid">{(runs.length ? runs : []).map((run) => <article className="run-card" key={run.run.run_id}><span className="run-status">● COMPLETE</span><h2>{run.run.model_name ?? run.run.runner_kind}</h2><p>{run.report.scenario_id}</p><strong>{run.report.total} / {run.report.maximum}</strong><small>{run.run.run_id}<br />{run.run.started_at}</small></article>)}</div>{!runs.length && <p className="empty">No indexed runs found in the connected store.</p>}</section>}
       {view === 'scenarios' && <section className="full-view"><p className="eyebrow">SCENARIO GALLERY</p><h1>Incident library</h1><div className="scenario-grid">{scenarios.map((scenario) => <button className={selected === scenario.scenario_id ? 'scenario-card selected' : 'scenario-card'} key={scenario.scenario_id} onClick={() => { setSelected(scenario.scenario_id); setView('overview') }}><span>{scenario.category.toUpperCase()}</span><h2>{scenario.title}</h2><small>{scenario.scenario_id}<br />PACK VERIFIED</small></button>)}</div></section>}
+      {view === 'operations' && <section className="full-view"><p className="eyebrow">CAPABILITY MATRIX</p><h1>Ops surface</h1><p className="lede">Every benchmark operation in one place. Browser-native surfaces are live; execution and artifact mutations remain explicit CLI workflows.</p><div className="capability-grid">{capabilities.map((capability) => <article className="capability" key={capability.id}><span className={capability.mode === 'ui' ? 'mode ui' : 'mode'}>{capability.mode === 'ui' ? 'AVAILABLE IN UI' : 'CLI WORKFLOW'}</span><h2>{capability.label}</h2><code>{capability.id}</code><button type="button" onClick={() => navigator.clipboard?.writeText(capability.mode === 'ui' ? 'http://127.0.0.1:8080/app' : `opsbench ${capability.id}`)}>COPY ENTRYPOINT</button></article>)}</div></section>}
       {view === 'overview' && <>
       <section className="hero-row"><div><p className="eyebrow">PHASE 05 / ECOSYSTEM TELEMETRY</p><h1>Benchmark intelligence,<br /><em>with a pulse.</em></h1><p className="lede">Read the reliability of your incident reasoning at a glance. Explore scenario topology, compare agents, and follow the signal.</p></div><div className="hero-meta"><span>LAST SYNC</span><strong>JUST NOW</strong><span>STORE</span><strong>SQLITE / LOCAL</strong></div></section>
       <section className="workspace">
