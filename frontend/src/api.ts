@@ -40,3 +40,7 @@ export function loadRuns(): Promise<{ runs: Run[]; count: number }> {
 export function loadRun(runId: string): Promise<Run> {
   return getJson(`/api/v1/runs/${encodeURIComponent(runId)}`)
 }
+
+export function loadHealth(): Promise<{ status: string; version: string }> {
+  return getJson('/api/v1/health')
+}
