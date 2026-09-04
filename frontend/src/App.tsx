@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import './App.css'
-
-type Scenario = { scenario_id: string; title: string; category: string }
-type Ranking = { runner_name: string; scenario_count: number; trial_count: number; average_score: number; conservative_score: number }
+import { loadPortfolio, loadScenarios, type Ranking, type Scenario } from './api'
 
 const demoScenarios: Scenario[] = [
   { scenario_id: 'k8s-image-pull', title: 'Kubernetes image pull failure', category: 'kubernetes' },
@@ -76,10 +74,7 @@ function App() {
   const [connected, setConnected] = useState(false)
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/v1/scenarios').then((response) => response.json()),
-      fetch('/api/v1/leaderboard/portfolio').then((response) => response.json()),
-    ]).then(([scenarioData, leaderboardData]) => {
+    Promise.all([loadScenarios(), loadPortfolio()]).then(([scenarioData, leaderboardData]) => {
       if (scenarioData.scenarios?.length) setScenarios(scenarioData.scenarios)
       if (leaderboardData.leaderboard?.length) setRankings(leaderboardData.leaderboard)
       setConnected(true)
