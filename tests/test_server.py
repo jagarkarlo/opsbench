@@ -20,6 +20,9 @@ class BenchmarkServerTests(unittest.TestCase):
         self.db_path = self.root_path / "test_server.db"
         self.gallery_path = self.root_path / "scenarios"
         self.gallery_path.mkdir()
+        self.frontend_path = self.root_path / "frontend"
+        self.frontend_path.mkdir()
+        (self.frontend_path / "index.html").write_text("<main>OpsBench app</main>", encoding="utf-8")
 
         # Seed test scenario
         scenario_dir = self.gallery_path / "scenario-001"
@@ -55,7 +58,13 @@ class BenchmarkServerTests(unittest.TestCase):
         store.close()
 
         # Start server on ephemeral port 0
-        self.server = create_server("127.0.0.1", 0, gallery_path=self.gallery_path, db_path=self.db_path)
+        self.server = create_server(
+            "127.0.0.1",
+            0,
+            gallery_path=self.gallery_path,
+            db_path=self.db_path,
+            frontend_path=self.frontend_path,
+        )
         self.port = self.server.server_port
         self.server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.server_thread.start()
@@ -109,6 +118,11 @@ class BenchmarkServerTests(unittest.TestCase):
         modes = {operation["id"]: operation["mode"] for operation in data["operations"]}
         self.assertEqual(modes["portfolio-leaderboard"], "ui")
         self.assertEqual(modes["benchmark-execution"], "cli")
+
+    def test_frontend_endpoint(self) -> None:
+        status, html_text = self._get_html("/app/")
+        self.assertEqual(status, HTTPStatus.OK)
+        self.assertIn("OpsBench app", html_text)
 
     def test_scenarios_endpoint(self) -> None:
         status, data = self._get("/api/v1/scenarios")
