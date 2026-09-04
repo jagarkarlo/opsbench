@@ -1368,6 +1368,55 @@ class CliParserTests(unittest.TestCase):
             self.assertFalse(result["passed"])
             self.assertTrue(len(result["issues"]) > 0)
 
+    def test_executes_replay_run_and_writes_result_bundle(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            scenario = directory / "scenario"
+            scenario.mkdir()
+            (scenario / "scenario.json").write_text(
+                '{"manifest":{"schema_version":"1.0","scenario_id":"scenario-001","title":"Fictional scenario","category":"kubernetes"},'
+                '"evidence":[{"artifact_id":"logs.txt","media_type":"text/plain","relative_path":"logs.txt"}]}',
+                encoding="utf-8",
+            )
+            (scenario / "logs.txt").write_text("synthetic logs\n", encoding="utf-8")
+            (scenario / "evaluator.json").write_text(
+                '{"scenario_id":"scenario-001","diagnosis_rules":[{"rule_id":"synthetic","keyword":"synthetic","weight":2}],"permitted_actions":["inspect logs"]}',
+                encoding="utf-8",
+            )
+            timeline_path = directory / "timeline.json"
+            timeline_path.write_text(
+                '{"scenario_id":"scenario-001","initial_symptoms":"Pod degraded","root_cause_analysis":"Synthetic incident rca.",'
+                '"steps":[{"step_number":1,"elapsed_seconds":10.0,"event_type":"alert","summary":"synthetic failure detected","artifact_id":"logs.txt"}],'
+                '"resolution_actions":["inspect logs"]}',
+                encoding="utf-8",
+            )
+            output_path = directory / "results" / "replay-run.json"
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "run",
+                        "replay",
+                        str(scenario),
+                        str(timeline_path),
+                        str(output_path),
+                        "--run-id",
+                        "replay-run-001",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            command_result = json.loads(output.getvalue())
+            bundle = json.loads(output_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(command_result["run"]["runner_kind"], "reliability-replay")
+        self.assertEqual(bundle["run"]["runner_kind"], "reliability-replay")
+        self.assertEqual(bundle["run"]["model_name"], "reliability-replay-engine")
+        self.assertEqual(bundle["report"]["scenario_id"], "scenario-001")
+        self.assertIn("matched_rules=synthetic", bundle["report"]["explanation"])
+        self.assertIn("missing_citations=none", bundle["report"]["explanation"])
+
 
 if __name__ == "__main__":
     unittest.main()
