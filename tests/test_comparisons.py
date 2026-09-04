@@ -2,8 +2,10 @@ import unittest
 
 from opsbench.comparisons import (
     compare_bundles,
+    rank_portfolio,
     render_markdown_comparison,
     rank_trials,
+    summarize_portfolio,
     summarize_trials,
 )
 from opsbench.runs import BenchmarkRun, ResultBundle
@@ -115,6 +117,28 @@ class ComparisonTests(unittest.TestCase):
         self.assertIn("**Scenario**: `scenario-001`", report)
         self.assertIn("| Runner | Trials | Total Score | Average Score | Std. Dev. | 95% CI |", report)
         self.assertIn("| fixture-alpha | 2 | 7 | 3.50 | 0.71 | [2.52, 4.48] |", report)
+
+    def test_summarizes_and_ranks_multiple_scenarios_by_normalized_score(self) -> None:
+        first = build_bundle(run_id="run-001", model_name="fixture-alpha", total_score=Score.FULL)
+        second = build_bundle(run_id="run-002", model_name="fixture-alpha", total_score=Score.GOOD)
+        other_report = ScoreReport(
+            scenario_id="scenario-002",
+            response_hash=second.run.response_hash,
+            diagnosis=Score.FULL,
+            evidence=Score.ZERO,
+            actions=Score.ZERO,
+            safety=Score.ZERO,
+            explanation="Synthetic result.",
+        )
+        other = ResultBundle(second.run, other_report)
+
+        statistics = summarize_portfolio((first, other))
+        ranked = rank_portfolio((first, other))
+
+        self.assertEqual(statistics[0].scenario_count, 2)
+        self.assertEqual(statistics[0].trial_count, 2)
+        self.assertEqual(statistics[0].average_score, 0.25)
+        self.assertEqual(ranked[0].runner_name, "fixture-alpha")
 
 
 if __name__ == "__main__":
