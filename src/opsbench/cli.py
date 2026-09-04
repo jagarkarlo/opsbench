@@ -26,6 +26,8 @@ from opsbench.comparisons import (
     compare_bundles,
     render_markdown_comparison,
     render_markdown_leaderboard,
+    render_markdown_portfolio_leaderboard,
+    rank_portfolio,
     rank_trials,
     summarize_trials,
 )
@@ -280,6 +282,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     leaderboard_results_parser.add_argument("bundle_paths", nargs="+")
     leaderboard_results_parser.add_argument(
+        "--format",
+        choices=["json", "markdown"],
+        default="json",
+        help="output format (default: json)",
+    )
+    portfolio_parser = leaderboard_subparsers.add_parser(
+        "portfolio", help="rank results across multiple scenarios"
+    )
+    portfolio_parser.add_argument("bundle_paths", nargs="+")
+    portfolio_parser.add_argument(
         "--format",
         choices=["json", "markdown"],
         default="json",
@@ -898,6 +910,31 @@ def main(argv: list[str] | None = None) -> int:
                             }
                             for rank, statistic in enumerate(rank_trials(bundles), start=1)
                         ],
+                    },
+                    sort_keys=True,
+                )
+            )
+    if parsed.command == "leaderboard" and parsed.leaderboard_command == "portfolio":
+        bundles = tuple(load_result_bundle(Path(path)) for path in parsed.bundle_paths)
+        if parsed.format == "markdown":
+            print(render_markdown_portfolio_leaderboard(bundles), end="")
+        else:
+            print(
+                json.dumps(
+                    {
+                        "rankings": [
+                            {
+                                "average_score": statistic.average_score,
+                                "confidence_interval_95": list(statistic.confidence_interval_95),
+                                "conservative_score": statistic.conservative_score,
+                                "rank": rank,
+                                "runner_name": statistic.runner_name,
+                                "scenario_count": statistic.scenario_count,
+                                "standard_deviation": statistic.standard_deviation,
+                                "trial_count": statistic.trial_count,
+                            }
+                            for rank, statistic in enumerate(rank_portfolio(bundles), start=1)
+                        ]
                     },
                     sort_keys=True,
                 )

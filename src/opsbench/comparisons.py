@@ -270,3 +270,21 @@ def render_markdown_leaderboard(bundles: tuple[ResultBundle, ...]) -> str:
             f"[{interval[0]:.2f}, {interval[1]:.2f}] |"
         )
     return "\n".join(lines) + "\n"
+
+
+def render_markdown_portfolio_leaderboard(bundles: tuple[ResultBundle, ...]) -> str:
+    """Render a cross-scenario leaderboard with coverage and normalized scores."""
+    lines = [
+        "# OpsBench Portfolio Leaderboard",
+        "",
+        "| Rank | Runner | Scenarios | Trials | Average | Conservative Score | 95% CI |",
+        "|---:|---|---:|---:|---:|---:|---|",
+    ]
+    for rank, statistic in enumerate(rank_portfolio(bundles), start=1):
+        interval = statistic.confidence_interval_95
+        lines.append(
+            f"| {rank} | {statistic.runner_name} | {statistic.scenario_count} | "
+            f"{statistic.trial_count} | {statistic.average_score:.3f} | "
+            f"{statistic.conservative_score:.3f} | [{interval[0]:.3f}, {interval[1]:.3f}] |"
+        )
+    return "\n".join(lines) + "\n"

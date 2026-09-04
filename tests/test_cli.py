@@ -260,6 +260,15 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(parsed.leaderboard_command, "results")
         self.assertEqual(parsed.format, "markdown")
 
+    def test_parses_portfolio_leaderboard_command(self) -> None:
+        parsed = build_parser().parse_args(
+            ["leaderboard", "portfolio", "results/first.json", "results/second.json"]
+        )
+
+        self.assertEqual(parsed.command, "leaderboard")
+        self.assertEqual(parsed.leaderboard_command, "portfolio")
+        self.assertEqual(parsed.format, "json")
+
     def test_executes_fixture_run_and_writes_result_bundle(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             directory = Path(temporary_directory)

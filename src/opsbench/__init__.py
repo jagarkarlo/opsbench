@@ -17,9 +17,12 @@ from opsbench.authoring import ScenarioBuilder, scaffold_scenario
 from opsbench.chaos import ChaosCaseResult, ChaosMatrixResult, run_chaos_matrix
 from opsbench.comparisons import (
     ComparisonSummary,
+    PortfolioStatistics,
     RunnerStatistics,
     compare_bundles,
+    rank_portfolio,
     rank_trials,
+    summarize_portfolio,
     summarize_trials,
 )
 from opsbench.contribution import (
@@ -122,6 +125,7 @@ __all__ = [
     "MCPResource",
     "MCPToolDefinition",
     "OpenAIResponseAdapter",
+    "PortfolioStatistics",
     "PerformanceMetrics",
     "PerformanceProfiler",
     "PerformanceBaseline",
@@ -167,6 +171,7 @@ __all__ = [
     "parse_response_text",
     "render_dashboard_html",
     "rank_trials",
+    "rank_portfolio",
     "render_prompt",
     "run_chaos_matrix",
     "run_recovery_drill",
@@ -175,6 +180,7 @@ __all__ = [
     "scaffold_scenario",
     "sign_result_bundle",
     "summarize_trials",
+    "summarize_portfolio",
     "verify_public_dataset",
     "verify_result_attestation",
     "write_attestation",

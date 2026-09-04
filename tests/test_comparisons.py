@@ -4,6 +4,7 @@ from opsbench.comparisons import (
     compare_bundles,
     rank_portfolio,
     render_markdown_comparison,
+    render_markdown_portfolio_leaderboard,
     rank_trials,
     summarize_portfolio,
     summarize_trials,
@@ -139,6 +140,10 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(statistics[0].trial_count, 2)
         self.assertEqual(statistics[0].average_score, 0.25)
         self.assertEqual(ranked[0].runner_name, "fixture-alpha")
+
+        report = render_markdown_portfolio_leaderboard((first, other))
+        self.assertIn("# OpsBench Portfolio Leaderboard", report)
+        self.assertIn("| 1 | fixture-alpha | 2 | 2 | 0.250 |", report)
 
 
 if __name__ == "__main__":
