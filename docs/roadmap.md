@@ -95,6 +95,9 @@ Phase 5 starts at v0.6.0.
   - `ReliabilityReplayAdapter` and `ReliabilityReplayTimeline` for reproducible incident trace simulation.
   - `ColdRouteAdapter` and `ColdRouteProfile` for cold-path disaster recovery procedures.
   - CLI `opsbench run replay` command.
-- GitHub, GitLab, Jira, Grafana, and Kubernetes MCP context adapters.
+- GitHub, GitLab, Jira, Grafana, and Kubernetes MCP context adapters (completed in v0.6.2):
+  - Standardized `MCPContextAdapter` protocol, `MCPResource`, `MCPToolDefinition`, and `MCPRegistry`.
+  - Built-in platform adapters for GitHub, GitLab, Jira, Grafana, and Kubernetes.
+  - Prompt enrichment with `--mcp <provider>` and CLI `opsbench mcp list|inspect`.
 - Public benchmark datasets and signed result attestations.
 - Model leaderboards with uncertainty and repeated-trial analysis.

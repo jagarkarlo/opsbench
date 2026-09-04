@@ -136,6 +136,21 @@ Render a structured, reproducible LLM prompt from a scenario pack:
 opsbench scenario prompt scenarios/kubernetes-image-reference-001
 ```
 
+Enrich prompts with platform context using Model Context Protocol (MCP) adapters:
+
+```bash
+opsbench scenario prompt scenarios/kubernetes-image-reference-001 \
+  --mcp jira \
+  --mcp kubernetes
+```
+
+Inspect registered MCP ecosystem adapters and their declared tool schemas:
+
+```bash
+opsbench mcp list
+opsbench mcp inspect jira
+```
+
 Evaluate the synthetic reference response for a scenario:
 
 ```bash

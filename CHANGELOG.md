@@ -3,6 +3,17 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
+## v0.6.2 — 2026-09-04 — Phase 5: MCP ecosystem context adapters
+
+- Added Model Context Protocol (MCP) context adapters for GitHub, GitLab, Jira,
+  Grafana, and Kubernetes (`GitHubMCPAdapter`, `GitLabMCPAdapter`, `JiraMCPAdapter`,
+  `GrafanaMCPAdapter`, `KubernetesMCPAdapter`).
+- Added `MCPResource`, `MCPToolDefinition`, `MCPContextPayload`, and `MCPRegistry`
+  for managing and collecting contextual resources and platform tool schemas.
+- Added prompt enrichment via `--mcp <provider>` on `opsbench scenario prompt`.
+- Added `opsbench mcp list` and `opsbench mcp inspect <provider>` commands for
+  auditing registered MCP tools and capabilities.
+
 ## v0.6.1 — 2026-09-04 — Phase 5: Reliability Replay and ColdRoute scenario adapters
 
 - Added `ReliabilityReplayAdapter`, `ReliabilityReplayTimeline`, and `ReplayStep`
