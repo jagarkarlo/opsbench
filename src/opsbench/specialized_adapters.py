@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import json
+from pathlib import Path
 import time
-from typing import Sequence
+from typing import Any, Sequence
 
 from opsbench.responses import BenchmarkResponse
 from opsbench.scenarios import ScenarioPack
@@ -31,6 +33,30 @@ class ReplayStep:
         if not isinstance(self.summary, str) or not self.summary.strip():
             raise ValueError("summary must be a non-empty string")
 
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "step_number": self.step_number,
+            "elapsed_seconds": self.elapsed_seconds,
+            "event_type": self.event_type,
+            "summary": self.summary,
+        }
+        if self.artifact_id is not None:
+            result["artifact_id"] = self.artifact_id
+        if self.action_taken is not None:
+            result["action_taken"] = self.action_taken
+        return result
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> ReplayStep:
+        return cls(
+            step_number=int(data["step_number"]),
+            elapsed_seconds=float(data["elapsed_seconds"]),
+            event_type=str(data["event_type"]),
+            summary=str(data["summary"]),
+            artifact_id=data.get("artifact_id"),
+            action_taken=data.get("action_taken"),
+        )
+
 
 @dataclass(frozen=True)
 class ReliabilityReplayTimeline:
@@ -53,6 +79,26 @@ class ReliabilityReplayTimeline:
             raise ValueError("steps must be a non-empty tuple of ReplayStep")
         if not isinstance(self.resolution_actions, tuple):
             raise ValueError("resolution_actions must be a tuple of strings")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "initial_symptoms": self.initial_symptoms,
+            "resolution_actions": list(self.resolution_actions),
+            "root_cause_analysis": self.root_cause_analysis,
+            "scenario_id": self.scenario_id,
+            "steps": [s.to_dict() for s in self.steps],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> ReliabilityReplayTimeline:
+        steps = tuple(ReplayStep.from_dict(s) for s in data["steps"])
+        return cls(
+            scenario_id=str(data["scenario_id"]),
+            initial_symptoms=str(data["initial_symptoms"]),
+            root_cause_analysis=str(data["root_cause_analysis"]),
+            steps=steps,
+            resolution_actions=tuple(str(a) for a in data.get("resolution_actions", ())),
+        )
 
 
 class ReliabilityReplayAdapter:
@@ -134,6 +180,66 @@ class ColdRouteProfile:
             raise ValueError("target_environment must be a non-empty string")
         if not isinstance(self.warmup_duration_seconds, (int, float)) or self.warmup_duration_seconds < 0:
             raise ValueError("warmup_duration_seconds must be non-negative")
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "fallback_actions": list(self.fallback_actions),
+            "route_id": self.route_id,
+            "target_environment": self.target_environment,
+            "warmup_duration_seconds": self.warmup_duration_seconds,
+        }
+        if self.last_verified_timestamp is not None:
+            result["last_verified_timestamp"] = self.last_verified_timestamp
+        return result
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> ColdRouteProfile:
+        return cls(
+            route_id=str(data["route_id"]),
+            target_environment=str(data["target_environment"]),
+            last_verified_timestamp=data.get("last_verified_timestamp"),
+            warmup_duration_seconds=float(data.get("warmup_duration_seconds", 0.0)),
+            fallback_actions=tuple(str(a) for a in data.get("fallback_actions", ())),
+        )
+
+
+def load_replay_timeline(path: Path | str) -> ReliabilityReplayTimeline:
+    """Load a reliability replay timeline from a JSON file."""
+    p = Path(path)
+    if not p.is_file():
+        raise ValueError(f"replay timeline file not found: {p}")
+    data = json.loads(p.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("replay timeline root must be a JSON object")
+    return ReliabilityReplayTimeline.from_dict(data)
+
+
+def write_replay_timeline(path: Path | str, timeline: ReliabilityReplayTimeline) -> None:
+    """Serialize and write a reliability replay timeline to a JSON file."""
+    if not isinstance(timeline, ReliabilityReplayTimeline):
+        raise ValueError("timeline must be a ReliabilityReplayTimeline")
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(timeline.to_dict(), indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def load_cold_routes(path: Path | str) -> tuple[ColdRouteProfile, ...]:
+    """Load a collection of cold route profiles from a JSON file."""
+    p = Path(path)
+    if not p.is_file():
+        raise ValueError(f"cold routes file not found: {p}")
+    data = json.loads(p.read_text(encoding="utf-8"))
+    if not isinstance(data, list):
+        raise ValueError("cold routes file must contain a JSON array of route objects")
+    return tuple(ColdRouteProfile.from_dict(d) for d in data)
+
+
+def write_cold_routes(path: Path | str, routes: Sequence[ColdRouteProfile]) -> None:
+    """Serialize and write cold route profiles to a JSON file."""
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    serialized = [r.to_dict() for r in routes]
+    p.write_text(json.dumps(serialized, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 class ColdRouteAdapter:
