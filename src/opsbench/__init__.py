@@ -47,6 +47,17 @@ from opsbench.recovery import (
 )
 from opsbench.runner import SuiteExecution, SuiteFailure, execute_run, execute_suite, execute_suite_resilient
 from opsbench.server import create_server
+from opsbench.specialized_adapters import (
+    ColdRouteAdapter,
+    ColdRouteProfile,
+    ReliabilityReplayAdapter,
+    ReliabilityReplayTimeline,
+    ReplayStep,
+    load_cold_routes,
+    load_replay_timeline,
+    write_cold_routes,
+    write_replay_timeline,
+)
 from opsbench.store import RunQuery, SQLiteResultStore
 from opsbench.tracing import TraceSpan, TraceTracer
 from opsbench.validator import lint_scenario
@@ -56,6 +67,8 @@ __version__ = "0.6.0"
 __all__ = [
     "ChaosCaseResult",
     "ChaosMatrixResult",
+    "ColdRouteAdapter",
+    "ColdRouteProfile",
     "ContributionCheckResult",
     "FixtureResponseAdapter",
     "FailureInjection",
@@ -76,6 +89,9 @@ __all__ = [
     "RecoveryDrillResult",
     "RecoveryDrillSeriesResult",
     "RecoveryScheduleResult",
+    "ReliabilityReplayAdapter",
+    "ReliabilityReplayTimeline",
+    "ReplayStep",
     "SQLiteResultStore",
     "ScenarioBuilder",
     "SuiteExecution",
@@ -95,7 +111,9 @@ __all__ = [
     "generate_prometheus_metrics",
     "import_json_to_store",
     "lint_scenario",
+    "load_cold_routes",
     "load_performance_baseline",
+    "load_replay_timeline",
     "parse_response_text",
     "render_dashboard_html",
     "render_prompt",
@@ -104,5 +122,7 @@ __all__ = [
     "run_recovery_drill_series",
     "run_recovery_schedule_tick",
     "scaffold_scenario",
+    "write_cold_routes",
     "write_performance_baseline",
+    "write_replay_timeline",
 ]

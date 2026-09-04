@@ -45,6 +45,7 @@ from opsbench.runs import ResultBundle, load_result_bundle, write_result_bundle
 from opsbench.scenarios import SUPPORTED_CATEGORIES, load_gallery, load_scenario_pack
 from opsbench.scoring import evaluate_response, load_evaluator_profile
 from opsbench.server import create_server
+from opsbench.specialized_adapters import ReliabilityReplayAdapter, load_replay_timeline
 from opsbench.store import RunQuery, SQLiteResultStore
 from opsbench.tracing import TraceTracer
 from opsbench.validator import lint_scenario
@@ -185,6 +186,18 @@ def build_parser() -> argparse.ArgumentParser:
     human_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
     add_performance_arguments(human_parser)
     add_failure_injection_arguments(human_parser)
+    replay_parser = run_subparsers.add_parser(
+        "replay", help="execute a run driven by a historical incident replay timeline"
+    )
+    replay_parser.add_argument("scenario_path")
+    replay_parser.add_argument("timeline_path")
+    replay_parser.add_argument("output_path")
+    replay_parser.add_argument("--run-id", required=True)
+    replay_parser.add_argument("--playback-speed", type=float, default=1.0)
+    replay_parser.add_argument("--metadata", action="append", metavar="KEY=VALUE")
+    replay_parser.add_argument("--otlp-endpoint", help="optional OTLP/HTTP traces endpoint")
+    add_performance_arguments(replay_parser)
+    add_failure_injection_arguments(replay_parser)
     openai_parser = run_subparsers.add_parser(
         "openai", help="execute a run against an OpenAI-compatible endpoint"
     )
@@ -454,7 +467,7 @@ def main(argv: list[str] | None = None) -> int:
         response = load_response(Path(parsed.response_path))
         report = evaluate_response(pack, profile, response)
         print(json.dumps(report.to_dict(), sort_keys=True))
-    if parsed.command == "run" and parsed.run_command in {"fixture", "human", "openai"}:
+    if parsed.command == "run" and parsed.run_command in {"fixture", "human", "openai", "replay"}:
         scenario_path = Path(parsed.scenario_path)
         pack = load_scenario_pack(scenario_path)
         profile = load_evaluator_profile(scenario_path / "evaluator.json")
@@ -465,6 +478,9 @@ def main(argv: list[str] | None = None) -> int:
         elif parsed.run_command == "human":
             response = load_response(Path(parsed.response_path))
             adapter = HumanResponseAdapter(response)
+        elif parsed.run_command == "replay":
+            timeline = load_replay_timeline(Path(parsed.timeline_path))
+            adapter = ReliabilityReplayAdapter(timeline, playback_speed=parsed.playback_speed)
         else:
             adapter = OpenAIResponseAdapter(
                 model_name=parsed.model,
