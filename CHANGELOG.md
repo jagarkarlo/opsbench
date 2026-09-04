@@ -3,6 +3,18 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
+## v0.6.1 — 2026-09-04 — Phase 5: Reliability Replay and ColdRoute scenario adapters
+
+- Added `ReliabilityReplayAdapter`, `ReliabilityReplayTimeline`, and `ReplayStep`
+  for deterministic simulation of multi-step incident timelines and root-cause
+  playback.
+- Added `ColdRouteAdapter` and `ColdRouteProfile` for evaluating cold-route failover,
+  disaster recovery paths, and un-warmed infrastructure procedures.
+- Added JSON persistence helpers (`load_replay_timeline`, `write_replay_timeline`,
+  `load_cold_routes`, `write_cold_routes`).
+- Added `opsbench run replay` CLI command supporting performance baselines,
+  failure injection, and OTLP tracing.
+
 ## v0.6.0 — 2026-09-04 — Phase 5: Scenario authoring SDK and contribution checks
 
 - Added `ScenarioBuilder` fluent SDK and `scaffold_scenario` factory for

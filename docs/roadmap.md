@@ -91,7 +91,10 @@ Phase 5 starts at v0.6.0.
   - Strict contribution verification with `opsbench scenario check`, validating
     linting, naming conventions, evidence depth, evaluator rules, reference
     response viability, and secret/credential hygiene.
-- Reliability Replay and ColdRoute scenario adapters.
+- Reliability Replay and ColdRoute scenario adapters (completed in v0.6.1):
+  - `ReliabilityReplayAdapter` and `ReliabilityReplayTimeline` for reproducible incident trace simulation.
+  - `ColdRouteAdapter` and `ColdRouteProfile` for cold-path disaster recovery procedures.
+  - CLI `opsbench run replay` command.
 - GitHub, GitLab, Jira, Grafana, and Kubernetes MCP context adapters.
 - Public benchmark datasets and signed result attestations.
 - Model leaderboards with uncertainty and repeated-trial analysis.

@@ -229,6 +229,14 @@ opsbench run chaos-matrix scenarios results/chaos-matrix \
   --max-workers 2
 ```
 
+Execute an incident playback run using a structured historical replay timeline:
+
+```bash
+opsbench run replay scenarios/observability-latency-001 timeline.json results/replay-run.json \
+  --run-id replay-run-001 \
+  --playback-speed 1.0
+```
+
 This exercises fixture adapters only. It does not call external providers or
 execute proposed remediation actions.
 
