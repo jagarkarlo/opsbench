@@ -375,6 +375,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=os.environ.get("OPSBENCH_API_TOKEN"),
         help="require this bearer token on all endpoints except /api/v1/health (default: $OPSBENCH_API_TOKEN)",
     )
+    serve_parser.add_argument(
+        "--frontend-path",
+        default=None,
+        help="optional path to a built React frontend served at /app",
+    )
 
     mcp_parser = subparsers.add_parser("mcp", help="inspect MCP platform context adapters")
     mcp_subparsers = mcp_parser.add_subparsers(dest="mcp_command", required=True)
@@ -1086,6 +1091,7 @@ def main(argv: list[str] | None = None) -> int:
             gallery_path=Path(parsed.gallery_path),
             db_path=Path(parsed.db) if parsed.db != ":memory:" else ":memory:",
             api_token=parsed.api_token,
+            frontend_path=Path(parsed.frontend_path) if parsed.frontend_path else None,
         )
         print(f"OpsBench REST API server running on http://{parsed.host}:{parsed.port}")
         if not parsed.api_token:

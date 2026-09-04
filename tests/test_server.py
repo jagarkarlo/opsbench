@@ -103,6 +103,13 @@ class BenchmarkServerTests(unittest.TestCase):
 
         self.assertEqual(data["version"], __version__)
 
+    def test_capabilities_endpoint(self) -> None:
+        status, data = self._get("/api/v1/capabilities")
+        self.assertEqual(status, HTTPStatus.OK)
+        modes = {operation["id"]: operation["mode"] for operation in data["operations"]}
+        self.assertEqual(modes["portfolio-leaderboard"], "ui")
+        self.assertEqual(modes["benchmark-execution"], "cli")
+
     def test_scenarios_endpoint(self) -> None:
         status, data = self._get("/api/v1/scenarios")
         self.assertEqual(status, HTTPStatus.OK)

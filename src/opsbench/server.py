@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import mimetypes
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
@@ -22,6 +23,7 @@ class BenchmarkRequestHandler(BaseHTTPRequestHandler):
     gallery_path: Path = Path("scenarios")
     db_path: Path | str = ":memory:"
     api_token: str | None = None
+    frontend_path: Path | None = None
 
     def _is_authorized(self) -> bool:
         """Return True when no token is configured or the request presents a matching bearer token."""
@@ -56,10 +58,51 @@ class BenchmarkRequestHandler(BaseHTTPRequestHandler):
                 store.close()
             return
 
+        if path in ("/app", "/app/") or path.startswith("/app/assets/"):
+            if self.frontend_path is None:
+                self._send_json(HTTPStatus.NOT_FOUND, {"error": "frontend build not configured"})
+                return
+            relative_path = path[len("/app/") :] if path.startswith("/app/") else "index.html"
+            asset_path = (self.frontend_path / relative_path).resolve()
+            root_path = self.frontend_path.resolve()
+            if root_path not in asset_path.parents and asset_path != root_path:
+                self._send_json(HTTPStatus.BAD_REQUEST, {"error": "invalid frontend path"})
+                return
+            if not asset_path.is_file():
+                asset_path = root_path / "index.html"
+            try:
+                self._send_text(
+                    HTTPStatus.OK,
+                    asset_path.read_text(encoding="utf-8"),
+                    mimetypes.guess_type(str(asset_path))[0] or "text/html; charset=utf-8",
+                )
+            except OSError as error:
+                self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(error)})
+            return
+
         if path == "/api/v1/health":
             from opsbench import __version__  # local import: opsbench.__init__ imports this module
 
             self._send_json(HTTPStatus.OK, {"status": "ok", "version": __version__})
+            return
+
+        if path == "/api/v1/capabilities":
+            self._send_json(
+                HTTPStatus.OK,
+                {
+                    "frontend": self.frontend_path is not None,
+                    "operations": [
+                        {"id": "scenario-gallery", "label": "Scenario gallery", "mode": "ui"},
+                        {"id": "run-inspection", "label": "Indexed run inspection", "mode": "ui"},
+                        {"id": "portfolio-leaderboard", "label": "Portfolio leaderboard", "mode": "ui"},
+                        {"id": "benchmark-execution", "label": "Benchmark execution", "mode": "cli"},
+                        {"id": "response-evaluation", "label": "Response evaluation", "mode": "cli"},
+                        {"id": "store-management", "label": "Store backup and restore", "mode": "cli"},
+                        {"id": "integrity-attestation", "label": "Dataset and attestation workflows", "mode": "cli"},
+                        {"id": "mcp-context", "label": "MCP context inspection", "mode": "cli"},
+                    ],
+                },
+            )
             return
 
         if path == "/metrics":
@@ -206,11 +249,17 @@ def create_server(
     gallery_path: Path = Path("scenarios"),
     db_path: Path | str = ":memory:",
     api_token: str | None = None,
+    frontend_path: Path | None = None,
 ) -> HTTPServer:
     """Create a configured OpsBench HTTPServer instance."""
     class_handler = type(
         "ConfiguredBenchmarkRequestHandler",
         (BenchmarkRequestHandler,),
-        {"gallery_path": gallery_path, "db_path": db_path, "api_token": api_token},
+        {
+            "gallery_path": gallery_path,
+            "db_path": db_path,
+            "api_token": api_token,
+            "frontend_path": frontend_path,
+        },
     )
     return HTTPServer((host, port), class_handler)
