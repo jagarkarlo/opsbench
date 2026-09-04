@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 
 from opsbench.runs import ResultBundle
 
@@ -31,6 +32,7 @@ class RunnerStatistics:
     runner_name: str
     trial_count: int
     total_score: int
+    total_squared_score: int
 
     def __post_init__(self) -> None:
         if not isinstance(self.runner_name, str) or not self.runner_name.strip():
@@ -39,10 +41,33 @@ class RunnerStatistics:
             raise ValueError("trial_count must be a positive integer")
         if not isinstance(self.total_score, int):
             raise ValueError("total_score must be an integer")
+        if not isinstance(self.total_squared_score, int):
+            raise ValueError("total_squared_score must be an integer")
+        if self.total_squared_score < 0:
+            raise ValueError("total_squared_score must not be negative")
 
     @property
     def average_score(self) -> float:
         return self.total_score / self.trial_count
+
+    @property
+    def variance(self) -> float:
+        """Return the unbiased sample variance of trial scores."""
+        if self.trial_count < 2:
+            return 0.0
+        numerator = self.total_squared_score - (self.total_score**2 / self.trial_count)
+        return max(numerator / (self.trial_count - 1), 0.0)
+
+    @property
+    def standard_deviation(self) -> float:
+        """Return the sample standard deviation of trial scores."""
+        return math.sqrt(self.variance)
+
+    @property
+    def confidence_interval_95(self) -> tuple[float, float]:
+        """Return a normal-approximation 95% confidence interval for the mean."""
+        margin = 1.96 * self.standard_deviation / math.sqrt(self.trial_count)
+        return self.average_score - margin, self.average_score + margin
 
 
 def compare_bundles(bundles: tuple[ResultBundle, ...]) -> ComparisonSummary:
@@ -70,14 +95,17 @@ def summarize_trials(bundles: tuple[ResultBundle, ...]) -> tuple[RunnerStatistic
     """Return stable per-runner trial counts and average-ready totals."""
     comparison = compare_bundles(bundles)
     trial_counts: dict[str, int] = {}
+    squared_totals: dict[str, int] = {}
     for bundle in bundles:
         runner_name = bundle.run.model_name or bundle.run.runner_kind
         trial_counts[runner_name] = trial_counts.get(runner_name, 0) + 1
+        squared_totals[runner_name] = squared_totals.get(runner_name, 0) + bundle.report.total**2
     return tuple(
         RunnerStatistics(
             runner_name=runner_name,
             trial_count=trial_counts[runner_name],
             total_score=total_score,
+            total_squared_score=squared_totals[runner_name],
         )
         for runner_name, total_score in comparison.runner_totals
     )

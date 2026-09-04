@@ -77,6 +77,19 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(statistics[0].trial_count, 2)
         self.assertEqual(statistics[0].total_score, 7)
         self.assertEqual(statistics[0].average_score, 3.5)
+        self.assertAlmostEqual(statistics[0].variance, 0.5)
+        self.assertAlmostEqual(statistics[0].standard_deviation, 0.70710678)
+        self.assertAlmostEqual(statistics[0].confidence_interval_95[0], 2.5199, places=3)
+        self.assertAlmostEqual(statistics[0].confidence_interval_95[1], 4.4801, places=3)
+
+    def test_single_trial_has_zero_uncertainty(self) -> None:
+        statistics = summarize_trials(
+            (build_bundle(run_id="run-001", model_name="fixture-alpha", total_score=Score.FULL),)
+        )
+
+        self.assertEqual(statistics[0].variance, 0.0)
+        self.assertEqual(statistics[0].standard_deviation, 0.0)
+        self.assertEqual(statistics[0].confidence_interval_95, (4.0, 4.0))
 
     def test_renders_markdown_comparison_report(self) -> None:
         report = render_markdown_comparison(
