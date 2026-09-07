@@ -447,6 +447,11 @@ are shown without fabricated results. Operations lists capabilities without
 inventing CLI commands. Browser authentication, incident timelines, and live
 verification remain future work.
 
+The workspace factory is a procedural Three.js illustration of the benchmark
+path: registry, delivery, orchestration, and observability stations. Its moving
+conveyor, arm, cable packets, and collector are visual explanations only; they
+do not represent a connected cluster or execute operations.
+
 The portfolio data is also available as JSON at
 `/api/v1/leaderboard/portfolio`. The browser never executes proposed model
 actions or mutates benchmark artifacts.
