@@ -17,6 +17,9 @@ tag dates; versions follow the milestones described in `docs/roadmap.md`.
   telemetry and invalid capability copy commands.
 - Added desktop/mobile Playwright tests, canvas-pixel and picking checks,
   screenshot artifacts, and a dedicated frontend CI workflow.
+- Replaced the basic stage blocks with a detailed illustrated DevOps factory:
+  container registry, delivery conveyor, orchestration arm, collector, and
+  observability console, with camera presets and local playback controls.
 - Distinguished current benchmark and prototype UI features from planned
   connectors, worker services, authentication, and branching rehearsal.
 - Recorded remaining authentication and container validation gaps. This update
