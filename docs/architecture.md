@@ -30,6 +30,13 @@ OpsBench is designed around five constraints:
 | Result store | Immutable bundles and a SQLite index. | Evidence retention and compatible versioned result types. |
 | API | Expose health, scenarios, indexed results, and capabilities. | Authenticated job submission and bounded evidence access. |
 | Console | Interactive 2.5D benchmark model, scenario search, run reports/comparison, portfolio views. | Observe, Verify, Rehearse, live evidence and incident timelines. |
+
+### Factory interaction contract
+
+The illustrated factory maps the four benchmark stages to physical stations.
+Station selection updates the React inspector, and camera controls are local to
+the browser. Animation is presentation state only: packages, articulated arm,
+cables, collector, and instruments have no API mutation or cluster connection.
 | Connector | Not implemented as a production collection service. | Allowlisted, read-only, redacted observations. |
 | Worker service | No queue-driven worker service. | Isolated jobs with deadlines, cancellation, quotas, and cleanup. |
 
