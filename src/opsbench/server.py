@@ -175,7 +175,8 @@ class BenchmarkRequestHandler(BaseHTTPRequestHandler):
                 limit = 500
             store = SQLiteResultStore(self.db_path)
             try:
-                rankings = rank_portfolio(store.query(RunQuery(limit=limit)))
+                bundles = store.query(RunQuery(limit=limit))
+                rankings = rank_portfolio(bundles) if bundles else ()
                 data = {
                     "count": len(rankings),
                     "leaderboard": [

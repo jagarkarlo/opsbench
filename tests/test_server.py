@@ -143,6 +143,12 @@ class BenchmarkServerTests(unittest.TestCase):
         self.assertEqual(data["leaderboard"][0]["runner_name"], "reference-fixture")
         self.assertEqual(data["leaderboard"][0]["scenario_count"], 1)
 
+    def test_empty_portfolio_leaderboard_endpoint(self) -> None:
+        self.db_path.unlink()
+        status, data = self._get("/api/v1/leaderboard/portfolio")
+        self.assertEqual(status, HTTPStatus.OK)
+        self.assertEqual(data, {"count": 0, "leaderboard": []})
+
     def test_run_by_id_endpoint(self) -> None:
         status, data = self._get("/api/v1/runs/server-run-001")
         self.assertEqual(status, HTTPStatus.OK)
