@@ -40,12 +40,27 @@ nav button[aria-current] { color: var(--mint); border-color: var(--mint); }
 .scene-heading h2 { font-size: 19px; overflow-wrap: anywhere; }
 .badge { border: 1px solid var(--line); padding: 6px 8px; font: 9px 'DM Mono', monospace; color: var(--muted); white-space: nowrap; }
 .scene-wrap { position: relative; min-width: 0; }
-.workflow-canvas { height: 350px; width: 100%; background: linear-gradient(180deg, #20252900, #20252955); }
+.workflow-canvas { height: 560px; width: 100%; background: #263b43; }
 .workflow-canvas canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .scene-caption { position: absolute; top: 12px; left: 24px; display: flex; gap: 8px; align-items: center; font: 9px 'DM Mono', monospace; color: var(--muted); pointer-events: none; }
+.scene-view-label { position: absolute; top: 34px; left: 24px; color: #aec6cf; font: 9px 'DM Mono', monospace; pointer-events: none; }
 .scene-caption > span:last-child { color: var(--amber); margin-left: 10px; }
 .scene-tools { position: absolute; right: 20px; top: 48px; display: flex; flex-direction: column; gap: 6px; }
 .scene-tools button { background: #191d21; border: 1px solid var(--line); border-radius: 4px; width: 34px; height: 34px; display: grid; place-items: center; }
+.scene-tools button[aria-pressed=true] { color: var(--mint); border-color: var(--mint); }
+.scene-caption { color: #d8e6e9; text-shadow: 0 1px 5px #000; }
+.scene-transport { position: absolute; bottom: 64px; left: 20px; display: flex; align-items: center; gap: 12px; color: #d9e8ee; background: #15222cee; padding: 8px 12px; border: 1px solid #576c75; border-radius: 4px; font: 10px 'DM Mono', monospace; }
+.scene-transport button { display: grid; place-items: center; width: 30px; height: 28px; background: transparent; border: 0; }
+.scene-transport label { display: flex; align-items: center; gap: 8px; }
+.scene-transport select { background: #263b43; color: white; padding: 5px; border: 1px solid #607c89; border-radius: 3px; }
+.scene-wrap .stage-tabs { background: #171d21; }
+.scene-wrap.scene-expanded .workflow-canvas { height: min(78vh, 900px); min-height: 520px; }
+.inspector h3 { font-size: 16px; font-weight: 500; margin: 0 0 8px; }
+.workbench { grid-template-columns: 235px minmax(0, 1fr); }
+.page-heading { padding: 20px 0; }
+.scene-heading { padding: 16px 22px; }
+.scene-heading h2 { font-size: 16px; }
+@media(max-width: 650px) { .scene-wrap .workflow-canvas { height: 420px; } .scene-wrap .scene-caption, .scene-view-label { left: 12px; } .scene-wrap .scene-tools { right: 10px; } .scene-transport { left: 10px; bottom: 81px; gap: 8px; } }
 .scene-fallback { position: absolute; top: 45%; left: 24px; right: 24px; color: var(--amber); }
 .stage-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line); }
 .stage-tabs button { border: 0; border-top: 2px solid transparent; padding: 17px 10px; background: transparent; font-size: 12px; color: var(--muted); display: flex; justify-content: center; align-items: center; gap: 12px; }
