@@ -3,6 +3,21 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
+## Unreleased
+
+- Documented the IncidentOps product direction: Observe, Verify, Rehearse,
+  powered by the existing OpsBench engine in this repository.
+- Added monitoring-path verification acceptance criteria,
+  self-hosted pilot gates, and later production/simulation boundaries.
+- Defined the planned interactive 2.5D UI using React, TypeScript, Vite, and
+  Three.js, with accessible scene navigation and evidence inspection.
+- Distinguished current benchmark and prototype UI features from planned
+  connectors, worker services, authentication, and branching rehearsal.
+- Recorded known frontend and container validation gaps. This planning update
+  adds no runtime features and does not declare production readiness.
+- Normalized frontend lockfile download URLs to the public npm registry without
+  changing package versions or integrity hashes; verified a clean public install.
+
 ## v0.6.4 — 2026-09-04 — Phase 5: Cross-scenario portfolio leaderboards
 
 - Added normalized portfolio statistics across multiple scenario IDs.

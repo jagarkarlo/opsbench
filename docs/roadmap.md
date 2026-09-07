@@ -2,6 +2,89 @@
 
 Each milestone must remain runnable and independently verifiable.
 
+## Active Direction (2026-09-07)
+
+Build IncidentOps powered by OpsBench: Observe, Verify, Rehearse. The first
+production-value slice is monitoring-path verification, not a general AI SRE
+or production simulator. See [product direction](product-direction.md).
+
+All gates below are **planned**. They do not claim shipped modes, new CLI
+commands, assigned release versions, or delivery dates. Preserve existing
+benchmark contracts and tests. Historical phases follow these active gates.
+
+### Gate A: Trustworthy Prototype
+
+- [ ] Separate demo/live/empty/error states; remove fabricated operational values.
+- [ ] Add run detail and comparison workflows with truthful capability commands.
+- [ ] Build an interactive 2.5D topology with orthographic depth, node/edge
+  selection, pan/zoom/reset, and synchronized evidence/timeline inspection.
+- [ ] Keep React/TypeScript/Vite/Three.js; provide keyboard/list alternatives,
+  reduced motion, and responsive scene/evidence views without fabricated activity.
+- [ ] Implement and test browser authentication, including static asset access.
+- [ ] Validate binary assets, missing-asset responses, and path containment.
+- [ ] Correct Docker database/volume ownership and read-only filesystem wiring.
+- [ ] Run Docker build/start/restart/persistence and backup/restore smoke tests.
+- [ ] Add desktop/mobile browser tests, screenshots, and nonblank canvas checks.
+
+Exit: a clean documented startup works; data states match API results, auth does
+not break navigation, persisted results survive restart, and no display value
+is presented as live without a source. Existing CLI behaviour remains intact.
+
+### Gate B: Monitoring-Path Verification
+
+- [ ] Define versioned assertions, stage evidence, coverage, and run outcomes.
+- [ ] Build one disposable service/Prometheus/Alertmanager/test-receiver lab.
+- [ ] Use existing rule/routing tooling and real components, not a second evaluator.
+- [ ] Verify a healthy signal from emission through receiver acceptance.
+- [ ] Test missing collection, mismatched routing, and invalid notification content.
+- [ ] Handle timeouts, unavailable stages, and partial evidence without guessed causes.
+- [ ] Retain corrected reruns and provide visual evidence comparison and export.
+- [ ] Guarantee cancellation and cleanup; prevent credentials or real paging access.
+
+Exit: automated integration tests cover the healthy path, all three failures,
+and corrected reruns. UI and exported results agree on failed, unknown, and
+untested stages. A downstream-only probe is never labelled a full-path test.
+
+### Gate C: Self-Hosted Team Pilot
+
+- [ ] Deploy behind HTTPS/OIDC with server-side authorization and audit records.
+- [ ] Add bounded, read-only, allowlisted connectors and redaction before storage.
+- [ ] Isolate workers from production identities; enforce quotas and deadlines.
+- [ ] Define retention/deletion and validate restore and upgrade procedures.
+- [ ] Test credential revocation, permission denial, and failure recovery.
+- [ ] Monitor OpsBench health through an independent signal.
+- [ ] Run a pilot measuring setup effort, diagnosis time, and false/ambiguous results.
+
+Exit: a team can install and repeat the workflow without developer intervention,
+review retained data, revoke access, and restore results. Pilot feedback must
+justify further scope. This is not permission to execute against production.
+
+### Gate D: Branching Rehearsal
+
+- [ ] Select a maintained simulation library and define a bounded incident model.
+- [ ] Record checkpoint lineage, model version, seed, and external schedules.
+- [ ] Support alternative decisions and evidence/outcome comparison.
+- [ ] Keep hidden state out of play; separate blind attempts from informed replays.
+- [ ] Validate selected model behaviours against disposable real services.
+
+Exit: repeatable model tests support branch comparisons without claiming
+production prediction. Existing replay adapters alone do not satisfy this gate.
+
+### Later Options: Separate Approval Required
+
+- Production canaries: scoped write identity, approved recipients/time windows,
+  notification budgets, cancellation, expiry, audit, and precise coverage labels.
+- Hosted multi-tenancy: tested tenant boundaries, quotas, secure secret lifecycle,
+  retention, cost controls, incident response, and operational recovery.
+- Reviewed change proposals and optional agent comparisons after evidence
+  contracts are trustworthy; no autonomous production remediation by default.
+
+## Historical Benchmark Milestones
+
+The phases below describe the benchmark foundation through v0.6.4, not completion
+of the IncidentOps gates. The React console on `develop` is a prototype added
+after that release, not an already released production interface.
+
 ## Phase 1: Benchmark Core
 
 - Versioned scenario manifest and evidence contract.

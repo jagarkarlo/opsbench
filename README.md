@@ -5,16 +5,41 @@
   <img src="https://img.shields.io/badge/License-MIT-3FB950?style=for-the-badge" alt="License">
 </p>
 
-OpsBench is an open benchmark for measuring how safely and accurately AI
-systems diagnose DevOps incidents. It packages reproducible scenarios, evidence,
-expected findings, permitted actions, forbidden actions, and deterministic
-scoring into a provider-neutral platform.
+OpsBench is an open DevOps scenario and result engine, evolving toward
+**IncidentOps: a visual workspace to observe, verify, and rehearse incident
+response**. Its existing benchmark evaluates structured human and AI responses
+against versioned evidence and deterministic rules.
+
+The next milestone is monitoring-path verification: show which steps from a
+signal to a notification were actually tested, where they failed, and what
+remains unknown. Production connectors, verification workers, and interactive
+branching rehearsal are planned, not implemented.
+
+## Product Direction
+
+| Mode | Planned purpose | Boundary |
+| --- | --- | --- |
+| Observe | Inspect selected telemetry and configuration evidence. | Read-only collection; complements Grafana and Loki. |
+| Verify | Trace checks through collection, evaluation, routing, and receipt. | Isolated labs first; production canaries need separate approval. |
+| Rehearse | Investigate a synthetic incident and compare checkpoint branches. | Explicit model; no production prediction or live remediation. |
+
+Start with one test service, Prometheus/Alertmanager, and a test receiver. The
+first slice should distinguish missing collection, mismatched routing, and
+invalid notification content, then retain evidence of the corrected rerun.
+Keep this in one repository and preserve the existing CLI and benchmark APIs.
+
+Read the [product direction](docs/product-direction.md),
+[roadmap](docs/roadmap.md), and [architecture](docs/architecture.md).
+
+**Status (2026-09-07):** local benchmark plus a prototype React console on
+`develop`. IncidentOps modes are not available yet. Reference deployment files
+are not proof of hosted or multi-tenant readiness; see [security](SECURITY.md).
 
 The project uses fictional infrastructure and generated operational data. It
 does not contain employer systems, production credentials, or private incident
 details.
 
-## What OpsBench Will Measure
+## Benchmark Focus
 
 - Kubernetes diagnosis and recovery planning.
 - Prometheus alert and metric interpretation.
@@ -41,11 +66,11 @@ flowchart LR
     API --> Console[Benchmark console]
 ```
 
-OpsBench begins as a local, dependency-light Python package. Provider adapters,
-distributed execution, persistence, observability, and deployment are introduced
-behind stable interfaces in later milestones.
+This is the existing benchmark flow, not the planned live verification system.
+The dependency-light Python package supports local execution, provider adapters,
+SQLite persistence, and an HTTP API. Queue-driven workers remain future work.
 
-## Current Capability (v0.6.4)
+## Current Capability (v0.6.4 Core and Develop Console)
 
 OpsBench runs entirely locally; no model provider is required to explore it.
 It includes:
@@ -74,8 +99,14 @@ It includes:
   deployment assets, hardened to run as non-root with a default-deny
   `NetworkPolicy`.
 
-Every scenario and response in this repository is synthetic. The evaluator
-never executes proposed actions and never calls an AI provider.
+Bundled scenarios and reference responses are synthetic. The evaluator never
+executes proposed actions or calls an AI provider; provider adapters can make
+explicitly configured external requests.
+
+Deterministic scoring is not semantic proof: keyword rules match text, citation
+checks validate artifact IDs rather than evidential support, and safety rules
+cannot certify a remediation. HMAC attestations establish shared-key integrity,
+not operational safety.
 
 See [the architecture](docs/architecture.md), [the roadmap](docs/roadmap.md),
 and [the changelog](CHANGELOG.md) for system boundaries and release history.
@@ -402,15 +433,19 @@ opsbench serve --host 127.0.0.1 --port 8080 --db bench.db \
 ```
 
 Then open <http://127.0.0.1:8080/app/>. Build the frontend first with the
-commands in [frontend/README.md](frontend/README.md). The control room
+commands in [frontend/README.md](frontend/README.md). The prototype control room
 provides:
 
-- responsive overview topology and health status;
-- scenario gallery and indexed-run inspection;
+- an illustrative overview topology and API health status;
+- scenario gallery and indexed-run summaries;
 - cross-scenario portfolio leaderboard with coverage and uncertainty; and
-- an Operations capability matrix that separates live UI inspection from
-  explicit CLI-only execution, evaluation, storage, integrity, MCP, and
-  diagnostics workflows.
+- an Operations capability matrix for selected UI and CLI surfaces.
+
+The topology and several status values are illustrative, not infrastructure
+telemetry. Demo rows can remain when a connected API returns empty results.
+Full run drilldown, comparison controls, browser authentication, and reliable
+empty/error states still need work. Use documented CLI commands rather than
+the capability-ID copy buttons to execute workflows.
 
 The portfolio data is also available as JSON at
 `/api/v1/leaderboard/portfolio`. The browser never executes proposed model
@@ -426,15 +461,24 @@ Open <http://127.0.0.1:8080/app/>. The multi-stage image builds the frontend,
 copies its production assets into the Python image, and starts the API with the
 frontend mounted at `/app`.
 
+Container startup and persistence still need runtime validation. Reconcile the
+default database path with Compose's read-only root and writable data volume
+before treating this as a deployment recipe.
+
 ## What Comes Next
 
-Phase 1 (Benchmark Core), Phase 2 (Execution), Phase 3 (Platform Services),
-and the core of Phase 4 (Operations) are complete as of v0.5.0. Remaining
-Phase 4 work includes load, chaos, and disaster-recovery exercises, plus richer
-failure outcome reporting. Bounded local backup/restore and failure-injection
-foundations are available; see [the roadmap](docs/roadmap.md) for remaining
-scope and
-Phase 5 (Ecosystem) for what follows.
+The v0.6.4 benchmark foundation remains supported. Next work is ordered by
+demonstrable value rather than promised release dates:
+
+1. Correct prototype data/authentication states and validate local deployment.
+2. Build isolated monitoring-path verification with evidence and reruns.
+3. Deliver an authenticated self-hosted team pilot with read-only inputs.
+4. Add explicitly modelled branching rehearsal and outcome comparison.
+5. Consider production canaries and hosted multi-tenancy only after separate
+  security and operational gates pass.
+
+See [the roadmap](docs/roadmap.md) for acceptance criteria and historical
+milestones. This documentation update introduces no new command or connector.
 
 ## License
 
