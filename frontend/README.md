@@ -55,11 +55,17 @@ Search/select scenarios, inspect the benchmark workflow, open stored run
 reports, and compare two results. Cross-scenario comparisons carry a warning.
 Operations displays capability metadata without inventing executable commands.
 
-The orthographic Three.js scene supports pointer selection, drag-to-pan,
-zoom/reset, and keyboard stage selection using arrows/Home/End. Stage selection
-updates the inspector; the scene is explicitly an illustrative benchmark model,
-not live infrastructure telemetry. Reduced-motion preferences stop moving
-pulses. Native run dialogs provide focus containment and Escape dismissal.
+The orthographic Three.js factory uses original procedural geometry: rounded
+monitoring instruments, a collector, a segmented delivery conveyor, an
+articulated orchestration arm, container platforms, and routed cables. Studio
+environment lighting, shadows, bevels, and instrument textures provide depth.
+
+Select physical stations or use arrows/Home/End in the stage tabs to update the
+inspector. Camera controls include orbit/pan, zoom/reset, a top view, selected
+station focus, and an expanded scene. Playback supports pause and 0.5x/1x/2x
+speed. Reduced motion starts paused; explicit playback is still available.
+The machinery and its animation are illustrative, not live telemetry or actual
+infrastructure actions. Native run dialogs contain focus and support Escape.
 
 The API's optional bearer authentication also protects frontend assets, while
 the browser currently has no token UX. Authentication is therefore an unresolved
@@ -81,7 +87,8 @@ Preserve visible mode boundaries. Never show simulations as live observations
 or receiver acceptance as human acknowledgement. Prioritize a readable evidence
 timeline over decorative topology; use animation only to represent known state.
 Playwright checks desktop (1440px) and mobile (390px) layouts, pixel-based canvas
-visibility/movement and node picking, keyboard selection, scenario search,
-run comparison/dialogs, and empty/partial API states. Screenshots are generated
+visibility/movement and station picking, keyboard selection, camera panning,
+focus/expansion, playback/reduced motion, scenario search, run comparison/dialogs,
+and empty/partial API states. Screenshots are generated
 under ignored `test-results/`; the frontend CI workflow retains them as artifacts.
 These checks do not validate production connectors, authentication, or Docker.
