@@ -20,7 +20,12 @@ benchmark contracts and tests. Historical phases follow these active gates.
   pan/zoom/reset, and synchronized stage inspection.
 - [x] Keep React/TypeScript/Vite/Three.js with keyboard stage controls, native
   dialogs, reduced motion, and responsive layouts; label model animation.
+- [x] Add a detailed, interactive factory illustration with station picking,
+  camera presets, playback controls, and responsive expanded inspection.
 - [ ] Add incident-specific edge evidence and synchronized timeline inspection.
+- [ ] Model explicit package pick-and-place and handoff states for the
+  orchestration arm; this remains visual-only until a separately approved
+  rehearsal model exists.
 - [ ] Implement and test browser authentication, including static asset access.
 - [ ] Validate binary assets, missing-asset responses, and path containment.
 - [ ] Correct Docker database/volume ownership and read-only filesystem wiring.
