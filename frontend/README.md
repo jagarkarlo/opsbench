@@ -23,15 +23,18 @@ cd ..
 opsbench serve --host 127.0.0.1 --port 8080 --db bench.db
 ```
 
-Open <http://localhost:5173/app/>. The console uses demo fallback data when the
-API is unavailable. Currently, demo rows may also remain after a connected API
-returns an empty list; do not interpret them as indexed results.
+Open <http://localhost:5173/app/>. Live API data is the default. Enable the
+explicit Demo dataset checkbox to explore synthetic scenarios and results.
+Empty or failed API responses never silently switch to demo data. Individual
+source failures are shown without discarding successful sources.
 
 ## Validation and build
 
 ```bash
 npm run lint
 npm run build
+npx playwright install chromium
+npm run test:e2e
 ```
 
 The production bundle is written to `frontend/dist`. The Python server serves
@@ -47,24 +50,28 @@ the read-only Compose root. See [roadmap Gate A](../docs/roadmap.md).
 
 ## UI boundaries
 
-The console fetches health, scenarios, run summaries, and portfolio results.
-The topology is illustrative, not live infrastructure telemetry; several
-operational values are hard-coded. Full run detail/comparison controls and
-reliable partial-error states are pending. Capability IDs copied by Operations
-are not necessarily valid CLI commands; use the [root README](../README.md).
+The console fetches health, scenarios, indexed runs, and portfolio results.
+Search/select scenarios, inspect the benchmark workflow, open stored run
+reports, and compare two results. Cross-scenario comparisons carry a warning.
+Operations displays capability metadata without inventing executable commands.
+
+The orthographic Three.js scene supports pointer selection, drag-to-pan,
+zoom/reset, and keyboard stage selection using arrows/Home/End. Stage selection
+updates the inspector; the scene is explicitly an illustrative benchmark model,
+not live infrastructure telemetry. Reduced-motion preferences stop moving
+pulses. Native run dialogs provide focus containment and Escape dismissal.
 
 The API's optional bearer authentication also protects frontend assets, while
 the browser currently has no token UX. Authentication is therefore an unresolved
 integration requirement, not a completed team-login workflow. Proposed actions
 are never executed by the browser.
 
-## Planned IncidentOps UI
+## Current UI and Future Work
 
-The target is an interactive 2.5D control room using the existing React,
-TypeScript, Vite, and Three.js stack. Use orthographic depth for relationships,
-with node/edge selection, pan/zoom/reset, and evidence synchronized to timeline
-selection. Keep accessible controls in React and retain CSS initially; Tailwind
-is optional, not required for depth or interactivity. WebStorm is an editor.
+The interactive 2.5D benchmark workspace uses React, TypeScript, Vite, Three.js,
+Lucide icons, and CSS. Node selection and the inspector are implemented; edge
+inspection and a real incident timeline remain future work. Tailwind is not
+required for depth or interactivity. WebStorm is an optional editor.
 
 - Observe: bounded source evidence with timestamps, provenance, and missing data.
 - Verify: stage-level assertions, coverage, failure evidence, and corrected reruns.
@@ -73,5 +80,8 @@ is optional, not required for depth or interactivity. WebStorm is an editor.
 Preserve visible mode boundaries. Never show simulations as live observations
 or receiver acceptance as human acknowledgement. Prioritize a readable evidence
 timeline over decorative topology; use animation only to represent known state.
-Desktop/mobile browser checks and canvas validation are pending release gates,
-not verification established by a successful TypeScript build.
+Playwright checks desktop (1440px) and mobile (390px) layouts, pixel-based canvas
+visibility/movement and node picking, keyboard selection, scenario search,
+run comparison/dialogs, and empty/partial API states. Screenshots are generated
+under ignored `test-results/`; the frontend CI workflow retains them as artifacts.
+These checks do not validate production connectors, authentication, or Docker.

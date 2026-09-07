@@ -8,23 +8,24 @@ Build IncidentOps powered by OpsBench: Observe, Verify, Rehearse. The first
 production-value slice is monitoring-path verification, not a general AI SRE
 or production simulator. See [product direction](product-direction.md).
 
-All gates below are **planned**. They do not claim shipped modes, new CLI
-commands, assigned release versions, or delivery dates. Preserve existing
+Unchecked items below are **planned**; checked items are implemented on
+`develop`, not a tagged release. No delivery dates are promised. Preserve existing
 benchmark contracts and tests. Historical phases follow these active gates.
 
 ### Gate A: Trustworthy Prototype
 
-- [ ] Separate demo/live/empty/error states; remove fabricated operational values.
-- [ ] Add run detail and comparison workflows with truthful capability commands.
-- [ ] Build an interactive 2.5D topology with orthographic depth, node/edge
-  selection, pan/zoom/reset, and synchronized evidence/timeline inspection.
-- [ ] Keep React/TypeScript/Vite/Three.js; provide keyboard/list alternatives,
-  reduced motion, and responsive scene/evidence views without fabricated activity.
+- [x] Separate explicit demo/live/empty/error states; remove fabricated live values.
+- [x] Add indexed run reports and two-run comparison; remove invented CLI commands.
+- [x] Build an orthographic 2.5D benchmark workflow with node selection,
+  pan/zoom/reset, and synchronized stage inspection.
+- [x] Keep React/TypeScript/Vite/Three.js with keyboard stage controls, native
+  dialogs, reduced motion, and responsive layouts; label model animation.
+- [ ] Add incident-specific edge evidence and synchronized timeline inspection.
 - [ ] Implement and test browser authentication, including static asset access.
 - [ ] Validate binary assets, missing-asset responses, and path containment.
 - [ ] Correct Docker database/volume ownership and read-only filesystem wiring.
 - [ ] Run Docker build/start/restart/persistence and backup/restore smoke tests.
-- [ ] Add desktop/mobile browser tests, screenshots, and nonblank canvas checks.
+- [x] Add desktop/mobile browser tests, screenshots, canvas-pixel and picking checks.
 
 Exit: a clean documented startup works; data states match API results, auth does
 not break navigation, persisted results survive restart, and no display value

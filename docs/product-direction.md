@@ -48,7 +48,10 @@ Provide keyboard-accessible selection and a list equivalent to the scene,
 reduced-motion support, stable layouts, and touch-friendly controls. On mobile,
 switch between the scene and evidence view rather than squeezing both together.
 Verify desktop/mobile screenshots, interactions, and nonblank canvas rendering
-before considering the UI complete. This is the target design, not shipped UI.
+before considering the UI complete. The benchmark workspace now implements
+node selection, pan/zoom/reset, keyboard stage controls, an inspector, and run
+comparison on `develop`. Incident-specific edges and timeline synchronization
+remain targets, not implemented production features.
 
 ## Planned Experience
 

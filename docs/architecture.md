@@ -29,7 +29,7 @@ OpsBench is designed around five constraints:
 | Evaluator | Deterministic keyword, artifact-ID, action, and safety checks. | Stage-level assertions; no semantic or remediation-safety certification. |
 | Result store | Immutable bundles and a SQLite index. | Evidence retention and compatible versioned result types. |
 | API | Expose health, scenarios, indexed results, and capabilities. | Authenticated job submission and bounded evidence access. |
-| Console | Prototype scenario/run summaries and portfolio views. | Observe, Verify, Rehearse, detailed evidence and comparisons. |
+| Console | Interactive 2.5D benchmark model, scenario search, run reports/comparison, portfolio views. | Observe, Verify, Rehearse, live evidence and incident timelines. |
 | Connector | Not implemented as a production collection service. | Allowlisted, read-only, redacted observations. |
 | Worker service | No queue-driven worker service. | Isolated jobs with deadlines, cancellation, quotas, and cleanup. |
 

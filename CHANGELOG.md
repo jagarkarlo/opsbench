@@ -9,12 +9,18 @@ tag dates; versions follow the milestones described in `docs/roadmap.md`.
   powered by the existing OpsBench engine in this repository.
 - Added monitoring-path verification acceptance criteria,
   self-hosted pilot gates, and later production/simulation boundaries.
-- Defined the planned interactive 2.5D UI using React, TypeScript, Vite, and
-  Three.js, with accessible scene navigation and evidence inspection.
+- Implemented an interactive 2.5D benchmark workspace with React, TypeScript,
+  Vite, Three.js, and Lucide icons: node selection, pan/zoom/reset, keyboard
+  navigation, reduced motion, and a synchronized stage inspector.
+- Added scenario search, indexed-run dialogs, two-run comparison, explicit demo
+  selection, and independent API error/empty states; removed fabricated live
+  telemetry and invalid capability copy commands.
+- Added desktop/mobile Playwright tests, canvas-pixel and picking checks,
+  screenshot artifacts, and a dedicated frontend CI workflow.
 - Distinguished current benchmark and prototype UI features from planned
   connectors, worker services, authentication, and branching rehearsal.
-- Recorded known frontend and container validation gaps. This planning update
-  adds no runtime features and does not declare production readiness.
+- Recorded remaining authentication and container validation gaps. This update
+  does not declare production readiness or implement IncidentOps verification.
 - Normalized frontend lockfile download URLs to the public npm registry without
   changing package versions or integrity hashes; verified a clean public install.
 

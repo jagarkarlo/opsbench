@@ -436,16 +436,16 @@ Then open <http://127.0.0.1:8080/app/>. Build the frontend first with the
 commands in [frontend/README.md](frontend/README.md). The prototype control room
 provides:
 
-- an illustrative overview topology and API health status;
-- scenario gallery and indexed-run summaries;
+- a selectable 2.5D benchmark workflow with pan, zoom, reset, and an inspector;
+- searchable scenarios, indexed-run reports, and two-run comparison;
 - cross-scenario portfolio leaderboard with coverage and uncertainty; and
 - an Operations capability matrix for selected UI and CLI surfaces.
 
-The topology and several status values are illustrative, not infrastructure
-telemetry. Demo rows can remain when a connected API returns empty results.
-Full run drilldown, comparison controls, browser authentication, and reliable
-empty/error states still need work. Use documented CLI commands rather than
-the capability-ID copy buttons to execute workflows.
+The scene is an explicitly illustrative benchmark model, not infrastructure
+telemetry. Demo data requires a separate checkbox; empty and failed API sources
+are shown without fabricated results. Operations lists capabilities without
+inventing CLI commands. Browser authentication, incident timelines, and live
+verification remain future work.
 
 The portfolio data is also available as JSON at
 `/api/v1/leaderboard/portfolio`. The browser never executes proposed model
