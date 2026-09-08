@@ -10,7 +10,7 @@ export const orchestrationSlots = [
   new Vector3(8.5, .145, -1.45), new Vector3(6.4, .145, .5),
   new Vector3(6.4, .145, -1.45),
 ]
-export const robotBase = new Vector3(3.3, 1.57, -2.3)
+export const robotBase = new Vector3(3.7, 1.57, -1.65)
 export const upperArmLength = 2
 export const forearmLength = 1.8
 export const toolOffset = 1.28
