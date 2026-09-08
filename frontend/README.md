@@ -62,16 +62,23 @@ environment lighting, shadows, bevels, and instrument textures provide depth.
 
 The stretched U-shaped layout includes an Ansible joystick console and a
 Terraform forklift. Raised machine emblems use the packaged Simple Icons paths
-for Kubernetes, Terraform, Ansible, Grafana, Prometheus, Docker, and GitLab.
+for Jira, Git, Kubernetes, Terraform, Ansible, Grafana, Prometheus, and Docker.
 Simple Icons artwork is distributed under CC0; brand names and trademarks
 remain their owners' property. This illustration implies no endorsement.
 
-One active package follows a 36-second illustrated cycle: conveyor arrival,
-grip, lift, transfer, placement on a pallet, forklift loading, delivery, unloading,
-and return. The belt stops during the handoff. The next package starts only
-after the full cycle completes. The arm targets the package with two-link
-kinematics, and the package is parented to the actual gripper or forklift load
-socket during transport. A cycle slider pauses and scrubs the sequence.
+The entrance follows Jira, a Code laptop, Git, and Build. One active package
+emerges onto the conveyor, passes Test and a versioned Release, then follows a
+28-second repeating cycle directly onto the stationary Docker dock beside CI/CD.
+Kubernetes picks it up there and fills a free berth on an existing orchestration
+platform. Five fixed platforms hold nine containers before delivery and ten
+afterward. Terraform independently delivers an empty sixth platform from an
+outside aisle; it never carries the application package or crosses the cables.
+Ansible connects to orchestration,
+whose illuminated telemetry path runs to Prometheus and then only to Grafana.
+These connections are illustrative, not a literal execution dependency graph.
+The arm uses two-link kinematics and parents the package to its gripper during
+the Docker-to-orchestration transfer. Playback loops with no timer shown by default; the optional
+Inspect animation cycle control reveals a slider that pauses and scrubs it.
 
 Select physical stations or use arrows/Home/End in the stage tabs to update the
 inspector. Camera controls include orbit/pan, zoom/reset, a top view, selected
