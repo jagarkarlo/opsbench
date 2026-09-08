@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
-import { Plus, Minus, RotateCcw, Orbit, Hand, Pause, Play, Scan, Focus, Camera, Maximize2, Minimize2 } from 'lucide-react'
+import { Plus, Minus, RotateCcw, Orbit, Hand, Pause, Play, Scan, Focus, Camera, Maximize2, Minimize2, SlidersHorizontal } from 'lucide-react'
 import { stages } from './workflow'
 import { createFactory } from './factory'
 import { cycleDuration } from './factoryMotion'
@@ -19,6 +19,7 @@ export function WorkflowScene({ selected, onSelect }: { selected: number; onSele
   const [mode, setMode] = useState<'orbit' | 'pan'>('orbit')
   const [cameraView, setCameraView] = useState('OVERVIEW')
   const [expanded, setExpanded] = useState(false)
+  const [inspectCycle, setInspectCycle] = useState(false)
   const [unavailable, setUnavailable] = useState(false)
   const [cycle, setCycle] = useState({ seconds: 0, phase: 'Conveying' })
   useEffect(() => { selection.current = selected; callback.current = onSelect }, [selected, onSelect])
@@ -60,7 +61,7 @@ export function WorkflowScene({ selected, onSelect }: { selected: number; onSele
     controls.maxZoom = 3
     controls.maxPolarAngle = Math.PI / 2.12
     controls.minPolarAngle = .08
-    controls.target.set(-1, .8, .3)
+    controls.target.set(-.5, .8, -.2)
     controls.update()
     controls.saveState()
     controlsRef.current = controls
@@ -103,14 +104,17 @@ export function WorkflowScene({ selected, onSelect }: { selected: number; onSele
       const hit = pick(event)
       if (hit !== undefined) callback.current(hit)
     }
-    const pointerMove = (event: PointerEvent) => { renderer.domElement.style.cursor = pick(event) === undefined ? 'grab' : 'pointer' }
+    const pointerMove = (event: PointerEvent) => {
+      if (event.buttons) return
+      renderer.domElement.style.cursor = pick(event) === undefined ? 'grab' : 'pointer'
+    }
     renderer.domElement.addEventListener('pointerdown', pointerDown)
     renderer.domElement.addEventListener('pointerup', pointerUp)
     renderer.domElement.addEventListener('pointermove', pointerMove)
     const resize = new ResizeObserver(() => {
       const width = Math.max(1, element.clientWidth)
       const height = Math.max(1, element.clientHeight)
-      const halfWidth = Math.max(10.7, 6.9 * width / height)
+      const halfWidth = Math.max(14.4, 8.1 * width / height)
       camera.left = -halfWidth
       camera.right = halfWidth
       camera.top = halfWidth * height / width
@@ -161,7 +165,7 @@ export function WorkflowScene({ selected, onSelect }: { selected: number; onSele
     camera.zoom = Math.min(3, Math.max(.65, camera.zoom * factor))
     camera.updateProjectionMatrix()
   }
-  return <div className={`scene-wrap${expanded ? ' scene-expanded' : ''}`}>
+  return <div className={`scene-wrap${expanded ? ' scene-expanded' : ''}${inspectCycle ? ' inspecting-cycle' : ''}`}>
     <div ref={mount} className="workflow-canvas" />
     {unavailable && <p className="scene-fallback">3D view unavailable. Stage selection remains available below.</p>}
     <div className="scene-caption"><span className="signal-dot" /> DEVOPS FACTORY <span>ILLUSTRATIVE</span></div>
@@ -175,9 +179,10 @@ export function WorkflowScene({ selected, onSelect }: { selected: number; onSele
       <button title="Top view" aria-label="Top view" onClick={() => actions.current.top()}><Scan size={16} /></button>
       <button title="Reset view" aria-label="Reset view" onClick={() => actions.current.overview()}><RotateCcw size={16} /></button>
       <button title={expanded ? 'Collapse scene' : 'Expand scene'} aria-label={expanded ? 'Collapse scene' : 'Expand scene'} aria-pressed={expanded} onClick={() => setExpanded(!expanded)}>{expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}</button>
+      <button title="Inspect animation cycle" aria-label="Inspect animation cycle" aria-pressed={inspectCycle} onClick={() => setInspectCycle(!inspectCycle)}><SlidersHorizontal size={16} /></button>
     </div>
     <div className="scene-transport"><Camera size={14} /><span>FACTORY / 01</span><button title={paused ? 'Play animation' : 'Pause animation'} aria-label={paused ? 'Play animation' : 'Pause animation'} onClick={() => setPaused(!paused)}>{paused ? <Play size={15} /> : <Pause size={15} />}</button><label>Speed <select aria-label="Animation speed" value={speed} onChange={event => setSpeed(Number(event.target.value))}><option value={.5}>0.5x</option><option value={1}>1x</option><option value={2}>2x</option></select></label></div>
-    <div className="cycle-timeline"><span>ILLUSTRATED CYCLE</span><output>{cycle.phase}</output><input aria-label="Factory cycle position" type="range" min="0" max={cycleDuration - .01} step=".01" value={cycle.seconds} onChange={event => { playback.current.progress = Number(event.target.value); playback.current.paused = true; setPaused(true) }} /><span>{cycle.seconds.toFixed(1)}s</span></div>
+    {inspectCycle && <div className="cycle-timeline"><span>ILLUSTRATED CYCLE</span><output>{cycle.phase}</output><input aria-label="Factory cycle position" type="range" min="0" max={cycleDuration - .01} step=".01" value={cycle.seconds} onChange={event => { playback.current.progress = Number(event.target.value); playback.current.paused = true; setPaused(true) }} /><span>{cycle.seconds.toFixed(1)}s</span></div>}
     <div className="stage-tabs" role="tablist" aria-label="Workflow stages">{stages.map((stage, index) => <button role="tab" aria-selected={selected === index} tabIndex={selected === index ? 0 : -1} key={stage.title} onClick={() => onSelect(index)} onKeyDown={event => { const shortcut = Number(event.key) - 1; const next = event.key === 'ArrowRight' ? (index + 1) % stages.length : event.key === 'ArrowLeft' ? (index + stages.length - 1) % stages.length : event.key === 'Home' ? 0 : event.key === 'End' ? stages.length - 1 : shortcut >= 0 && shortcut < stages.length ? shortcut : null; if (next !== null) { event.preventDefault(); onSelect(next); (event.currentTarget.parentElement?.children[next] as HTMLButtonElement).focus() } }} style={{ '--stage-color': stage.color } as React.CSSProperties}><span>0{index + 1}</span>{stage.title}</button>)}</div>
   </div>
 }
