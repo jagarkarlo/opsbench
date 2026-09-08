@@ -1,8 +1,8 @@
 import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
 import { SVGLoader } from 'three/addons/loaders/SVGLoader.js'
-import { siKubernetes, siTerraform, siAnsible, siGrafana, siPrometheus, siDocker, siGitlab, type SimpleIcon } from 'simple-icons'
-import { factoryMotion, solveArm, robotBase, upperArmLength, forearmLength, toolOffset } from './factoryMotion'
+import { siKubernetes, siTerraform, siAnsible, siGrafana, siPrometheus, siDocker, siGit, siJira, type SimpleIcon } from 'simple-icons'
+import { factoryMotion, solveArm, robotBase, upperArmLength, forearmLength, toolOffset, handoff, orchestrationSlots, platformDrop } from './factoryMotion'
 
 type Parent = THREE.Object3D
 type Position = [number, number, number]
@@ -41,9 +41,10 @@ export function createFactory() {
   }
   const box = (parent: Parent, size: Position, position: Position, surface: THREE.Material, radius = .08) => mesh(parent, new RoundedBoxGeometry(...size, 3, radius), surface, position)
   const cylinder = (parent: Parent, radius: number, height: number, position: Position, surface: THREE.Material, top = radius) => mesh(parent, new THREE.CylinderGeometry(top, radius, height, 40), surface, position)
-  const tube = (parent: Parent, points: Position[], surface: THREE.Material, radius = .065) => {
+  const tube = (parent: Parent, points: Position[], surface: THREE.Material, radius = .065, name = '') => {
     const curve = new THREE.CatmullRomCurve3(points.map(point => new THREE.Vector3(...point)), false, 'centripetal')
-    mesh(parent, new THREE.TubeGeometry(curve, 64, radius, 10, false), surface, [0, 0, 0])
+    const cable = mesh(parent, new THREE.TubeGeometry(curve, 64, radius, 10, false), surface, [0, 0, 0])
+    cable.name = name
     return curve
   }
   const label = (parent: Parent, text: string, width: number, height: number, position: Position, background = '#123345', foreground = '#ffffff') => {
@@ -89,7 +90,7 @@ export function createFactory() {
     root.add(group)
     return group
   })
-  const anchors = [new THREE.Vector3(-5.5, .8, .9), new THREE.Vector3(-1.9, 1.3, -4.3), new THREE.Vector3(4.1, 1.6, -.2), new THREE.Vector3(-8, 1.8, -2.1)]
+  const anchors = [new THREE.Vector3(-10.8, .95, -4.15), new THREE.Vector3(-1.9, 1.3, -4.3), new THREE.Vector3(6.1, 1.6, -.8), new THREE.Vector3(0, 1.8, 4.4)]
   const rings = anchors.map((anchor, index) => {
     const ring = mesh(root, new THREE.TorusGeometry(index === 1 ? 2.25 : 1.5, .025, 8, 90), light, [anchor.x, .065, anchor.z])
     ring.rotation.x = Math.PI / 2
@@ -97,22 +98,29 @@ export function createFactory() {
   })
 
   const platform = stations[0]
-  platform.position.set(-1.8, 0, -2.4)
-  for (let index = 0; index < 6; index++) {
-    const column = index % 3
-    const row = Math.floor(index / 3)
-    const position: Position = [-5.2 + column * 1.45, .23, 2.2 + row * 1.5]
-    box(platform, [1.23, .34, 1.22], position, porcelain, .13)
-    box(platform, [.92, .08, .9], [position[0], .44, position[2]], deepBlue)
-    box(platform, [.78, .76, .78], [position[0], .86, position[2]], column === 0 ? mint : blue)
-    for (let rib = 0; rib < 5; rib++) box(platform, [.035, .55, .025], [position[0] - .28 + rib * .14, .86, position[2] + .4], white, .008)
-    box(platform, [.18, .045, .025], [position[0] + .2, 1.14, position[2] + .42], light)
+  platform.position.x = -2.8
+  for (const [index, title] of ['JIRA', 'CODE', 'GIT'].entries()) {
+    const position = -10.8 + index * 2.8
+    box(platform, [1.55, .3, 1.6], [position, .22, -4], porcelain).name = `source-${title.toLowerCase()}`
+    box(platform, [1.25, .04, .08], [position, .4, -3.28], light)
+    label(platform, title, 1.3, .3, [position, .25, -3.18], '#26353d')
   }
-  box(platform, [3.35, .16, .65], [-3.75, .17, 5.12], steel)
-  const containerSign = label(platform, 'CONTAINER REGISTRY', 3.08, .42, [-3.75, .29, 5.16])
-  containerSign.rotation.x = -Math.PI / 3
-  logo(platform, siDocker, .65, [-3.75, 1.8, 3.7], blue)
-  tube(platform, [[-5.2, .16, 2.2], [-5.9, .16, 2.2], [-6.3, .16, 1.5], [-6.3, .16, -.8]], white, .08)
+  logo(platform, siJira, .85, [-10.8, 1.65, -4], blue)
+  box(platform, [1.18, .7, .12], [-10.8, .82, -3.9], dark)
+  label(platform, 'OPS-042', .95, .25, [-10.8, .91, -3.83])
+  label(platform, 'IN PROGRESS', 1, .19, [-10.8, .61, -3.83], '#267965')
+  box(platform, [1.3, .09, .88], [-8, .47, -3.85], steel)
+  box(platform, [1.3, .94, .08], [-8, .97, -4.22], dark)
+  box(platform, [1.13, .74, .025], [-8, .99, -4.17], glass)
+  label(platform, '</>', .8, .4, [-8, 1.03, -4.15], '#112f43', '#65dbc0')
+  for (let row = 0; row < 3; row++) for (let key = 0; key < 8; key++) box(platform, [.095, .016, .085], [-8.48 + key * .135, .524, -4.02 + row * .13], dark, .01)
+  logo(platform, siGit, .95, [-5.2, 1.4, -4], orange)
+  cylinder(platform, .08, .55, [-5.2, .67, -4], steel)
+  const cablePaths = [
+    tube(root, [[-12.8, .2, -4], [-12.45, .2, -4], [-11.95, .2, -4]], light),
+    tube(root, [[-9.65, .2, -4], [-9.3, .2, -4], [-8.85, .2, -4]], light),
+    tube(root, [[-7.2, .2, -4], [-6.35, .2, -4], [-5.5, .65, -4]], light),
+  ]
 
   const delivery = stations[1]
   delivery.position.set(-2, 0, -2.2)
@@ -133,20 +141,30 @@ export function createFactory() {
     cylinder(delivery, .105, .5, [offset, .28, depth], steel)
     cylinder(delivery, .23, .12, [offset, .06, depth], red)
   }
-  box(delivery, [1.8, 2.05, 1.15], [-2.4, 1.7, -3], porcelain, .26)
-  box(delivery, [1.48, 1.39, .08], [-2.4, 1.85, -2.38], glass, .15)
-  label(delivery, 'BUILD', .95, .26, [-2.4, 2.3, -2.33], '#112f43', '#88e4fa')
-  for (let row = 0; row < 4; row++) box(delivery, [.85 - row * .12, .045, .015], [-2.52, 2.05 - row * .16, -2.31], row === 3 ? mint : light)
-  cylinder(delivery, .3, .13, [-2.4, 2.79, -3], red)
+  box(delivery, [.85, 1.7, .2], [-3.05, 1.6, -2.56], porcelain)
+  box(delivery, [.85, 1.7, .2], [-3.05, 1.6, -1.04], porcelain)
+  box(delivery, [.85, .35, 1.7], [-3.05, 2.5, -1.8], porcelain)
+  label(delivery, 'BUILD', .77, .28, [-3.05, 2.48, -.94], '#112f43', '#88e4fa')
+  box(delivery, [.08, 1.13, .08], [-2.59, 1.8, -1.1], light)
+  box(delivery, [.08, 1.13, .08], [-2.59, 1.8, -2.5], light)
+  cylinder(delivery, .18, .13, [-3.05, 2.74, -1.8], orange)
   tube(delivery, [[.1, .3, -.85], [.1, 2.4, -.85], [.1, 2.7, -1.1], [.1, 2.7, -2.5], [.1, 2.4, -2.75], [.1, .3, -2.75]], red, .115)
-  label(delivery, 'TEST', .8, .28, [.1, 2.24, -.71], '#cb3e30')
-  box(delivery, [.75, .45, .12], [.1, 1.65, -.69], steel)
-  label(delivery, 'PASS', .63, .3, [.1, 1.65, -.62], '#267965')
+  label(delivery, 'QUALITY GATE', 1.42, .32, [.1, 2.3, -.71], '#26353d', '#d0fbff')
+  box(delivery, [.92, .66, .12], [.1, 1.62, -.69], porcelain)
+  const checkShape = new THREE.Shape()
+  checkShape.moveTo(-.32, .02)
+  checkShape.lineTo(-.19, -.11)
+  checkShape.lineTo(-.04, .04)
+  checkShape.lineTo(.29, .39)
+  checkShape.lineTo(.39, .28)
+  checkShape.lineTo(-.04, -.17)
+  checkShape.closePath()
+  mesh(delivery, new THREE.ExtrudeGeometry(checkShape, { depth: .035, bevelEnabled: false }), mint, [.1, 1.52, -.62])
   box(delivery, [.16, .9, 1.45], [.1, 1.6, -1.8], new THREE.MeshPhysicalMaterial({ color: '#80e6e5', transparent: true, opacity: .14, depthWrite: false, roughness: .1 }))
   for (const offset of [1.8, 2.0]) cylinder(delivery, .055, 3.3, [offset, 1.65, -3.2], steel)
   box(delivery, [2.8, .87, .18], [1.9, 3.43, -3.2], porcelain, .15)
   label(delivery, 'CI / CD', 1.75, .62, [2.19, 3.43, -3.1], '#f6d6cc', '#ab3323')
-  logo(delivery, siGitlab, .55, [.94, 3.43, -3.07], orange)
+  logo(delivery, siGit, .55, [.94, 3.43, -3.07], orange)
   const parcel = new THREE.Group()
   parcel.name = 'active-package'
   root.add(parcel)
@@ -154,6 +172,9 @@ export function createFactory() {
   box(parcel, [.11, .012, .6], [0, .608, 0], white)
   logo(parcel, siDocker, .32, [0, .32, .307], white)
   label(delivery, 'RELEASE', 1.05, .28, [2.8, .66, -.965], '#e7eef1', '#273f4a')
+  label(delivery, 'v1.4.2', 1.08, .34, [2.8, 1.8, -2.43], '#267965')
+  box(delivery, [.08, .8, .08], [2.8, 1.39, -2.47], steel)
+  box(delivery, [6.9, .05, .04], [.2, 1.07, -.99], light)
 
   const robotics = stations[2]
   const robot = new THREE.Group()
@@ -201,17 +222,51 @@ export function createFactory() {
   tube(shoulder, [[.22, -.1, -.3], [.34, .7, -.3], [.3, 1.7, -.3], [0, 2, -.3]], dark, .045)
   logo(robot, siKubernetes, .64, [0, 1.07, .49], blue)
   label(robot, 'Kubernetes', 1.7, .25, [0, .3, 1.14], '#137dce')
-  for (let index = 0; index < 3; index++) {
-    box(robotics, [1.05, .26, 1.05], [6.4, .2, -3 + index * 1.55], porcelain)
-    box(robotics, [.62, .65, .62], [6.4, .65, -3 + index * 1.55], blue)
+  for (const [slotIndex, slot] of orchestrationSlots.entries()) {
+    const platform = new THREE.Group()
+    platform.name = `orchestration-platform-${slotIndex + 1}`
+    platform.position.copy(slot)
+    robotics.add(platform)
+    box(platform, [1.42, .23, 1.24], [0, 0, 0], porcelain)
+    box(platform, [1.18, .03, .05], [0, .125, .61], light)
+    for (const side of slotIndex === orchestrationSlots.length - 1 ? [-.32] : [-.32, .32]) {
+      const container = new THREE.Group()
+      container.name = 'deployed-container'
+      container.position.set(side, .42, 0)
+      platform.add(container)
+      box(container, [.54, .6, .72], [0, 0, 0], blue)
+      box(container, [.09, .012, .72], [0, .306, 0], white)
+      logo(container, siDocker, .28, [0, .02, .367], white)
+    }
   }
-  label(robotics, 'ORCHESTRATION', 2.6, .35, [6, .3, 1], '#26353d')
+  const yardLabel = label(robotics, 'ORCHESTRATION', 2.8, .35, [7.45, .04, -4.55], '#344950', '#b2fff0')
+  yardLabel.rotation.x = -Math.PI / 2
+  for (const side of [-1, 1]) {
+    box(robotics, [.04, .025, 1.65], [platformDrop.x + side * .84, .015, platformDrop.z], yellow, .008)
+    box(robotics, [1.72, .025, .04], [platformDrop.x, .015, platformDrop.z + side * .82], yellow, .008)
+  }
   const pallet = new THREE.Group()
   pallet.name = 'transfer-pallet'
   root.add(pallet)
-  for (const side of [-.42, .42]) box(pallet, [.16, .14, .94], [side, .07, 0], porcelain)
-  box(pallet, [1.08, .09, .94], [0, .185, 0], porcelain)
-  for (const side of [-.5, .5]) box(robotics, [.1, .32, 1], [4.3 + side, .16, .8], steel)
+  for (const side of [-.42, .42]) box(pallet, [.16, .14, 1.24], [side, .07, 0], porcelain)
+  box(pallet, [1.42, .09, 1.24], [0, .185, 0], porcelain)
+  const docker = new THREE.Group()
+  docker.name = 'stationary-docker-platform'
+  docker.position.copy(handoff).setY(0)
+  robotics.add(docker)
+  box(docker, [1.65, 1.12, 1.55], [0, .56, 0], porcelain)
+  box(docker, [1.5, .04, .08], [0, .91, .79], light)
+  label(docker, 'DOCKER', 1.32, .3, [0, .65, .79], '#137dce')
+  box(docker, [2.15, .08, 1.36], [-.25, 1.08, 0], dark)
+  for (let index = 0; index < 10; index++) {
+    const roller = cylinder(docker, .09, 1.34, [-1.2 + index * .2, handoff.y - .09, 0], steel)
+    roller.rotation.x = Math.PI / 2
+  }
+  box(docker, [.14, 1.5, .14], [.3, .85, -1.2], steel)
+  box(docker, [1.45, 1.12, .14], [.3, 1.88, -1.2], dark)
+  logo(docker, siDocker, .85, [.3, 2.02, -1.11], blue)
+  label(docker, 'Docker', 1.16, .27, [.3, 1.55, -1.12], '#26353d')
+  tube(docker, [[.3, .13, -1.2], [.65, .13, -1.05], [.65, .45, -.77]], light)
 
   const forklift = new THREE.Group()
   forklift.name = 'terraform-forklift'
@@ -242,16 +297,17 @@ export function createFactory() {
   forks.name = 'fork-carriage'
   forklift.add(forks)
   box(forks, [.97, .34, .12], [0, .17, -.75], yellow)
-  for (const side of [-.3, .3]) box(forks, [.13, .06, 1.02], [side, -.03, -1.18], yellow, .025)
+  for (const side of [-.3, .3]) box(forks, [.13, .06, 1.42], [side, -.03, -1.4], yellow, .025)
   const load = new THREE.Group()
   load.name = 'forklift-load'
-  load.position.set(0, .23, -1.25)
+  load.position.set(0, .23, -1.7)
   forks.add(load)
   for (const side of [-.44, .44]) box(forklift, [.16, .12, .05], [side, .85, -.58], light)
   cylinder(forklift, .1, .12, [.38, 2.51, .3], orange)
 
   const ansible = new THREE.Group()
-  ansible.position.set(.1, 0, 1.45)
+  ansible.name = 'ansible-console'
+  ansible.position.set(7, 0, 3.4)
   robotics.add(ansible)
   box(ansible, [2.25, .35, 1.55], [0, .25, 0], dark, .2)
   box(ansible, [1.45, 1.6, .22], [.35, 1.22, -.55], dark, .2)
@@ -268,8 +324,7 @@ export function createFactory() {
 
   const monitoring = stations[3]
   const console = new THREE.Group()
-  console.position.set(-8, 0, -2)
-  console.rotation.y = .12
+  console.position.set(-1.7, 0, 4.7)
   monitoring.add(console)
   box(console, [2.65, .22, 1.02], [0, .15, 0], dark, .14)
   box(console, [2.45, 3.65, .49], [0, 1.95, 0], orange, .3)
@@ -280,9 +335,9 @@ export function createFactory() {
   tube(console, [[-.71, 1.69, .5], [-.35, 1.56, .5], [0, 1.75, .5], [.35, 1.83, .5], [.7, 1.88, .5]], orange, .035)
   logo(console, siGrafana, 1.02, [0, 2.55, .44], orange)
   for (const offset of [-.9, .9]) for (const height of [.55, 3.39]) bolt(console, [offset, height, .36])
-  label(console, 'METRICS / LOGS / TRACES', 1.72, .17, [0, .57, .353], '#e7eef1', '#49606a')
+  label(console, 'METRICS', 1.72, .17, [0, .57, .353], '#e7eef1', '#49606a')
   const tank = new THREE.Group()
-  tank.position.set(-8, 0, 1.4)
+  tank.position.set(2, 0, 4.7)
   monitoring.add(tank)
   cylinder(tank, .86, .25, [0, .17, 0], orange)
   cylinder(tank, .72, 1.56, [0, 1.03, 0], porcelain)
@@ -307,16 +362,26 @@ export function createFactory() {
   const flame = mesh(tank, new THREE.ExtrudeGeometry(flameShape, { depth: .18, bevelEnabled: true, bevelThickness: .035, bevelSize: .035, bevelSegments: 3, steps: 1 }), orange, [0, 2.46, -.05])
   cylinder(tank, .47, .13, [0, 2.32, 0], orange)
   label(tank, 'Prometheus', 1.6, .24, [0, .14, .871], '#f27916', '#ffffff')
-  const cablePaths = [
-    tube(root, [[-8.4, .52, 2.02], [-8.4, .16, 2.7], [-7.8, .16, 3.15], [-2, .16, 3.15], [-1.5, .16, 2.6], [-1.5, .16, 1.6], [-.9, .2, 1.6]], white, .07),
-    tube(root, [[-7.6, .52, 2.02], [-7.4, .16, 2.45], [-6.9, .16, 2.45], [-6.3, .16, 1.5]], white, .07),
-    tube(root, [[-8, .5, -1.6], [-8.8, .18, -1.1], [-8.8, .18, .9], [-8.6, .65, 1.4]], white, .075),
-    tube(root, [[1.1, .16, 1.5], [1.8, .16, 1.5], [2, .16, .5], [2, .16, -1.1], [3.3, .2, -1.3]], white, .07),
-    tube(root, [[6.4, .16, -3], [7.25, .16, -3], [7.5, .16, -2.5], [7.5, .16, .1], [6.4, .16, .1]], white, .07),
-  ]
-  for (let index = 0; index < 14; index++) box(root, [.38, .012, .04], [-3.6 + index * .7, -.035, 4.15], yellow, .008)
-  for (const side of [-.55, .55]) box(root, [.08, .025, 1.15], [-2.8 + side, 0, 5.1], yellow)
-  const depot = label(root, 'DEPLOYMENT', 2.1, .35, [-2.8, .04, 6.05], '#344950', '#e7eef1')
+  cablePaths.push(
+    tube(root, [[5.45, .16, -3.4], [5.45, .16, -1.45], [5.45, .16, .5], [5.45, .16, 1.7]], light, .065, 'connection-orchestration-bus'),
+    tube(root, [[7, .16, 2.62], [7, .16, 1.9], [6.8, .16, 1.7], [5.45, .16, 1.7]], light, .065, 'connection-ansible-orchestration'),
+    tube(root, [[5.45, .16, 1.7], [4.6, .16, 1.7], [4.35, .16, 2.1], [4.35, .16, 3.8], [3.9, .16, 4.2], [2.65, .52, 4.3]], light, .065, 'connection-orchestration-prometheus'),
+    tube(root, [[1.3, .52, 4.4], [.4, .18, 4.4], [-.35, .3, 4.55]], light, .065, 'connection-prometheus-grafana'),
+  )
+  for (const depth of [-3.4, -1.45, .5]) {
+    cablePaths.push(tube(root, [[5.45, .16, depth], [5.57, .16, depth], [5.69, .16, depth]], light, .065, `connection-platform-inner-${depth}`))
+    cablePaths.push(tube(root, [[7.11, .16, depth], [7.45, .16, depth], [7.79, .16, depth]], light, .065, `connection-platform-outer-${depth}`))
+  }
+  for (const [text, position, width] of [
+    ['ANSIBLE', [7, .06, 4.6], 1.4],
+    ['PROMETHEUS', [2, .06, 5.72], 2.1],
+    ['GRAFANA', [-1.7, .06, 5.72], 1.4],
+  ] as [string, Position, number][]) {
+    const sign = label(root, text, width, .3, position, '#344950', '#b2fff0')
+    sign.rotation.x = -Math.PI / 2
+  }
+  for (let index = 0; index < 6; index++) for (const side of [-1, 1]) box(root, [.3, .012, .04], [9.6 + index * .65, -.035, .5 + side * 1.1], yellow, .008)
+  const depot = label(root, 'INFRASTRUCTURE', 2.5, .35, [11.4, .04, 2.15], '#344950', '#e7eef1')
   depot.rotation.x = -Math.PI / 2
   const packets = cablePaths.map(() => mesh(root, new THREE.SphereGeometry(.115, 12, 12), mint, [0, 0, 0]))
   const ground = mesh(root, new THREE.PlaneGeometry(200, 200), material('#344950', .28, .42), [0, -.08, 0])
@@ -328,11 +393,11 @@ export function createFactory() {
   stations.forEach((station, index) => station.traverse(object => { object.userData.stage = index }))
 
   return {
-    root, stations, anchors, parcel, pallet, forklift, grip,
+    root, stations, anchors, parcel, pallet, forklift, grip, docker,
     update(time: number, selected: number) {
       const state = factoryMotion(time)
       rings.forEach((ring, index) => { ring.visible = selected === index })
-      const beltTime = Math.min(state.seconds, 7)
+      const beltTime = Math.min(state.seconds, 9)
       slats.forEach((slat, index) => { slat.position.x = -3.2 + (index * .235 + beltTime * .92) % 7.05 })
       const angles = solveArm(state.armTarget)
       shoulder.rotation.z = angles.shoulder
@@ -343,15 +408,16 @@ export function createFactory() {
       forklift.position.copy(state.forkliftPosition)
       forklift.rotation.y = state.forkliftYaw
       forks.position.y = state.forkHeight
-      wheels.forEach(wheel => { wheel.rotation.x = state.forkliftPosition.x * 3 + state.forkliftPosition.z * 3 })
-      joystick.rotation.z = state.owner === 'forklift' ? Math.sin(time) * .14 : 0
-      const carrier = state.owner === 'gripper' ? grip : state.owner === 'forklift' ? load : root
+      wheels.forEach(wheel => { wheel.rotation.x = state.forkliftPosition.x / .3 })
+      joystick.rotation.z = state.owner === 'destination' ? Math.sin(time) * .14 : 0
+      const carrier = state.owner === 'gripper' ? grip : root
       carrier.add(parcel)
       parcel.rotation.set(0, 0, 0)
       if (carrier === grip) parcel.rotation.z = Math.PI
       parcel.position.copy(carrier === root ? state.packagePosition : new THREE.Vector3())
-      if (state.owner === 'forklift') { load.add(pallet); pallet.position.set(0, -.23, 0); pallet.rotation.set(0, 0, 0) }
-      else { root.add(pallet); pallet.position.copy(state.owner === 'destination' ? state.packagePosition : new THREE.Vector3(4.3, .55, .8)).add(new THREE.Vector3(0, -.23, 0)); pallet.rotation.set(0, state.owner === 'destination' ? Math.PI / 2 : 0, 0) }
+      if (state.platformOnForklift) { load.add(pallet); pallet.position.set(0, -.23, 0) }
+      else { root.add(pallet); pallet.position.copy(state.platformPosition) }
+      pallet.rotation.set(0, state.platformOnForklift ? -state.forkliftYaw : 0, 0)
       parcel.userData.stage = state.owner === 'belt' ? 1 : 2
       parcel.traverse(object => { object.userData.stage = parcel.userData.stage })
       flame.position.y = 2.46 + Math.sin(time * 1.4) * .06
