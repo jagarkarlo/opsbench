@@ -14,6 +14,11 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('single package has continuous ownership through the full delivery cycle', () => {
+  const dockHalfWidth = .825
+  const dockHalfDepth = .775
+  const baseRadius = 1.13
+  const dockDistance = Math.hypot(Math.max(Math.abs(robotBase.x - handoff.x) - dockHalfWidth, 0), Math.max(Math.abs(robotBase.z - handoff.z) - dockHalfDepth, 0))
+  expect(dockDistance - baseRadius).toBeGreaterThan(.4)
   expect(factoryMotion(8).owner).toBe('belt')
   expect(factoryMotion(12).owner).toBe('gripper')
   expect(factoryMotion(10).owner).toBe('docker')
