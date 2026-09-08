@@ -60,6 +60,19 @@ monitoring instruments, a collector, a segmented delivery conveyor, an
 articulated orchestration arm, container platforms, and routed cables. Studio
 environment lighting, shadows, bevels, and instrument textures provide depth.
 
+The stretched U-shaped layout includes an Ansible joystick console and a
+Terraform forklift. Raised machine emblems use the packaged Simple Icons paths
+for Kubernetes, Terraform, Ansible, Grafana, Prometheus, Docker, and GitLab.
+Simple Icons artwork is distributed under CC0; brand names and trademarks
+remain their owners' property. This illustration implies no endorsement.
+
+One active package follows a 36-second illustrated cycle: conveyor arrival,
+grip, lift, transfer, placement on a pallet, forklift loading, delivery, unloading,
+and return. The belt stops during the handoff. The next package starts only
+after the full cycle completes. The arm targets the package with two-link
+kinematics, and the package is parented to the actual gripper or forklift load
+socket during transport. A cycle slider pauses and scrubs the sequence.
+
 Select physical stations or use arrows/Home/End in the stage tabs to update the
 inspector. Camera controls include orbit/pan, zoom/reset, a top view, selected
 station focus, and an expanded scene. Playback supports pause and 0.5x/1x/2x
@@ -88,7 +101,8 @@ or receiver acceptance as human acknowledgement. Prioritize a readable evidence
 timeline over decorative topology; use animation only to represent known state.
 Playwright checks desktop (1440px) and mobile (390px) layouts, pixel-based canvas
 visibility/movement and station picking, keyboard selection, camera panning,
-focus/expansion, playback/reduced motion, scenario search, run comparison/dialogs,
+focus/expansion, playback/reduced motion, package continuity and actual carrier
+attachment, logo presence, cycle scrubbing, scenario search, run comparison/dialogs,
 and empty/partial API states. Screenshots are generated
 under ignored `test-results/`; the frontend CI workflow retains them as artifacts.
 These checks do not validate production connectors, authentication, or Docker.

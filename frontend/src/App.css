@@ -54,6 +54,11 @@ nav button[aria-current] { color: var(--mint); border-color: var(--mint); }
 .scene-transport label { display: flex; align-items: center; gap: 8px; }
 .scene-transport select { background: #263b43; color: white; padding: 5px; border: 1px solid #607c89; border-radius: 3px; }
 .scene-wrap .stage-tabs { background: #171d21; }
+.cycle-timeline { display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: #17252b; border-top: 1px solid #40545e; font: 10px 'DM Mono', monospace; }
+.cycle-timeline output { min-width: 145px; color: var(--mint); }
+.cycle-timeline input { min-width: 50px; flex: 1; accent-color: var(--mint); }
+.scene-wrap .scene-transport { bottom: 112px; }
+@media(max-width: 650px) { .cycle-timeline { flex-wrap: wrap; gap: 9px; } .cycle-timeline > span:first-child { display: none; } .cycle-timeline output { min-width: 100%; } .scene-wrap .scene-transport { bottom: 150px; } }
 .scene-wrap.scene-expanded .workflow-canvas { height: min(78vh, 900px); min-height: 520px; }
 .inspector h3 { font-size: 16px; font-weight: 500; margin: 0 0 8px; }
 .workbench { grid-template-columns: 235px minmax(0, 1fr); }

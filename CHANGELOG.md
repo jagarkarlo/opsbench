@@ -20,6 +20,11 @@ tag dates; versions follow the milestones described in `docs/roadmap.md`.
 - Replaced the basic stage blocks with a detailed illustrated DevOps factory:
   container registry, delivery conveyor, orchestration arm, collector, and
   observability console, with camera presets and local playback controls.
+- Added raised machine logos, an Ansible console, a stretched U-shaped layout,
+  and a Terraform forklift. A single package now passes from stopped conveyor
+  to arm, pallet, forklift, and deployment bay before the next cycle begins.
+- Added cycle scrubbing and checks for package continuity, arm reachability,
+  actual carrier attachment, and desktop/mobile handoff screenshots.
 - Distinguished current benchmark and prototype UI features from planned
   connectors, worker services, authentication, and branching rehearsal.
 - Recorded remaining authentication and container validation gaps. This update

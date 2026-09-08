@@ -5,6 +5,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { Plus, Minus, RotateCcw, Orbit, Hand, Pause, Play, Scan, Focus, Camera, Maximize2, Minimize2 } from 'lucide-react'
 import { stages } from './workflow'
 import { createFactory } from './factory'
+import { cycleDuration } from './factoryMotion'
 
 export function WorkflowScene({ selected, onSelect }: { selected: number; onSelect: (index: number) => void }) {
   const mount = useRef<HTMLDivElement>(null)
@@ -19,6 +20,7 @@ export function WorkflowScene({ selected, onSelect }: { selected: number; onSele
   const [cameraView, setCameraView] = useState('OVERVIEW')
   const [expanded, setExpanded] = useState(false)
   const [unavailable, setUnavailable] = useState(false)
+  const [cycle, setCycle] = useState({ seconds: 0, phase: 'Conveying' })
   useEffect(() => { selection.current = selected; callback.current = onSelect }, [selected, onSelect])
   useEffect(() => { playback.current.paused = paused; playback.current.speed = speed }, [paused, speed])
   useEffect(() => {
@@ -51,14 +53,14 @@ export function WorkflowScene({ selected, onSelect }: { selected: number; onSele
     scene.background = new THREE.Color('#263b43')
     scene.fog = new THREE.Fog('#263b43', 35, 85)
     const camera = new THREE.OrthographicCamera(-8, 8, 5, -5, .1, 100)
-    camera.position.set(12, 11, 17)
+    camera.position.set(9, 14, 21)
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true
     controls.minZoom = .65
     controls.maxZoom = 3
     controls.maxPolarAngle = Math.PI / 2.12
     controls.minPolarAngle = .08
-    controls.target.set(-.2, .8, .6)
+    controls.target.set(-1, .8, .3)
     controls.update()
     controls.saveState()
     controlsRef.current = controls
@@ -93,7 +95,7 @@ export function WorkflowScene({ selected, onSelect }: { selected: number; onSele
     const pick = (event: PointerEvent) => {
       const rect = renderer.domElement.getBoundingClientRect()
       raycaster.setFromCamera(new THREE.Vector2((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1), camera)
-      return raycaster.intersectObjects(factory.stations, true)[0]?.object.userData.stage as number | undefined
+      return raycaster.intersectObjects([...factory.stations, factory.parcel], true)[0]?.object.userData.stage as number | undefined
     }
     const pointerDown = (event: PointerEvent) => { start = { x: event.clientX, y: event.clientY } }
     const pointerUp = (event: PointerEvent) => {
@@ -108,7 +110,7 @@ export function WorkflowScene({ selected, onSelect }: { selected: number; onSele
     const resize = new ResizeObserver(() => {
       const width = Math.max(1, element.clientWidth)
       const height = Math.max(1, element.clientHeight)
-      const halfWidth = Math.max(8.6, 5.35 * width / height)
+      const halfWidth = Math.max(10.7, 6.9 * width / height)
       camera.left = -halfWidth
       camera.right = halfWidth
       camera.top = halfWidth * height / width
@@ -122,12 +124,15 @@ export function WorkflowScene({ selected, onSelect }: { selected: number; onSele
     reducedMotion.addEventListener('change', motionChange)
     let frame = 0
     let last = 0
+    let lastCycleTick = -1
     const animate = (time: number) => {
       frame = requestAnimationFrame(animate)
       const delta = Math.min((time - last) / 1000, .05)
       last = time
       if (!playback.current.paused) playback.current.progress += delta * playback.current.speed
-      factory.update(playback.current.progress, selection.current)
+      const state = factory.update(playback.current.progress, selection.current)
+      const tick = Math.floor(state.seconds * 5)
+      if (tick !== lastCycleTick) { setCycle({ seconds: state.seconds, phase: state.phase }); lastCycleTick = tick }
       controls.update()
       renderer.render(scene, camera)
     }
@@ -172,6 +177,7 @@ export function WorkflowScene({ selected, onSelect }: { selected: number; onSele
       <button title={expanded ? 'Collapse scene' : 'Expand scene'} aria-label={expanded ? 'Collapse scene' : 'Expand scene'} aria-pressed={expanded} onClick={() => setExpanded(!expanded)}>{expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}</button>
     </div>
     <div className="scene-transport"><Camera size={14} /><span>FACTORY / 01</span><button title={paused ? 'Play animation' : 'Pause animation'} aria-label={paused ? 'Play animation' : 'Pause animation'} onClick={() => setPaused(!paused)}>{paused ? <Play size={15} /> : <Pause size={15} />}</button><label>Speed <select aria-label="Animation speed" value={speed} onChange={event => setSpeed(Number(event.target.value))}><option value={.5}>0.5x</option><option value={1}>1x</option><option value={2}>2x</option></select></label></div>
+    <div className="cycle-timeline"><span>ILLUSTRATED CYCLE</span><output>{cycle.phase}</output><input aria-label="Factory cycle position" type="range" min="0" max={cycleDuration - .01} step=".01" value={cycle.seconds} onChange={event => { playback.current.progress = Number(event.target.value); playback.current.paused = true; setPaused(true) }} /><span>{cycle.seconds.toFixed(1)}s</span></div>
     <div className="stage-tabs" role="tablist" aria-label="Workflow stages">{stages.map((stage, index) => <button role="tab" aria-selected={selected === index} tabIndex={selected === index ? 0 : -1} key={stage.title} onClick={() => onSelect(index)} onKeyDown={event => { const shortcut = Number(event.key) - 1; const next = event.key === 'ArrowRight' ? (index + 1) % stages.length : event.key === 'ArrowLeft' ? (index + stages.length - 1) % stages.length : event.key === 'Home' ? 0 : event.key === 'End' ? stages.length - 1 : shortcut >= 0 && shortcut < stages.length ? shortcut : null; if (next !== null) { event.preventDefault(); onSelect(next); (event.currentTarget.parentElement?.children[next] as HTMLButtonElement).focus() } }} style={{ '--stage-color': stage.color } as React.CSSProperties}><span>0{index + 1}</span>{stage.title}</button>)}</div>
   </div>
 }

@@ -23,9 +23,9 @@ benchmark contracts and tests. Historical phases follow these active gates.
 - [x] Add a detailed, interactive factory illustration with station picking,
   camera presets, playback controls, and responsive expanded inspection.
 - [ ] Add incident-specific edge evidence and synchronized timeline inspection.
-- [ ] Model explicit package pick-and-place and handoff states for the
-  orchestration arm; this remains visual-only until a separately approved
-  rehearsal model exists.
+- [x] Model single-package arm pick-and-place, pallet handoff, and Terraform
+  forklift delivery with a scrubbable illustration cycle and Ansible console.
+  This remains visual-only, not an implemented incident rehearsal model.
 - [ ] Implement and test browser authentication, including static asset access.
 - [ ] Validate binary assets, missing-asset responses, and path containment.
 - [ ] Correct Docker database/volume ownership and read-only filesystem wiring.
