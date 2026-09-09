@@ -96,6 +96,20 @@ from opsbench.specialized_adapters import (
 from opsbench.store import RunQuery, SQLiteResultStore
 from opsbench.tracing import TraceSpan, TraceTracer
 from opsbench.validator import lint_scenario
+from opsbench.verification import (
+    MONITORING_STAGE_IDS,
+    STAGE_STATUSES,
+    VerificationAssertion,
+    VerificationAssertionResult,
+    VerificationCoverage,
+    VerificationInput,
+    VerificationObservation,
+    VerificationReport,
+    evaluate_verification,
+    load_verification_input,
+    load_verification_report,
+    write_verification_report,
+)
 from opsbench.web import render_dashboard_html
 
 __version__ = "0.6.4"

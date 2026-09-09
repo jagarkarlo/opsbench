@@ -29,6 +29,45 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(parsed.scenario_command, "validate")
         self.assertEqual(parsed.path, "scenarios/example")
 
+    def test_parses_monitoring_path_verification_command(self) -> None:
+        parsed = build_parser().parse_args(
+            ["verify", "monitoring-path", "verification-input.json", "verification-report.json"]
+        )
+
+        self.assertEqual(parsed.command, "verify")
+        self.assertEqual(parsed.verify_command, "monitoring-path")
+        self.assertEqual(parsed.input_path, "verification-input.json")
+        self.assertEqual(parsed.output_path, "verification-report.json")
+
+    def test_runs_monitoring_path_verification_cli(self) -> None:
+        with TemporaryDirectory() as directory:
+            input_path = Path(directory) / "input.json"
+            output_path = Path(directory) / "report.json"
+            input_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0",
+                        "verification_id": "verification-cli-001",
+                        "scenario_id": "monitoring-path-001",
+                        "started_at": "2026-09-09T12:00:00Z",
+                        "assertions": [
+                            {"assertion_id": "assert-signal", "stage_id": "signal_emitted", "description": "Signal is emitted."},
+                        ],
+                        "observations": [
+                            {"stage_id": "signal_emitted", "status": "passed", "observed_at": "2026-09-09T12:00:01Z", "evidence_refs": ["event-1"], "summary": "Signal observed."},
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            output = io.StringIO()
+            with redirect_stdout(output):
+                exit_code = main(["verify", "monitoring-path", str(input_path), str(output_path)])
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(json.loads(output_path.read_text(encoding="utf-8"))["outcome"], "passed")
+            self.assertIn('"outcome": "passed"', output.getvalue())
+
     def test_parses_scenario_list_command(self) -> None:
         parsed = build_parser().parse_args(["scenario", "list", "scenarios"])
 

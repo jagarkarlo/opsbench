@@ -61,6 +61,7 @@ from opsbench.specialized_adapters import ReliabilityReplayAdapter, load_replay_
 from opsbench.store import RunQuery, SQLiteResultStore
 from opsbench.tracing import TraceTracer
 from opsbench.validator import lint_scenario
+from opsbench.verification import evaluate_verification, load_verification_input, write_verification_report
 
 
 def parse_metadata(entries: list[str] | None) -> tuple[tuple[str, str], ...]:
@@ -419,12 +420,26 @@ def build_parser() -> argparse.ArgumentParser:
     doctor_parser.add_argument("--gallery-path", default="scenarios", help="path to scenarios gallery directory")
     doctor_parser.add_argument("--db", default=None, help="optional path to a SQLite result database file to check")
     doctor_parser.add_argument("--archive", default=None, help="optional path to a backup archive file to validate")
+
+    verify_parser = subparsers.add_parser("verify", help="evaluate bounded operational verification inputs")
+    verify_subparsers = verify_parser.add_subparsers(dest="verify_command", required=True)
+    monitoring_parser = verify_subparsers.add_parser(
+        "monitoring-path", help="evaluate a supplied monitoring-path observation document"
+    )
+    monitoring_parser.add_argument("input_path", help="JSON verification input document")
+    monitoring_parser.add_argument("output_path", help="destination JSON verification report")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     """Execute one local scenario command."""
     parsed = build_parser().parse_args(argv)
+    if parsed.command == "verify" and parsed.verify_command == "monitoring-path":
+        verification_input = load_verification_input(Path(parsed.input_path))
+        report = evaluate_verification(verification_input)
+        write_verification_report(Path(parsed.output_path), report)
+        print(json.dumps(report.to_dict(), sort_keys=True))
+        return 3 if report.outcome == "failed" else 0
     if parsed.command == "scenario" and parsed.scenario_command == "validate":
         pack = load_scenario_pack(Path(parsed.path))
         print(
