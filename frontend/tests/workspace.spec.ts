@@ -75,6 +75,36 @@ test('indexed run details show immutable provenance', async ({ page }) => {
   await expect(page.getByRole('dialog')).toContainText('42')
 })
 
+test('same-scenario comparison shows score dimensions', async ({ page }) => {
+  await page.route('**/api/v1/**', route => {
+    const endpoint = new URL(route.request().url()).pathname
+    if (endpoint.endsWith('/runs')) return route.fulfill({ json: {
+      runs: [
+        { run: { run_id: 'compare-run-1', runner_kind: 'fixture', started_at: '2026-09-04T12:00:00Z' }, report: { scenario_id: 'same-scenario', total: 12, maximum: 16, diagnosis: 4, evidence: 3, actions: 4, safety: 1, explanation: 'First run.' } },
+        { run: { run_id: 'compare-run-2', runner_kind: 'fixture', started_at: '2026-09-04T13:00:00Z' }, report: { scenario_id: 'same-scenario', total: 15, maximum: 16, diagnosis: 4, evidence: 4, actions: 4, safety: 3, explanation: 'Second run.' } },
+      ],
+      count: 2,
+    } })
+    const data = endpoint.endsWith('/health') ? { status: 'ok', version: 'test' }
+      : endpoint.endsWith('/scenarios') ? { scenarios: [{ scenario_id: 'same-scenario', title: 'Same scenario', category: 'test' }] }
+      : endpoint.endsWith('/portfolio') ? { leaderboard: [] }
+      : { operations: [] }
+    return route.fulfill({ json: data })
+  })
+  await page.goto('/app/')
+  await page.getByRole('button', { name: 'Runs', exact: true }).click()
+  await page.getByLabel('Compare compare-run-1').check()
+  await page.getByLabel('Compare compare-run-2').check()
+  const comparison = page.getByRole('table', { name: 'Score dimension comparison' })
+  await expect(page.getByRole('heading', { name: 'Dimension comparison' })).toBeVisible()
+  await expect(comparison).toContainText('Diagnosis')
+  await expect(comparison).toContainText('Evidence')
+  await expect(comparison).toContainText('compare-run-1')
+  await expect(comparison).toContainText('compare-run-2')
+  await expect(comparison).toContainText('1 / 4')
+  await expect(comparison).toContainText('3 / 4')
+})
+
 for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
   test(`interactive workflow and results at ${viewport.width}px`, async ({ page }, testInfo) => {
     test.setTimeout(60_000)
@@ -150,6 +180,13 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await page.getByLabel('Compare demo-run-1').check()
     await page.getByLabel('Compare demo-run-2').check()
     await expect(page.getByText('Different scenarios: scores are not directly comparable.')).toBeVisible()
+    await page.getByLabel('Compare demo-run-2').uncheck()
+    await page.getByLabel('Compare demo-run-3').check()
+    await expect(page.getByRole('heading', { name: 'Dimension comparison' })).toBeVisible()
+    await expect(page.getByRole('table', { name: 'Score dimension comparison' })).toContainText('Diagnosis')
+    await expect(page.getByRole('table', { name: 'Score dimension comparison' })).toContainText('Safety')
+    await expect(page.getByRole('table', { name: 'Score dimension comparison' })).toContainText('demo-run-1')
+    await expect(page.getByRole('table', { name: 'Score dimension comparison' })).toContainText('demo-run-3')
     await page.getByRole('button', { name: 'demo-run-1', exact: true }).click()
     await expect(page.getByRole('dialog')).toContainText('Synthetic demonstration report')
     await expect(page.getByRole('dialog')).toContainText('Diagnosis')
