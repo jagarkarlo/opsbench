@@ -1,0 +1,14 @@
+global:
+  resolve_timeout: 1m
+
+route:
+  receiver: opsbench-test-receiver
+  group_wait: 1s
+  group_interval: 1s
+  repeat_interval: 1h
+
+receivers:
+  - name: opsbench-test-receiver
+    webhook_configs:
+      - url: http://receiver:8090/alerts
+        send_resolved: false

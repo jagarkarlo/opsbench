@@ -1,0 +1,76 @@
+services:
+  test-service:
+    image: python:3.12-alpine
+    command: ["python", "/opt/opsbench/test_service.py"]
+    environment:
+      OPSBENCH_SIGNAL_MODE: "${OPSBENCH_SIGNAL_MODE:-healthy}"
+    volumes:
+      - ./test_service.py:/opt/opsbench/test_service.py:ro
+    networks:
+      - verification
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  receiver:
+    image: python:3.12-alpine
+    command: ["python", "/opt/opsbench/receiver.py"]
+    environment:
+      OPSBENCH_EXPECTED_SUMMARY: "OpsBench verification signal"
+    volumes:
+      - ./receiver.py:/opt/opsbench/receiver.py:ro
+      - receiver-events:/data
+    ports:
+      - "8090:8090"
+    networks:
+      - verification
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health', timeout=2)"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./rules.yml:/etc/prometheus/rules.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - verification
+    depends_on:
+      test-service:
+        condition: service_healthy
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    ports:
+      - "9093:9093"
+    networks:
+      - verification
+    depends_on:
+      receiver:
+        condition: service_healthy
+
+networks:
+  verification:
+    name: opsbench-verification
+
+volumes:
+  alertmanager-data:
+  prometheus-data:
+  receiver-events:

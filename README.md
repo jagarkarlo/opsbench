@@ -106,6 +106,10 @@ It includes:
   endpoint for serving a report without allowing request-selected file paths.
 - Operations console evidence panel that distinguishes failed, unknown, and
   not-tested stages without inventing a root cause.
+- A disposable Prometheus/Alertmanager/test-receiver lab definition under
+  `deploy/verification`, with bounded healthy, missing-collection, and invalid
+  notification smoke modes. Runtime Docker validation remains pending when
+  the Docker daemon is unavailable.
 
 Bundled scenarios and reference responses are synthetic. The evaluator never
 executes proposed actions or calls an AI provider; provider adapters can make

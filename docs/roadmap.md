@@ -40,7 +40,8 @@ is presented as live without a source. Existing CLI behaviour remains intact.
 
 - [x] Define versioned assertions, stage evidence, coverage, and run outcomes
   for offline supplied observations. External lab execution remains planned.
-- [ ] Build one disposable service/Prometheus/Alertmanager/test-receiver lab.
+- [x] Add one disposable service/Prometheus/Alertmanager/test-receiver lab
+  definition and bounded smoke harness. Runtime smoke validation remains open.
 - [ ] Use existing rule/routing tooling and real components, not a second evaluator.
 - [ ] Verify a healthy signal from emission through receiver acceptance.
 - [ ] Test missing collection, mismatched routing, and invalid notification content.

@@ -1,0 +1,10 @@
+groups:
+  - name: opsbench-verification
+    rules:
+      - alert: OpsBenchVerificationSignal
+        expr: opsbench_verification_signal == 1
+        for: 2s
+        labels:
+          severity: warning
+        annotations:
+          summary: OpsBench verification signal
