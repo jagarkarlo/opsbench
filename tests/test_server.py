@@ -6,6 +6,7 @@ from tempfile import TemporaryDirectory
 import threading
 import unittest
 import urllib.request
+import json
 
 from opsbench.runs import BenchmarkRun, ResultBundle
 from opsbench.scoring import Score, ScoreReport
@@ -64,6 +65,7 @@ class BenchmarkServerTests(unittest.TestCase):
             gallery_path=self.gallery_path,
             db_path=self.db_path,
             frontend_path=self.frontend_path,
+            verification_report_path=self.root_path / "verification.json",
         )
         self.port = self.server.server_port
         self.server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -118,6 +120,46 @@ class BenchmarkServerTests(unittest.TestCase):
         modes = {operation["id"]: operation["mode"] for operation in data["operations"]}
         self.assertEqual(modes["portfolio-leaderboard"], "ui")
         self.assertEqual(modes["benchmark-execution"], "cli")
+
+    def test_verification_endpoint_returns_report_and_filters(self) -> None:
+        verification_path = self.root_path / "verification.json"
+        verification_path.write_text(
+            json.dumps(
+                {
+                    "schema_version": "1.0",
+                    "verification_id": "verification-server-001",
+                    "scenario_id": "monitoring-path-001",
+                    "outcome": "unknown",
+                    "coverage": {"ratio": 0.8, "tested_stage_count": 4, "total_stage_count": 5},
+                    "assertions": [
+                        {"assertion_id": "assert-signal", "stage_id": "signal_emitted", "status": "unknown", "description": "Signal is observed."},
+                    ],
+                    "observations": [
+                        {"stage_id": "signal_emitted", "status": "unknown", "observed_at": None, "evidence_refs": [], "summary": "No observation."},
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        status, data = self._get("/api/v1/verifications")
+        self.assertEqual(status, HTTPStatus.OK)
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(data["verifications"][0]["outcome"], "unknown")
+
+        status, data = self._get("/api/v1/verifications?outcome=passed")
+        self.assertEqual(status, HTTPStatus.OK)
+        self.assertEqual(data, {"count": 0, "verifications": []})
+
+    def test_verification_endpoint_requires_configured_report(self) -> None:
+        self.server.shutdown()
+        self.server.server_close()
+        self.server = create_server("127.0.0.1", 0, gallery_path=self.gallery_path, db_path=self.db_path)
+        self.port = self.server.server_port
+        self.server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.server_thread.start()
+        status, data = self._get("/api/v1/verifications")
+        self.assertEqual(status, HTTPStatus.NOT_FOUND)
+        self.assertIn("not configured", data["error"])
 
     def test_frontend_endpoint(self) -> None:
         status, html_text = self._get_html("/app/")

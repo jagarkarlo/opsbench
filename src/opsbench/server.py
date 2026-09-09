@@ -14,6 +14,7 @@ from opsbench.metrics import generate_prometheus_metrics
 from opsbench.comparisons import rank_portfolio
 from opsbench.scenarios import load_gallery
 from opsbench.store import RunQuery, SQLiteResultStore
+from opsbench.verification import load_verification_report
 from opsbench.web import render_dashboard_html
 
 
@@ -24,6 +25,7 @@ class BenchmarkRequestHandler(BaseHTTPRequestHandler):
     db_path: Path | str = ":memory:"
     api_token: str | None = None
     frontend_path: Path | None = None
+    verification_report_path: Path | None = None
 
     def _is_authorized(self) -> bool:
         """Return True when no token is configured or the request presents a matching bearer token."""
@@ -100,9 +102,31 @@ class BenchmarkRequestHandler(BaseHTTPRequestHandler):
                         {"id": "store-management", "label": "Store backup and restore", "mode": "cli"},
                         {"id": "integrity-attestation", "label": "Dataset and attestation workflows", "mode": "cli"},
                         {"id": "mcp-context", "label": "MCP context inspection", "mode": "cli"},
+                        {"id": "monitoring-verification", "label": "Monitoring-path verification", "mode": "cli"},
                     ],
                 },
             )
+            return
+
+        if path == "/api/v1/verifications":
+            if self.verification_report_path is None:
+                self._send_json(HTTPStatus.NOT_FOUND, {"error": "verification report not configured"})
+                return
+            try:
+                report = load_verification_report(self.verification_report_path)
+                scenario_id = query_params.get("scenario_id", [None])[0]
+                outcome = query_params.get("outcome", [None])[0]
+                if scenario_id and report.scenario_id != scenario_id:
+                    self._send_json(HTTPStatus.OK, {"count": 0, "verifications": []})
+                    return
+                if outcome and report.outcome != outcome:
+                    self._send_json(HTTPStatus.OK, {"count": 0, "verifications": []})
+                    return
+                self._send_json(HTTPStatus.OK, {"count": 1, "verifications": [report.to_dict()]})
+            except ValueError as error:
+                self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
+            except OSError as error:
+                self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(error)})
             return
 
         if path == "/metrics":
@@ -251,6 +275,7 @@ def create_server(
     db_path: Path | str = ":memory:",
     api_token: str | None = None,
     frontend_path: Path | None = None,
+    verification_report_path: Path | None = None,
 ) -> HTTPServer:
     """Create a configured OpsBench HTTPServer instance."""
     class_handler = type(
@@ -261,6 +286,7 @@ def create_server(
             "db_path": db_path,
             "api_token": api_token,
             "frontend_path": frontend_path,
+            "verification_report_path": verification_report_path,
         },
     )
     return HTTPServer((host, port), class_handler)

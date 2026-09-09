@@ -381,6 +381,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="optional path to a built React frontend served at /app",
     )
+    serve_parser.add_argument(
+        "--verification-report",
+        default=None,
+        help="optional configured monitoring-path verification report served by the API",
+    )
 
     mcp_parser = subparsers.add_parser("mcp", help="inspect MCP platform context adapters")
     mcp_subparsers = mcp_parser.add_subparsers(dest="mcp_command", required=True)
@@ -1107,6 +1112,7 @@ def main(argv: list[str] | None = None) -> int:
             db_path=Path(parsed.db) if parsed.db != ":memory:" else ":memory:",
             api_token=parsed.api_token,
             frontend_path=Path(parsed.frontend_path) if parsed.frontend_path else None,
+            verification_report_path=Path(parsed.verification_report) if parsed.verification_report else None,
         )
         print(f"OpsBench REST API server running on http://{parsed.host}:{parsed.port}")
         if not parsed.api_token:
