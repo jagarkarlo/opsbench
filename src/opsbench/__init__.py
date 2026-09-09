@@ -112,7 +112,7 @@ from opsbench.verification import (
 )
 from opsbench.web import render_dashboard_html
 
-__version__ = "0.6.4"
+__version__ = "0.7.0"
 __all__ = [
     "ChaosCaseResult",
     "ChaosMatrixResult",
@@ -162,6 +162,14 @@ __all__ = [
     "SuiteFailure",
     "TraceSpan",
     "TraceTracer",
+    "MONITORING_STAGE_IDS",
+    "STAGE_STATUSES",
+    "VerificationAssertion",
+    "VerificationAssertionResult",
+    "VerificationCoverage",
+    "VerificationInput",
+    "VerificationObservation",
+    "VerificationReport",
     "check_contribution",
     "check_gallery_contributions",
     "compare_bundles",
@@ -171,6 +179,7 @@ __all__ = [
     "execute_suite",
     "execute_suite_resilient",
     "execute_suite_profiled",
+    "evaluate_verification",
     "export_public_dataset",
     "export_store_to_json",
     "format_json_log_entry",
@@ -182,6 +191,8 @@ __all__ = [
     "load_performance_baseline",
     "load_public_dataset",
     "load_replay_timeline",
+    "load_verification_input",
+    "load_verification_report",
     "parse_response_text",
     "render_dashboard_html",
     "rank_trials",
@@ -201,4 +212,5 @@ __all__ = [
     "write_cold_routes",
     "write_performance_baseline",
     "write_replay_timeline",
+    "write_verification_report",
 ]

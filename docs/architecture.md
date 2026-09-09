@@ -85,6 +85,23 @@ lab execution identities are separate, with no credential inheritance.
 These are contract requirements, not new API fields implemented by this update.
 Choose schema migrations and compatibility tests before extending persistence.
 
+### Implemented verification foundation (v0.7.0)
+
+`opsbench.verification` now provides a separately versioned, dependency-free
+contract for supplied monitoring-path observations. The five ordered stages are
+`signal_emitted`, `signal_collected`, `rule_fired`, `route_matched`, and
+`receiver_accepted`. Each declared assertion resolves to `passed`, `failed`,
+`unknown`, or `not_tested`; coverage counts observed statuses but never treats
+an uncovered stage as a failure. A failed stage produces a failed report, while
+unknown or not-tested stages produce an unknown report unless a failure is
+present. The evaluator stores no guessed cause.
+
+Reports are immutable JSON artifacts with a content hash. The API can expose
+one report selected at server startup, which keeps request handling from
+becoming an arbitrary local-file reader. A disposable Prometheus,
+Alertmanager, and test-receiver lab is still required before claiming end-to-end
+monitoring verification.
+
 ## Deployment and Scaling Path
 
 1. Local development: existing Python CLI/API and Vite console; disposable lab

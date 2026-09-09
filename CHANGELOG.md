@@ -5,6 +5,22 @@ tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
 ## Unreleased
 
+## v0.7.0 — 2026-09-09 — IncidentOps verification foundation
+
+- Added a versioned monitoring-path verification contract with explicit
+  `passed`, `failed`, `unknown`, and `not_tested` stage statuses.
+- Added measured coverage and deterministic outcome evaluation without
+  inferring root causes from missing or unknown evidence.
+- Added `opsbench verify monitoring-path` for offline JSON verification input
+  and immutable report output.
+- Added a configured-report `/api/v1/verifications` endpoint and
+  `opsbench serve --verification-report`; request paths cannot select arbitrary
+  local files.
+- Added an Operations console panel showing supplied stage evidence, outcome,
+  and coverage boundaries.
+- This milestone does not execute Prometheus, Alertmanager, receiver, or
+  production connector workflows; those remain the next Gate B slice.
+
 - Documented the IncidentOps product direction: Observe, Verify, Rehearse,
   powered by the existing OpsBench engine in this repository.
 - Added monitoring-path verification acceptance criteria,

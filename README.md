@@ -10,10 +10,10 @@ OpsBench is an open DevOps scenario and result engine, evolving toward
 response**. Its existing benchmark evaluates structured human and AI responses
 against versioned evidence and deterministic rules.
 
-The next milestone is monitoring-path verification: show which steps from a
-signal to a notification were actually tested, where they failed, and what
-remains unknown. Production connectors, verification workers, and interactive
-branching rehearsal are planned, not implemented.
+The current milestone is the monitoring-path verification foundation: show
+which steps from a signal to a notification were actually tested, where they
+failed, and what remains unknown. Production connectors, verification workers,
+and interactive branching rehearsal are planned, not implemented.
 
 ## Product Direction
 
@@ -31,9 +31,11 @@ Keep this in one repository and preserve the existing CLI and benchmark APIs.
 Read the [product direction](docs/product-direction.md),
 [roadmap](docs/roadmap.md), and [architecture](docs/architecture.md).
 
-**Status (2026-09-07):** local benchmark plus a prototype React console on
-`develop`. IncidentOps modes are not available yet. Reference deployment files
-are not proof of hosted or multi-tenant readiness; see [security](SECURITY.md).
+**Status (2026-09-09):** v0.7.0 adds offline monitoring-path verification,
+configured report serving, and an evidence-aware React console on `develop`.
+It does not execute a Prometheus/Alertmanager lab or production connectors.
+Reference deployment files are not proof of hosted or multi-tenant readiness;
+see [security](SECURITY.md).
 
 The project uses fictional infrastructure and generated operational data. It
 does not contain employer systems, production credentials, or private incident
@@ -70,7 +72,7 @@ This is the existing benchmark flow, not the planned live verification system.
 The dependency-light Python package supports local execution, provider adapters,
 SQLite persistence, and an HTTP API. Queue-driven workers remain future work.
 
-## Current Capability (v0.6.4 Core and Develop Console)
+## Current Capability (v0.7.0 Core and Develop Console)
 
 OpsBench runs entirely locally; no model provider is required to explore it.
 It includes:
@@ -98,6 +100,12 @@ It includes:
 - Reference Docker/Compose, Kubernetes, Helm, Argo CD, and Terraform
   deployment assets, hardened to run as non-root with a default-deny
   `NetworkPolicy`.
+- Versioned offline monitoring-path verification inputs and reports with
+  explicit stage statuses, measured coverage, and deterministic outcomes.
+- `opsbench verify monitoring-path` and the configured `/api/v1/verifications`
+  endpoint for serving a report without allowing request-selected file paths.
+- Operations console evidence panel that distinguishes failed, unknown, and
+  not-tested stages without inventing a root cause.
 
 Bundled scenarios and reference responses are synthetic. The evaluator never
 executes proposed actions or calls an AI provider; provider adapters can make
@@ -110,6 +118,54 @@ not operational safety.
 
 See [the architecture](docs/architecture.md), [the roadmap](docs/roadmap.md),
 and [the changelog](CHANGELOG.md) for system boundaries and release history.
+
+### Offline monitoring-path verification
+
+Create a JSON input containing declared assertions and supplied observations.
+Each observation uses one of `passed`, `failed`, `unknown`, or `not_tested`:
+
+```json
+{
+  "schema_version": "1.0",
+  "verification_id": "monitoring-path-001",
+  "scenario_id": "alert-routing-change-001",
+  "started_at": "2026-09-09T12:00:00Z",
+  "assertions": [
+    {
+      "assertion_id": "assert-signal",
+      "stage_id": "signal_emitted",
+      "description": "The test signal is emitted."
+    }
+  ],
+  "observations": [
+    {
+      "stage_id": "signal_emitted",
+      "status": "passed",
+      "observed_at": "2026-09-09T12:00:01Z",
+      "evidence_refs": ["event-001"],
+      "summary": "Synthetic signal observed."
+    }
+  ]
+}
+```
+
+Evaluate it locally:
+
+```bash
+opsbench verify monitoring-path verification-input.json verification-report.json
+```
+
+The command returns `0` for `passed` and `unknown`, and `3` for a reported
+`failed` stage. It never infers a root cause. To expose one validated report to
+the read-only console/API, configure the server with:
+
+```bash
+opsbench serve --db bench.db --verification-report verification-report.json \
+  --frontend-path frontend/dist
+```
+
+`GET /api/v1/verifications` serves only that startup-configured file. It does
+not accept a request-selected filesystem path.
 
 
 ## Development
@@ -445,7 +501,7 @@ The scene is an explicitly illustrative benchmark model, not infrastructure
 telemetry. Demo data requires a separate checkbox; empty and failed API sources
 are shown without fabricated results. Operations lists capabilities without
 inventing CLI commands. Browser authentication, incident timelines, and live
-verification remain future work.
+lab execution remain future work.
 
 The workspace factory is a procedural Three.js illustration of the benchmark
 path: registry, delivery, orchestration, and observability stations. Its moving
@@ -472,18 +528,21 @@ before treating this as a deployment recipe.
 
 ## What Comes Next
 
-The v0.6.4 benchmark foundation remains supported. Next work is ordered by
+The v0.7.0 benchmark and offline verification foundation remains supported. Next work is ordered by
 demonstrable value rather than promised release dates:
 
-1. Correct prototype data/authentication states and validate local deployment.
-2. Build isolated monitoring-path verification with evidence and reruns.
+1. Build the disposable Prometheus/Alertmanager/test-receiver lab and retain
+   healthy, failed, unknown, and corrected-rerun evidence.
+2. Correct prototype authentication states and validate local deployment,
+   persistence, backup, and restore smoke tests.
 3. Deliver an authenticated self-hosted team pilot with read-only inputs.
 4. Add explicitly modelled branching rehearsal and outcome comparison.
 5. Consider production canaries and hosted multi-tenancy only after separate
   security and operational gates pass.
 
 See [the roadmap](docs/roadmap.md) for acceptance criteria and historical
-milestones. This documentation update introduces no new command or connector.
+milestones. The v0.7.0 verification command and configured report endpoint are
+documented above; no production connector is included.
 
 ## License
 

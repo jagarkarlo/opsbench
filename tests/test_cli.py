@@ -252,6 +252,7 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(parsed.host, "0.0.0.0")
         self.assertEqual(parsed.port, 9090)
         self.assertEqual(parsed.db, "test.db")
+        self.assertIsNone(parsed.verification_report)
 
     def test_parses_canonical_run_metadata(self) -> None:
         parsed = build_parser().parse_args(
