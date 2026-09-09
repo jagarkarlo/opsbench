@@ -15,7 +15,17 @@ export type Ranking = {
 }
 
 export type Run = {
-  run: { run_id: string; runner_kind: string; model_name?: string; started_at: string }
+  run: {
+    run_id: string
+    runner_kind: string
+    model_name?: string
+    started_at: string
+    run_schema_version?: string
+    scenario_pack_hash?: string
+    evaluator_profile_hash?: string
+    response_hash?: string
+    metadata?: Record<string, string>
+  }
   report: {
     scenario_id: string
     total: number

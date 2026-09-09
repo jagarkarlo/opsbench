@@ -45,6 +45,36 @@ test('run details show the score dimensions', async ({ page }) => {
   await expect(page.getByRole('dialog')).toContainText('Safety')
 })
 
+test('indexed run details show immutable provenance', async ({ page }) => {
+  await page.route('**/api/v1/**', route => {
+    const endpoint = new URL(route.request().url()).pathname
+    if (endpoint.endsWith('/runs')) return route.fulfill({ json: {
+      runs: [{
+        run: {
+          run_id: 'indexed-run-001', runner_kind: 'fixture', model_name: 'reference-fixture', started_at: '2026-09-04T12:00:00Z',
+          run_schema_version: '1.0', scenario_pack_hash: 'a'.repeat(64), evaluator_profile_hash: 'b'.repeat(64), response_hash: 'c'.repeat(64), metadata: { seed: '42' },
+        },
+        report: { scenario_id: 'indexed-scenario', total: 14, maximum: 16, diagnosis: 4, evidence: 3, actions: 4, safety: 3, explanation: 'Indexed report.' },
+      }],
+      count: 1,
+    } })
+    const data = endpoint.endsWith('/health') ? { status: 'ok', version: 'test' }
+      : endpoint.endsWith('/scenarios') ? { scenarios: [{ scenario_id: 'indexed-scenario', title: 'Indexed scenario', category: 'test' }] }
+      : endpoint.endsWith('/portfolio') ? { leaderboard: [] }
+      : { operations: [] }
+    return route.fulfill({ json: data })
+  })
+  await page.goto('/app/')
+  await page.getByRole('button', { name: 'Runs', exact: true }).click()
+  await page.getByRole('button', { name: 'indexed-run-001', exact: true }).click()
+  await expect(page.getByRole('dialog')).toContainText('RUN SCHEMA')
+  await expect(page.getByRole('dialog')).toContainText('SCENARIO PACK')
+  await expect(page.getByRole('dialog')).toContainText('EVALUATOR PROFILE')
+  await expect(page.getByRole('dialog')).toContainText('RESPONSE HASH')
+  await expect(page.getByRole('dialog')).toContainText('SEED')
+  await expect(page.getByRole('dialog')).toContainText('42')
+})
+
 for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
   test(`interactive workflow and results at ${viewport.width}px`, async ({ page }, testInfo) => {
     test.setTimeout(60_000)
