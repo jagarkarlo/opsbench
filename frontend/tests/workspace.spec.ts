@@ -8,6 +8,7 @@ async function mockApi(page: Page, partial = false) {
       : endpoint.endsWith('/scenarios') ? { scenarios: partial ? [{ scenario_id: 'real-test', title: 'API test scenario', category: 'test' }] : [] }
       : endpoint.endsWith('/runs') ? { runs: [], count: 0 }
       : endpoint.endsWith('/portfolio') ? { leaderboard: [] }
+      : endpoint.endsWith('/verifications') ? { verifications: [], count: 0 }
       : { operations: [] }
     return route.fulfill({ json: data })
   })
@@ -103,6 +104,37 @@ test('same-scenario comparison shows score dimensions', async ({ page }) => {
   await expect(comparison).toContainText('compare-run-2')
   await expect(comparison).toContainText('1 / 4')
   await expect(comparison).toContainText('3 / 4')
+})
+
+test('operations view shows supplied verification stages without guessing causes', async ({ page }) => {
+  await page.route('**/api/v1/**', route => {
+    const endpoint = new URL(route.request().url()).pathname
+    if (endpoint.endsWith('/verifications')) return route.fulfill({ json: {
+      count: 1,
+      verifications: [{
+        verification_id: 'verification-ui-001', scenario_id: 'monitoring-path-001', outcome: 'failed', schema_version: '1.0',
+        coverage: { ratio: .8, tested_stage_count: 4, total_stage_count: 5 },
+        assertions: [
+          { assertion_id: 'assert-signal', stage_id: 'signal_emitted', status: 'passed', description: 'Signal is observed.' },
+          { assertion_id: 'assert-route', stage_id: 'route_matched', status: 'failed', description: 'Route matches the expected receiver.' },
+        ],
+        observations: [],
+      }],
+    } })
+    const data = endpoint.endsWith('/health') ? { status: 'ok', version: 'test' }
+      : endpoint.endsWith('/scenarios') ? { scenarios: [] }
+      : endpoint.endsWith('/runs') ? { runs: [], count: 0 }
+      : endpoint.endsWith('/portfolio') ? { leaderboard: [] }
+      : { operations: [] }
+    return route.fulfill({ json: data })
+  })
+  await page.goto('/app/')
+  await page.getByRole('button', { name: 'Operations', exact: true }).click()
+  const panel = page.getByRole('region', { name: 'Monitoring path verification' })
+  await expect(panel).toContainText('FAILED')
+  await expect(panel).toContainText('4 / 5 stages observed')
+  await expect(panel).toContainText('route matched')
+  await expect(panel).toContainText('No root cause is inferred')
 })
 
 for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {

@@ -40,6 +40,16 @@ export type Run = {
 
 export type Capability = { id: string; label: string; mode: 'ui' | 'cli' }
 
+export type Verification = {
+  verification_id: string
+  scenario_id: string
+  outcome: 'passed' | 'failed' | 'unknown'
+  coverage: { ratio: number; tested_stage_count: number; total_stage_count: number }
+  assertions: { assertion_id: string; stage_id: string; status: 'passed' | 'failed' | 'unknown' | 'not_tested'; description: string }[]
+  observations: { stage_id: string; status: 'passed' | 'failed' | 'unknown' | 'not_tested'; observed_at?: string; evidence_refs: string[]; summary: string }[]
+  schema_version: string
+}
+
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(path)
   if (!response.ok) throw new Error(`API request failed: ${response.status}`)
@@ -68,4 +78,12 @@ export function loadHealth(): Promise<{ status: string; version: string }> {
 
 export function loadCapabilities(): Promise<{ frontend: boolean; operations: Capability[] }> {
   return getJson('/api/v1/capabilities')
+}
+
+export function loadVerification(): Promise<{ count: number; verifications: Verification[] }> {
+  return fetch('/api/v1/verifications').then(async response => {
+    if (response.status === 404) return { count: 0, verifications: [] }
+    if (!response.ok) throw new Error(`API request failed: ${response.status}`)
+    return response.json() as Promise<{ count: number; verifications: Verification[] }>
+  })
 }
