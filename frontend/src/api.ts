@@ -16,7 +16,16 @@ export type Ranking = {
 
 export type Run = {
   run: { run_id: string; runner_kind: string; model_name?: string; started_at: string }
-  report: { scenario_id: string; total: number; maximum: number; explanation: string }
+  report: {
+    scenario_id: string
+    total: number
+    maximum: number
+    explanation: string
+    diagnosis?: number
+    evidence?: number
+    actions?: number
+    safety?: number
+  }
 }
 
 export type Capability = { id: string; label: string; mode: 'ui' | 'cli' }

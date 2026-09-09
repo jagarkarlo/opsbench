@@ -33,6 +33,18 @@ test('one failed endpoint preserves successful sources', async ({ page }) => {
   await expect(page.getByText('Run source unavailable.')).toBeVisible()
 })
 
+test('run details show the score dimensions', async ({ page }) => {
+  await mockApi(page)
+  await page.goto('/app/')
+  await page.getByLabel('Demo dataset').check()
+  await page.getByRole('button', { name: 'Runs', exact: true }).click()
+  await page.getByRole('button', { name: 'demo-run-1', exact: true }).click()
+  await expect(page.getByRole('dialog')).toContainText('Diagnosis')
+  await expect(page.getByRole('dialog')).toContainText('Evidence')
+  await expect(page.getByRole('dialog')).toContainText('Actions')
+  await expect(page.getByRole('dialog')).toContainText('Safety')
+})
+
 for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
   test(`interactive workflow and results at ${viewport.width}px`, async ({ page }, testInfo) => {
     test.setTimeout(60_000)
@@ -110,6 +122,10 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await expect(page.getByText('Different scenarios: scores are not directly comparable.')).toBeVisible()
     await page.getByRole('button', { name: 'demo-run-1', exact: true }).click()
     await expect(page.getByRole('dialog')).toContainText('Synthetic demonstration report')
+    await expect(page.getByRole('dialog')).toContainText('Diagnosis')
+    await expect(page.getByRole('dialog')).toContainText('Evidence')
+    await expect(page.getByRole('dialog')).toContainText('Actions')
+    await expect(page.getByRole('dialog')).toContainText('Safety')
     await page.keyboard.press('Escape')
     await expect(page.getByRole('dialog')).toHaveCount(0)
     expect(errors).toEqual([])
