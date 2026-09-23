@@ -1,0 +1,4 @@
+services:
+  prometheus:
+    volumes:
+      - ./prometheus-missing-collection.yml:/etc/prometheus/prometheus.yml:ro

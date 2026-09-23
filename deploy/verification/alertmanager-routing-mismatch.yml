@@ -1,0 +1,20 @@
+global:
+  resolve_timeout: 1m
+
+# Only critical alerts reach the test receiver; the warning-level signal falls through to the null receiver.
+route:
+  receiver: opsbench-null
+  group_wait: 1s
+  group_interval: 1s
+  repeat_interval: 1h
+  routes:
+    - receiver: opsbench-test-receiver
+      matchers:
+        - severity="critical"
+
+receivers:
+  - name: opsbench-null
+  - name: opsbench-test-receiver
+    webhook_configs:
+      - url: http://receiver:8090/alerts
+        send_resolved: false

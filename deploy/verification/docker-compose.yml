@@ -2,8 +2,6 @@ services:
   test-service:
     image: python:3.12-alpine
     command: ["python", "/opt/opsbench/test_service.py"]
-    environment:
-      OPSBENCH_SIGNAL_MODE: "${OPSBENCH_SIGNAL_MODE:-healthy}"
     volumes:
       - ./test_service.py:/opt/opsbench/test_service.py:ro
     networks:

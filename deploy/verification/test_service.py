@@ -1,10 +1,6 @@
 """Synthetic metric source for the disposable OpsBench verification lab."""
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-import os
-
-
-MODE = os.environ.get("OPSBENCH_SIGNAL_MODE", "healthy")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -13,9 +9,6 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, "ok\n", "text/plain")
             return
         if self.path == "/metrics":
-            if MODE == "missing_collection":
-                self._send(200, "# synthetic signal intentionally absent\n", "text/plain; version=0.0.4")
-                return
             self._send(200, "opsbench_verification_signal 1\n", "text/plain; version=0.0.4")
             return
         self._send(404, "not found\n", "text/plain")

@@ -5,6 +5,24 @@ tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
 ## Unreleased
 
+Targeted for v0.8.0 — disposable monitoring verification lab.
+
+- Added a disposable Docker Compose lab with a synthetic service, Prometheus,
+  Alertmanager, and a bounded test receiver; nothing leaves the host.
+- Added five live smoke modes. Each failure mode breaks one real component
+  config: `missing_collection` (wrong scrape port), `routing_mismatch`
+  (matcher sends the alert to a null receiver), `invalid_notification`
+  (receiver rejects the alert summary), and `unavailable` (source stopped).
+- Stage statuses come from live component evidence; a stage that does not
+  pass marks later stages `not_tested`, and a deadline yields `unknown`
+  rather than a guessed failure.
+- Added `opsbench verify compare BASELINE RERUN OUTPUT` for sanitized
+  same-scenario rerun comparison in pipeline stage order.
+- The smoke harness removes and verifies removal of all containers, volumes,
+  and networks, including after SIGINT or SIGTERM.
+- Validated live on Docker 28.3.2: all five modes and SIGINT/SIGTERM
+  cancellation cleanup pass.
+
 ## v0.7.0 — 2026-09-09 — IncidentOps verification foundation
 
 - Added a versioned monitoring-path verification contract with explicit

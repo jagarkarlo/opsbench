@@ -4,10 +4,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
+import threading
 
 
 EVENTS = Path("/data/events.jsonl")
 EXPECTED_SUMMARY = os.environ.get("OPSBENCH_EXPECTED_SUMMARY", "OpsBench verification signal")
+REJECTED_LOCK = threading.Lock()
+REJECTED = 0
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -19,11 +22,12 @@ class Handler(BaseHTTPRequestHandler):
             events = []
             if EVENTS.is_file():
                 events = [json.loads(line) for line in EVENTS.read_text(encoding="utf-8").splitlines() if line]
-            self._send(200, {"count": len(events), "events": events})
+            self._send(200, {"count": len(events), "events": events, "rejected": REJECTED})
             return
         self._send(404, {"error": "not found"})
 
     def do_POST(self) -> None:
+        global REJECTED
         if self.path != "/alerts":
             self._send(404, {"error": "not found"})
             return
@@ -45,6 +49,8 @@ class Handler(BaseHTTPRequestHandler):
                 return
             annotations = alert.get("annotations", {})
             if not isinstance(annotations, dict) or annotations.get("summary") != EXPECTED_SUMMARY:
+                with REJECTED_LOCK:
+                    REJECTED += 1
                 self._send(422, {"error": "invalid notification content"})
                 return
         EVENTS.parent.mkdir(parents=True, exist_ok=True)

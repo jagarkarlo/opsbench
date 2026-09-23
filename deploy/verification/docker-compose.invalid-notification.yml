@@ -1,0 +1,4 @@
+services:
+  prometheus:
+    volumes:
+      - ./rules-invalid-notification.yml:/etc/prometheus/rules.yml:ro

@@ -1,0 +1,4 @@
+services:
+  alertmanager:
+    volumes:
+      - ./alertmanager-routing-mismatch.yml:/etc/alertmanager/alertmanager.yml:ro

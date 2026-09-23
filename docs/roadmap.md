@@ -39,15 +39,16 @@ is presented as live without a source. Existing CLI behaviour remains intact.
 ### Gate B: Monitoring-Path Verification
 
 - [x] Define versioned assertions, stage evidence, coverage, and run outcomes
-  for offline supplied observations. External lab execution remains planned.
+  for offline supplied observations.
 - [x] Add one disposable service/Prometheus/Alertmanager/test-receiver lab
-  definition and bounded smoke harness. Runtime smoke validation remains open.
-- [ ] Use existing rule/routing tooling and real components, not a second evaluator.
-- [ ] Verify a healthy signal from emission through receiver acceptance.
-- [ ] Test missing collection, mismatched routing, and invalid notification content.
-- [ ] Handle timeouts, unavailable stages, and partial evidence without guessed causes.
+  definition and bounded smoke harness, validated live on Docker.
+- [x] Use existing rule/routing tooling and real components, not a second evaluator.
+- [x] Verify a healthy signal from emission through receiver acceptance.
+- [x] Test missing collection, mismatched routing, and invalid notification content.
+- [x] Handle timeouts, unavailable stages, and partial evidence without guessed causes.
 - [ ] Retain corrected reruns and provide visual evidence comparison and export.
-- [ ] Guarantee cancellation and cleanup; prevent credentials or real paging access.
+  CLI comparison export exists; console visual comparison remains open.
+- [x] Guarantee cancellation and cleanup; prevent credentials or real paging access.
 
 Exit: automated integration tests cover the healthy path, all three failures,
 and corrected reruns. UI and exported results agree on failed, unknown, and
