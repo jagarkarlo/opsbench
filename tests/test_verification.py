@@ -9,6 +9,7 @@ from opsbench.verification import (
     VerificationAssertion,
     VerificationInput,
     VerificationObservation,
+    compare_verification_reports,
     evaluate_verification,
     load_verification_input,
     load_verification_report,
@@ -111,6 +112,33 @@ class VerificationContractTests(unittest.TestCase):
         self.assertEqual(STAGE_STATUSES, frozenset({"passed", "failed", "unknown", "not_tested"}))
         self.assertEqual(verification_input, loaded_input)
         self.assertEqual(report.content_hash(), loaded_report.content_hash())
+
+    def test_corrected_rerun_comparison_is_sanitized(self) -> None:
+        baseline = evaluate_verification(build_input("passed", "passed", "failed", "unknown", "not_tested"))
+        rerun = evaluate_verification(build_input(*(["passed"] * len(MONITORING_STAGE_IDS))))
+
+        comparison = compare_verification_reports(baseline, rerun)
+
+        self.assertEqual(comparison["baseline"]["outcome"], "failed")
+        self.assertEqual(comparison["rerun"]["outcome"], "passed")
+        self.assertEqual(
+            comparison["stages"][2],
+            {"baseline_status": "failed", "rerun_status": "passed", "stage_id": "rule_fired"},
+        )
+        self.assertEqual(tuple(stage["stage_id"] for stage in comparison["stages"]), MONITORING_STAGE_IDS)
+        self.assertNotIn("evidence_refs", json.dumps(comparison))
+
+    def test_comparison_rejects_cross_scenario_reports(self) -> None:
+        baseline = build_input(*(["passed"] * len(MONITORING_STAGE_IDS)))
+        other = VerificationInput(
+            verification_id="verification-002",
+            scenario_id="different-scenario",
+            started_at=baseline.started_at,
+            assertions=baseline.assertions,
+            observations=baseline.observations,
+        )
+        with self.assertRaisesRegex(ValueError, "same scenario_id"):
+            compare_verification_reports(evaluate_verification(baseline), evaluate_verification(other))
 
 
 if __name__ == "__main__":

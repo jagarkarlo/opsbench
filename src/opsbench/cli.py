@@ -61,7 +61,14 @@ from opsbench.specialized_adapters import ReliabilityReplayAdapter, load_replay_
 from opsbench.store import RunQuery, SQLiteResultStore
 from opsbench.tracing import TraceTracer
 from opsbench.validator import lint_scenario
-from opsbench.verification import evaluate_verification, load_verification_input, write_verification_report
+from opsbench.verification import (
+    compare_verification_reports,
+    evaluate_verification,
+    load_verification_input,
+    load_verification_report,
+    write_verification_comparison,
+    write_verification_report,
+)
 
 
 def parse_metadata(entries: list[str] | None) -> tuple[tuple[str, str], ...]:
@@ -433,6 +440,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     monitoring_parser.add_argument("input_path", help="JSON verification input document")
     monitoring_parser.add_argument("output_path", help="destination JSON verification report")
+    comparison_parser = verify_subparsers.add_parser(
+        "compare", help="compare two same-scenario verification reports"
+    )
+    comparison_parser.add_argument("baseline_path", help="baseline verification report")
+    comparison_parser.add_argument("rerun_path", help="corrected rerun verification report")
+    comparison_parser.add_argument("output_path", help="destination sanitized comparison JSON")
     return parser
 
 
@@ -445,6 +458,14 @@ def main(argv: list[str] | None = None) -> int:
         write_verification_report(Path(parsed.output_path), report)
         print(json.dumps(report.to_dict(), sort_keys=True))
         return 3 if report.outcome == "failed" else 0
+    if parsed.command == "verify" and parsed.verify_command == "compare":
+        comparison = compare_verification_reports(
+            load_verification_report(Path(parsed.baseline_path)),
+            load_verification_report(Path(parsed.rerun_path)),
+        )
+        write_verification_comparison(Path(parsed.output_path), comparison)
+        print(json.dumps(comparison, sort_keys=True))
+        return 0
     if parsed.command == "scenario" and parsed.scenario_command == "validate":
         pack = load_scenario_pack(Path(parsed.path))
         print(

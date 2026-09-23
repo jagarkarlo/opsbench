@@ -112,7 +112,7 @@ from opsbench.verification import (
 )
 from opsbench.web import render_dashboard_html
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 __all__ = [
     "ChaosCaseResult",
     "ChaosMatrixResult",

@@ -384,3 +384,52 @@ def load_verification_report(path: Path) -> VerificationReport:
         )
     except (KeyError, TypeError, AttributeError) as error:
         raise ValueError("verification report contains invalid values") from error
+
+
+def compare_verification_reports(
+    baseline: VerificationReport, rerun: VerificationReport
+) -> dict[str, Any]:
+    """Return a sanitized stage-status comparison for two same-scenario reports."""
+    if not isinstance(baseline, VerificationReport) or not isinstance(rerun, VerificationReport):
+        raise ValueError("baseline and rerun must be VerificationReport values")
+    if baseline.scenario_id != rerun.scenario_id:
+        raise ValueError("verification reports must use the same scenario_id")
+
+    baseline_statuses = {item.stage_id: item.status for item in baseline.assertions}
+    rerun_statuses = {item.stage_id: item.status for item in rerun.assertions}
+    if set(baseline_statuses) != set(rerun_statuses):
+        raise ValueError("verification reports must declare the same stages")
+    stages = [
+        {
+            "baseline_status": baseline_statuses[stage_id],
+            "rerun_status": rerun_statuses[stage_id],
+            "stage_id": stage_id,
+        }
+        for stage_id in sorted(baseline_statuses, key=MONITORING_STAGE_IDS.index)
+    ]
+    return {
+        "baseline": {
+            "coverage": baseline.coverage.to_dict(),
+            "outcome": baseline.outcome,
+            "verification_id": baseline.verification_id,
+        },
+        "rerun": {
+            "coverage": rerun.coverage.to_dict(),
+            "outcome": rerun.outcome,
+            "verification_id": rerun.verification_id,
+        },
+        "scenario_id": baseline.scenario_id,
+        "stages": stages,
+    }
+
+
+def write_verification_comparison(path: Path, comparison: dict[str, Any]) -> None:
+    """Write one sanitized comparison without replacing an existing file."""
+    if not isinstance(path, Path):
+        raise ValueError("path must be a Path")
+    if not isinstance(comparison, dict):
+        raise ValueError("comparison must be a dictionary")
+    if path.exists():
+        raise ValueError(f"verification comparison already exists: {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(comparison, indent=2, sort_keys=True) + "\n", encoding="utf-8")
