@@ -3,9 +3,7 @@
 All notable changes to this project are documented here. Dates are release
 tag dates; versions follow the milestones described in `docs/roadmap.md`.
 
-## Unreleased
-
-Targeted for v0.8.0 — disposable monitoring verification lab.
+## v0.8.0 — 2026-09-23 — Live monitoring-path verification lab
 
 - Added a disposable Docker Compose lab with a synthetic service, Prometheus,
   Alertmanager, and a bounded test receiver; nothing leaves the host.
