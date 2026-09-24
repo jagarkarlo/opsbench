@@ -206,6 +206,9 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await expect(page.locator('.scene-heading')).toContainText('GitOps drift detection')
     await page.getByLabel('Search scenarios').fill('')
     await expect(page.locator('.inspector')).toContainText('demo-drift')
+    if (viewport.width === 390) {
+      expect(await page.locator('.library').evaluate(element => element.scrollHeight <= element.clientHeight)).toBe(true)
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.screenshot({ path: testInfo.outputPath(`workspace-${viewport.width}.png`), fullPage: true })
     await page.getByRole('button', { name: 'Runs', exact: true }).click()
@@ -214,11 +217,8 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await expect(page.getByText('Different scenarios: scores are not directly comparable.')).toBeVisible()
     await page.getByLabel('Compare demo-run-2').uncheck()
     await page.getByLabel('Compare demo-run-3').check()
-    await expect(page.getByRole('heading', { name: 'Dimension comparison' })).toBeVisible()
-    await expect(page.getByRole('table', { name: 'Score dimension comparison' })).toContainText('Diagnosis')
-    await expect(page.getByRole('table', { name: 'Score dimension comparison' })).toContainText('Safety')
-    await expect(page.getByRole('table', { name: 'Score dimension comparison' })).toContainText('demo-run-1')
-    await expect(page.getByRole('table', { name: 'Score dimension comparison' })).toContainText('demo-run-3')
+    await expect(page.getByText('Different scenarios: scores are not directly comparable.')).toBeVisible()
+    await expect(page.getByRole('table', { name: 'Score dimension comparison' })).toHaveCount(0)
     await page.getByRole('button', { name: 'demo-run-1', exact: true }).click()
     await expect(page.getByRole('dialog')).toContainText('Synthetic demonstration report')
     await expect(page.getByRole('dialog')).toContainText('Diagnosis')
