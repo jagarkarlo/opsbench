@@ -128,9 +128,12 @@ export function WorkflowScene({ selected, onSelect }: { selected: number; onSele
     reducedMotion.addEventListener('change', motionChange)
     let frame = 0
     let last = 0
+    let lastRender = 0
     let lastCycleTick = -1
     const animate = (time: number) => {
       frame = requestAnimationFrame(animate)
+      if (time - lastRender < (playback.current.paused ? 100 : 33)) return
+      lastRender = time
       const delta = Math.min((time - last) / 1000, .05)
       last = time
       if (!playback.current.paused) playback.current.progress += delta * playback.current.speed
